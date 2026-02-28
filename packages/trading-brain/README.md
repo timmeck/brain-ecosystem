@@ -203,6 +203,8 @@ These tools are available to Claude Code (and other MCP clients) when Trading Br
 | `trading_record_outcome` | Record a trade outcome (main entry point for learning loop) |
 | `trading_signal_weights` | Get Brain-weighted signal strengths for a signal combination |
 | `trading_signal_confidence` | Wilson Score confidence interval for a signal pattern |
+| `trading_explain_signal` | Full confidence breakdown with Wilson Score details, similar signals (new in v2.0) |
+| `trading_calibration_history` | Calibration parameter changes over time (new in v2.0) |
 | `trading_dca_multiplier` | Brain-recommended DCA position size multiplier |
 | `trading_grid_params` | Brain-recommended grid trading parameters |
 | `trading_explore` | Spreading Activation network exploration from a query node |
@@ -331,10 +333,10 @@ Trading Brain is part of the **[Brain Ecosystem](https://github.com/timmeck/brai
 
 | Brain | Purpose | Ports |
 |-------|---------|-------|
-| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v2.2.1 | Error memory, code intelligence & persistent context | 7777 / 7778 |
-| **Trading Brain** v1.3.2 | Adaptive trading intelligence with memory & sessions | **7779** / 7780 |
-| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) v0.5.2 | Content strategy & engagement with memory & sessions | 7781 / 7782 / 7783 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v1.6.1 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory) | — |
+| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v3.0.0 | Error memory, code intelligence & persistent context | 7777 / 7778 |
+| **Trading Brain** v2.0.0 | Adaptive trading intelligence with memory & sessions | **7779** / 7780 |
+| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) v1.1.0 | Content strategy & engagement with memory & sessions | 7781 / 7782 / 7783 |
+| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.0.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory) | — |
 | [Brain Hub](https://timmeck.github.io/brain-hub/) | Ecosystem landing page | — |
 
 All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. [Brain Core](https://www.npmjs.com/package/@timmeck/brain-core) provides shared infrastructure (IPC, MCP, REST API, CLI, math, synapse algorithms) used by all brains, eliminating ~2,800 lines of duplicated code.

@@ -225,6 +225,10 @@ These tools are available to Claude Code when Marketing Brain is configured:
 | `marketing_insight_list` | Get active insights (trends, gaps, synergies) |
 | `marketing_analytics_summary` | Full analytics overview |
 | `marketing_analytics_best` | Top performing posts and strategies |
+| `marketing_extract_patterns` | Extract timing, format, platform & content patterns (new in v1.1) |
+| `marketing_track_ab_test` | Create A/B test with statistical significance tracking (new in v1.1) |
+| `marketing_ab_test_result` | Record data point for A/B test variant (new in v1.1) |
+| `marketing_content_calendar` | Get optimal posting schedule from learned patterns (new in v1.1) |
 | `marketing_ecosystem_status` | Get status of all brains in the ecosystem |
 | `marketing_query_peer` | Query another brain in the ecosystem (method + params) |
 | `marketing_remember` | Store a memory (preference, decision, context, fact, goal, lesson) |
@@ -388,10 +392,10 @@ Marketing Brain is part of the **[Brain Ecosystem](https://github.com/timmeck/br
 
 | Brain | Purpose | Ports |
 |-------|---------|-------|
-| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v2.2.1 | Error memory, code intelligence & persistent context | 7777 / 7778 |
-| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) v1.3.2 | Adaptive trading intelligence with memory & sessions | 7779 / 7780 |
-| **Marketing Brain** v0.5.2 | Content strategy & engagement with memory & sessions | **7781** / 7782 / 7783 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v1.6.1 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory) | — |
+| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v3.0.0 | Error memory, code intelligence & persistent context | 7777 / 7778 |
+| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) v2.0.0 | Adaptive trading intelligence with memory & sessions | 7779 / 7780 |
+| **Marketing Brain** v1.1.0 | Content strategy & engagement with memory & sessions | **7781** / 7782 / 7783 |
+| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.0.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory) | — |
 | [Brain Hub](https://timmeck.github.io/brain-hub/) | Ecosystem landing page | — |
 
 All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. [Brain Core](https://www.npmjs.com/package/@timmeck/brain-core) provides shared infrastructure (IPC, MCP, REST API, CLI, math, synapse algorithms) used by all brains, eliminating ~2,800 lines of duplicated code.
