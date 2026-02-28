@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { encodeMessage, MessageDecoder } from '../../src/ipc/protocol.js';
-import type { IpcMessage } from '../../src/types/ipc.types.js';
+import { encodeMessage, MessageDecoder } from '@timmeck/brain-core';
+import type { IpcMessage } from '@timmeck/brain-core';
 
 describe('IPC Protocol', () => {
   it('round-trips a request message', () => {

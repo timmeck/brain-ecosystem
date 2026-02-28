@@ -4,8 +4,8 @@ import type { EngagementRepository } from '../db/repositories/engagement.reposit
 import type { RuleRepository } from '../db/repositories/rule.repository.js';
 import type { StrategyRepository } from '../db/repositories/strategy.repository.js';
 import type { SynapseManager } from '../synapses/synapse-manager.js';
-import { wilsonScore, engagementScore } from './confidence-scorer.js';
-import { BaseLearningEngine } from '@timmeck/brain-core';
+import { engagementScore } from './confidence-scorer.js';
+import { BaseLearningEngine, wilsonScore } from '@timmeck/brain-core';
 
 export interface LearningCycleResult {
   rulesCreated: number;

@@ -6,6 +6,7 @@ import { up as learningSchema } from './003_learning.js';
 import { up as researchSchema } from './004_research.js';
 import { up as memorySchema } from './005_memory_schema.js';
 import { up as memoryFts } from './006_memory_fts.js';
+import { up as calibrationHistory } from './007_calibration_history.js';
 
 interface Migration {
   version: number;
@@ -20,6 +21,7 @@ const migrations: Migration[] = [
   { version: 4, name: '004_research', up: researchSchema },
   { version: 5, name: '005_memory_schema', up: memorySchema },
   { version: 6, name: '006_memory_fts', up: memoryFts },
+  { version: 7, name: '007_calibration_history', up: calibrationHistory },
 ];
 
 function ensureMigrationsTable(db: Database.Database): void {

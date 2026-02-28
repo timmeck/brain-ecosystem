@@ -1,4 +1,4 @@
-import { sha256 } from '../utils/hash.js';
+import { sha256 } from '@timmeck/brain-core';
 
 export function fingerprintCode(source: string, language: string): string {
   let normalized = stripComments(source, language);

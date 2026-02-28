@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { spreadingActivation } from '../../../src/synapses/activation.js';
+import { spreadingActivation } from '@timmeck/brain-core';
 import { createTestDb, type TestDb } from '../../helpers/setup-db.js';
 
 describe('spreadingActivation', () => {

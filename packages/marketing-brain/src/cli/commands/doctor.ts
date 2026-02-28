@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { getDataDir, getPipeName } from '../../utils/paths.js';
-import { IpcClient } from '../../ipc/client.js';
+import { IpcClient } from '@timmeck/brain-core';
 import { c, icons, header, divider } from '../colors.js';
 
 function pass(label: string, detail?: string): void {

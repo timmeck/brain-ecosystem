@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import { getLogger } from '../utils/logger.js';
 import type { IpcMessage } from '../types/ipc.types.js';
 import { encodeMessage, MessageDecoder } from './protocol.js';
+import { IpcClient } from './client.js';
+import { getPipeName } from '../utils/paths.js';
 
 export interface IpcRouter {
   handle(method: string, params: unknown): unknown;
@@ -13,12 +15,14 @@ export interface IpcRouter {
 export class IpcServer {
   private server: net.Server | null = null;
   private clients = new Map<string, net.Socket>();
+  private subscribers: Map<string, { pipeName: string; events: string[] }> = new Map();
   private logger = getLogger();
 
   constructor(
     private router: IpcRouter,
     private pipeName: string,
     private daemonName: string = 'brain',
+    private selfName: string = 'brain',
   ) {}
 
   start(): void {
@@ -156,6 +160,48 @@ export class IpcServer {
 
   getClientCount(): number {
     return this.clients.size;
+  }
+
+  /**
+   * Register a peer brain as a subscriber for specific events.
+   */
+  addSubscriber(subscriber: string, events: string[]): void {
+    this.subscribers.set(subscriber, {
+      pipeName: getPipeName(subscriber),
+      events,
+    });
+    this.logger.info(`Subscriber registered: ${subscriber} for events: ${events.join(', ')}`);
+  }
+
+  /**
+   * Remove a peer brain from the subscriber list.
+   */
+  removeSubscriber(subscriber: string): void {
+    this.subscribers.delete(subscriber);
+    this.logger.info(`Subscriber removed: ${subscriber}`);
+  }
+
+  /**
+   * Notify all subscribed peers when an event occurs.
+   * Fire-and-forget — does not block if a subscriber is offline.
+   */
+  notifySubscribers(event: string, data: unknown): void {
+    for (const [subscriber, sub] of this.subscribers) {
+      if (sub.events.includes(event)) {
+        const client = new IpcClient(sub.pipeName, 3000);
+        client.connect()
+          .then(() => client.request('cross-brain.event', { source: this.selfName, event, data }))
+          .catch(() => { /* subscriber offline */ })
+          .finally(() => client.disconnect());
+      }
+    }
+  }
+
+  /**
+   * Get all current subscribers.
+   */
+  getSubscribers(): Map<string, { pipeName: string; events: string[] }> {
+    return this.subscribers;
   }
 
   stop(): void {

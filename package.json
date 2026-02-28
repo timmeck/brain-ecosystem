@@ -16,7 +16,9 @@
     "build:core": "npm run build -w packages/brain-core",
     "build:brain": "npm run build -w packages/brain",
     "build:trading": "npm run build -w packages/trading-brain",
-    "build:marketing": "npm run build -w packages/marketing-brain"
+    "build:marketing": "npm run build -w packages/marketing-brain",
+    "release": "npm version --workspaces --no-git-tag-version",
+    "release:tag": "git tag -a v$(node -p \"require('./packages/brain/package.json').version\") -m \"Release v$(node -p \"require('./packages/brain/package.json').version\")\" && git push origin --tags"
   },
   "author": "Tim Mecklenburg",
   "license": "MIT"

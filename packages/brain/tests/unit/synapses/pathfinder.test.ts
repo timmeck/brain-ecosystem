@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { findPath } from '../../../src/synapses/pathfinder.js';
+import { findPath } from '@timmeck/brain-core';
 import { createTestDb, type TestDb } from '../../helpers/setup-db.js';
 
 describe('findPath', () => {

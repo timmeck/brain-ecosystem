@@ -11,7 +11,8 @@ import type { ResearchEngine } from '../research/research-engine.js';
 import type { RuleRepository } from '../db/repositories/rule.repository.js';
 import type { ChainRepository } from '../db/repositories/chain.repository.js';
 import type { CalibrationRepository } from '../db/repositories/calibration.repository.js';
-import type { CrossBrainClient } from '@timmeck/brain-core';
+import type { CrossBrainClient, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
+import type { IpcServer } from '@timmeck/brain-core';
 
 const logger = getLogger();
 
@@ -35,9 +36,42 @@ type MethodHandler = (params: unknown) => unknown;
 
 export class IpcRouter {
   private methods: Map<string, MethodHandler>;
+  private subscriptionManager: CrossBrainSubscriptionManager | null = null;
+  private ipcServer: IpcServer | null = null;
 
   constructor(private services: Services) {
     this.methods = this.buildMethodMap();
+  }
+
+  /**
+   * Wire the subscription manager and IPC server for cross-brain event routing.
+   */
+  setSubscriptionManager(manager: CrossBrainSubscriptionManager, server: IpcServer): void {
+    this.subscriptionManager = manager;
+    this.ipcServer = server;
+
+    // Register cross-brain subscription handlers
+    this.methods.set('cross-brain.subscribe', (params) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { subscriber, events } = params as any;
+      server.addSubscriber(subscriber, events);
+      return { subscribed: true, subscriber, events };
+    });
+
+    this.methods.set('cross-brain.unsubscribe', (params) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { subscriber } = params as any;
+      server.removeSubscriber(subscriber);
+      return { unsubscribed: true, subscriber };
+    });
+
+    this.methods.set('cross-brain.event', (params) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { source, event, data } = params as any;
+      logger.info(`Cross-brain event from ${source}: ${event}`);
+      manager.handleIncomingEvent(source, event, data);
+      return { received: true, source, event };
+    });
   }
 
   handle(method: string, params: unknown): unknown {
@@ -72,6 +106,7 @@ export class IpcRouter {
       // ─── Signal ─────────────────────────────────────────
       ['signal.weights', (params) => s.signal.getSignalWeights(p(params).signals, p(params).regime)],
       ['signal.confidence', (params) => s.signal.getConfidence(p(params).signals, p(params).regime)],
+      ['signal.explain', (params) => s.signal.explainSignal(p(params).fingerprint)],
 
       // ─── Strategy ───────────────────────────────────────
       ['strategy.dcaMultiplier', (params) => s.strategy.getDCAMultiplier(p(params).regime, p(params).rsi, p(params).volatility)],
@@ -97,6 +132,10 @@ export class IpcRouter {
 
       // ─── Calibration ────────────────────────────────────
       ['calibration.get', () => s.learning?.getCalibration() ?? s.calRepo.get()],
+      ['calibration.history', () => ({
+        current: s.learning?.getCalibration() ?? s.calRepo.get(),
+        history: s.calRepo.getHistory(20),
+      })],
 
       // ─── Memory ──────────────────────────────────────────
       ['memory.remember', (params) => s.memory.remember(p(params))],

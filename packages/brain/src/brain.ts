@@ -5,7 +5,7 @@ import { loadConfig } from './config.js';
 import type { BrainConfig } from './types/config.types.js';
 import { createLogger, getLogger } from './utils/logger.js';
 import { getEventBus } from './utils/events.js';
-import { createConnection } from './db/connection.js';
+import { createConnection } from '@timmeck/brain-core';
 import { runMigrations } from './db/migrations/index.js';
 
 // Repositories
@@ -52,7 +52,7 @@ import { ResearchEngine } from './research/research-engine.js';
 
 // IPC
 import { IpcRouter, type Services } from './ipc/router.js';
-import { IpcServer } from './ipc/server.js';
+import { IpcServer } from '@timmeck/brain-core';
 
 // API & MCP HTTP
 import { ApiServer } from './api/server.js';
@@ -62,7 +62,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -74,6 +74,7 @@ export class BrainCore {
   private researchEngine: ResearchEngine | null = null;
   private crossBrain: CrossBrainClient | null = null;
   private notifier: CrossBrainNotifier | null = null;
+  private subscriptionManager: CrossBrainSubscriptionManager | null = null;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   private config: BrainConfig | null = null;
   private configPath?: string;
@@ -190,10 +191,16 @@ export class BrainCore {
     this.crossBrain = new CrossBrainClient('brain');
     this.notifier = new CrossBrainNotifier(this.crossBrain, 'brain');
 
+    // 11b. Cross-Brain Subscription Manager
+    this.subscriptionManager = new CrossBrainSubscriptionManager('brain');
+
     // 12. IPC Server
     const router = new IpcRouter(services);
-    this.ipcServer = new IpcServer(router, config.ipc.pipeName);
+    this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'brain', 'brain');
     this.ipcServer.start();
+
+    // Wire subscription manager into IPC router
+    router.setSubscriptionManager(this.subscriptionManager, this.ipcServer);
 
     // 11a. REST API Server
     if (config.api.enabled) {
@@ -220,6 +227,9 @@ export class BrainCore {
 
     // 13. Event listeners (synapse wiring)
     this.setupEventListeners(services, synapseManager);
+
+    // 13b. Cross-Brain Event Subscriptions
+    this.setupCrossBrainSubscriptions();
 
     // 14. PID file
     const pidPath = path.join(path.dirname(config.dbPath), 'brain.pid');
@@ -257,6 +267,7 @@ export class BrainCore {
       this.cleanupTimer = null;
     }
 
+    this.subscriptionManager?.disconnectAll();
     this.researchEngine?.stop();
     this.embeddingEngine?.stop();
     this.learningEngine?.stop();
@@ -272,6 +283,7 @@ export class BrainCore {
     this.embeddingEngine = null;
     this.learningEngine = null;
     this.researchEngine = null;
+    this.subscriptionManager = null;
   }
 
   restart(): void {
@@ -301,6 +313,23 @@ export class BrainCore {
 
     logger.info('Brain daemon stopped');
     process.exit(0);
+  }
+
+  private setupCrossBrainSubscriptions(): void {
+    if (!this.subscriptionManager) return;
+    const logger = getLogger();
+
+    // Subscribe to trading-brain: trade:completed events for error-trade correlation
+    this.subscriptionManager.subscribe('trading-brain', ['trade:completed'], (event: string, data: unknown) => {
+      logger.info(`[cross-brain] Received ${event} from trading-brain`, { data });
+      // TODO: deeper integration — correlate trade outcomes with recent errors
+    });
+
+    // Subscribe to marketing-brain: post:published events for project activity tracking
+    this.subscriptionManager.subscribe('marketing-brain', ['post:published'], (event: string, data: unknown) => {
+      logger.info(`[cross-brain] Received ${event} from marketing-brain`, { data });
+      // TODO: deeper integration — track project activity from published content
+    });
   }
 
   private setupEventListeners(services: Services, synapseManager: SynapseManager): void {

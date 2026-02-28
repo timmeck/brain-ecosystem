@@ -5,7 +5,7 @@
 // Configured in .claude/settings.json:
 // { "hooks": { "PostToolUse": [{ "matcher": { "tool_name": "Bash" }, "command": "node <brain-dist>/hooks/post-tool-use.js" }] } }
 
-import { IpcClient } from '../ipc/client.js';
+import { IpcClient } from '@timmeck/brain-core';
 import { getPipeName } from '../utils/paths.js';
 
 interface HookInput {

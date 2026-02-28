@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { execSync } from 'node:child_process';
 import { getDataDir } from '../../utils/paths.js';
 import { c, icons, header, divider } from '../colors.js';
 
@@ -21,7 +22,27 @@ function skip(label: string, detail?: string): void {
 }
 
 function step(n: number, label: string): void {
-  console.log(`\n  ${c.cyan(`[${n}/5]`)} ${c.value(label)}`);
+  console.log(`\n  ${c.cyan(`[${n}/6]`)} ${c.value(label)}`);
+}
+
+function resolveHookPath(): string {
+  const platform = process.platform;
+  try {
+    const prefix = execSync('npm prefix -g', { encoding: 'utf8' }).trim();
+    const hookRelative = 'node_modules/@timmeck/trading-brain/dist/hooks/post-tool-use.js';
+
+    if (platform === 'win32') {
+      return path.join(prefix, hookRelative);
+    }
+    return path.join(prefix, 'lib', hookRelative);
+  } catch {
+    return path.resolve(import.meta.dirname, '../../hooks/post-tool-use.js');
+  }
+}
+
+function buildHookCommand(hookPath: string): string {
+  const normalized = hookPath.replace(/\\/g, '\\\\');
+  return `node ${normalized}`;
 }
 
 function readSettings(settingsPath: string): Record<string, unknown> {
@@ -43,6 +64,7 @@ export function setupCommand(): Command {
   return new Command('setup')
     .description('One-command setup: configures MCP and starts the daemon')
     .option('--no-daemon', 'Skip starting the daemon')
+    .option('--no-hooks', 'Skip hook configuration')
     .option('--dry-run', 'Show what would be done without making changes')
     .action(async (opts) => {
       console.log(header('Trading Brain Setup', icons.brain));
@@ -93,8 +115,80 @@ export function setupCommand(): Command {
         pass('Added MCP server entry', '"trading-brain" -> trading mcp-server');
       }
 
-      // -- Step 3: Save Configuration --
-      step(3, 'Save Configuration');
+      // -- Step 3: PostToolUse Hook --
+      const hookPath = resolveHookPath();
+      const hookCommand = buildHookCommand(hookPath);
+
+      step(3, 'Auto-Detect Hook');
+      if (opts.hooks === false) {
+        skip('Skipped hook configuration', '--no-hooks');
+      } else {
+        let resolvedHookPath = hookPath;
+        const hookFileExists = fs.existsSync(hookPath);
+        if (!hookFileExists) {
+          const fallbackPath = path.resolve(import.meta.dirname, '../../hooks/post-tool-use.js');
+          if (fs.existsSync(fallbackPath)) {
+            resolvedHookPath = fallbackPath;
+            pass('Hook file found', fallbackPath);
+          } else {
+            fail('Hook file not found', `Expected at: ${hookPath}`);
+            console.log(`    ${c.dim('Make sure @timmeck/trading-brain is installed globally: npm install -g @timmeck/trading-brain')}`);
+            allGood = false;
+          }
+        } else {
+          pass('Hook file found', hookPath);
+        }
+
+        // Dry-run: verify hook is executable
+        if (fs.existsSync(resolvedHookPath)) {
+          try {
+            execSync(`node "${resolvedHookPath}" --dry-run`, { timeout: 5000, stdio: 'pipe' });
+            pass('Hook dry-run passed', 'hook is executable');
+          } catch {
+            fail('Hook dry-run failed', `"node ${resolvedHookPath} --dry-run" returned an error`);
+            console.log(`    ${c.dim('The hook file exists but could not be executed. Check Node.js compatibility.')}`);
+            allGood = false;
+          }
+        }
+
+        if (!settings.hooks) {
+          settings.hooks = {};
+        }
+        const hooks = settings.hooks as Record<string, unknown[]>;
+
+        if (!hooks.PostToolUse) {
+          hooks.PostToolUse = [];
+        }
+
+        const postToolUse = hooks.PostToolUse as Array<{
+          matcher?: { tool_name?: string };
+          hooks?: Array<{ command?: string }>;
+          command?: string;
+        }>;
+
+        const hasTradingHook = postToolUse.some((h) => {
+          if (h.command?.includes('trading') || h.command?.includes('post-tool-use')) return true;
+          return h.hooks?.some(
+            (inner) => inner.command?.includes('trading') || inner.command?.includes('post-tool-use'),
+          );
+        });
+
+        if (hasTradingHook) {
+          pass('Auto-detect hook already configured');
+        } else if (opts.dryRun) {
+          skip('Would add PostToolUse hook', hookCommand);
+        } else {
+          postToolUse.push({
+            matcher: { tool_name: 'Bash' },
+            hooks: [{ command: hookCommand }],
+          });
+          settingsChanged = true;
+          pass('Added PostToolUse hook', 'auto-detects trade outcomes from Bash commands');
+        }
+      }
+
+      // -- Step 4: Save Configuration --
+      step(4, 'Save Configuration');
       if (settingsChanged && !opts.dryRun) {
         try {
           fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf8');
@@ -109,8 +203,8 @@ export function setupCommand(): Command {
         pass('No changes needed', 'settings.json already up to date');
       }
 
-      // -- Step 4: Start Daemon --
-      step(4, 'Start Daemon');
+      // -- Step 5: Start Daemon --
+      step(5, 'Start Daemon');
       if (opts.daemon === false) {
         skip('Skipped daemon start', '--no-daemon');
       } else if (opts.dryRun) {
@@ -155,8 +249,8 @@ export function setupCommand(): Command {
         }
       }
 
-      // -- Step 5: Health Check --
-      step(5, 'Health Check');
+      // -- Step 6: Health Check --
+      step(6, 'Health Check');
       if (opts.dryRun) {
         skip('Would run health checks');
       } else {

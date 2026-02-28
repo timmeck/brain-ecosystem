@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { sha256 } from '../utils/hash.js';
+import { sha256 } from '@timmeck/brain-core';
 import type { StackFrame } from '../parsing/types.js';
 
 export function templateMessage(msg: string): string {

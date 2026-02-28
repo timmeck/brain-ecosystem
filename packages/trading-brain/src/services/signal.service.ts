@@ -1,8 +1,10 @@
 import type { SynapseManager } from '../synapses/synapse-manager.js';
 import type { WeightedGraph } from '../graph/weighted-graph.js';
 import type { CalibrationConfig } from '../types/config.types.js';
-import { fingerprint, classifyVolatility, type SignalInput } from '../signals/fingerprint.js';
-import { wilsonScore } from '../signals/wilson-score.js';
+import type { RuleRepository } from '../db/repositories/rule.repository.js';
+import type { TradeRepository } from '../db/repositories/trade.repository.js';
+import { fingerprint, fingerprintSimilarity, classifyVolatility, type SignalInput } from '../signals/fingerprint.js';
+import { wilsonScore } from '@timmeck/brain-core';
 import { NODE_TYPES } from '../graph/weighted-graph.js';
 
 const DEFAULT_WEIGHTS: Record<string, number> = {
@@ -19,12 +21,48 @@ const DEFAULT_WEIGHTS: Record<string, number> = {
   combo_bonus: 0,
 };
 
+export interface SignalExplanation {
+  fingerprint: string;
+  wilson: {
+    successes: number;
+    total: number;
+    lowerBound: number;
+    z: number;
+  };
+  sampleSize: number;
+  accuracy: {
+    wins: number;
+    losses: number;
+    winRate: number;
+  };
+  synapse: {
+    weight: number;
+    activations: number;
+    totalProfit: number;
+  } | null;
+  similarSignals: Array<{
+    fingerprint: string;
+    similarity: number;
+    weight: number;
+    activations: number;
+  }>;
+  relatedPatterns: Array<{
+    pattern: string;
+    confidence: number;
+    sampleCount: number;
+    winRate: number;
+    avgProfit: number;
+  }>;
+}
+
 export class SignalService {
   constructor(
     private synapseManager: SynapseManager,
     private graph: WeightedGraph,
     private cal: CalibrationConfig,
     private tradeCount: () => number,
+    private ruleRepo?: RuleRepository,
+    private tradeRepo?: TradeRepository,
   ) {}
 
   updateCalibration(cal: CalibrationConfig): void {
@@ -105,5 +143,78 @@ export class SignalService {
 
     const total = synapse.wins + synapse.losses;
     return wilsonScore(synapse.wins, total, this.cal.wilsonZ);
+  }
+
+  /**
+   * Explain the confidence assessment for a specific signal fingerprint.
+   * Returns Wilson Score breakdown, sample size, historical accuracy,
+   * synapse connections, and related learned patterns.
+   */
+  explainSignal(fp: string): SignalExplanation {
+    const synapse = this.synapseManager.getByFingerprint(fp);
+
+    // Wilson Score breakdown
+    const successes = synapse?.wins ?? 0;
+    const total = (synapse?.wins ?? 0) + (synapse?.losses ?? 0);
+    const lowerBound = total > 0 ? wilsonScore(successes, total, this.cal.wilsonZ) : 0;
+
+    // Similar signals via synapse manager
+    const allSynapses = this.synapseManager.getAll();
+    const similarSignals: SignalExplanation['similarSignals'] = [];
+    for (const syn of allSynapses) {
+      if (syn.fingerprint === fp) continue;
+      const sim = fingerprintSimilarity(fp, syn.fingerprint);
+      if (sim >= 0.5) {
+        similarSignals.push({
+          fingerprint: syn.fingerprint,
+          similarity: sim,
+          weight: syn.weight,
+          activations: syn.activations,
+        });
+      }
+    }
+    similarSignals.sort((a, b) => b.similarity - a.similarity);
+
+    // Related patterns from learned rules
+    const relatedPatterns: SignalExplanation['relatedPatterns'] = [];
+    if (this.ruleRepo) {
+      const rules = this.ruleRepo.getAll();
+      for (const rule of rules) {
+        const sim = fingerprintSimilarity(fp, rule.pattern);
+        if (sim >= 0.5) {
+          relatedPatterns.push({
+            pattern: rule.pattern,
+            confidence: rule.confidence,
+            sampleCount: rule.sample_count,
+            winRate: rule.win_rate,
+            avgProfit: rule.avg_profit,
+          });
+        }
+      }
+      relatedPatterns.sort((a, b) => b.confidence - a.confidence);
+    }
+
+    return {
+      fingerprint: fp,
+      wilson: {
+        successes,
+        total,
+        lowerBound,
+        z: this.cal.wilsonZ,
+      },
+      sampleSize: total,
+      accuracy: {
+        wins: synapse?.wins ?? 0,
+        losses: synapse?.losses ?? 0,
+        winRate: total > 0 ? successes / total : 0,
+      },
+      synapse: synapse ? {
+        weight: synapse.weight,
+        activations: synapse.activations,
+        totalProfit: synapse.total_profit,
+      } : null,
+      similarSignals: similarSignals.slice(0, 10),
+      relatedPatterns: relatedPatterns.slice(0, 10),
+    };
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { strengthen, weaken } from '../../../src/synapses/hebbian.js';
+import { strengthen, weaken } from '@timmeck/brain-core';
 import { createTestDb, type TestDb } from '../../helpers/setup-db.js';
 
 describe('Hebbian Learning', () => {

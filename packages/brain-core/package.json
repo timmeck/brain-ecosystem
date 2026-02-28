@@ -29,9 +29,12 @@
     "./synapses/activation": "./dist/synapses/activation.js",
     "./synapses/pathfinder": "./dist/synapses/pathfinder.js",
     "./synapses/synapse-manager": "./dist/synapses/synapse-manager.js",
+    "./dashboard/server": "./dist/dashboard/server.js",
     "./cross-brain": "./dist/cross-brain/client.js",
+    "./cross-brain/subscription": "./dist/cross-brain/subscription.js",
     "./memory/types": "./dist/memory/types.js",
-    "./memory/base-memory-engine": "./dist/memory/base-memory-engine.js"
+    "./memory/base-memory-engine": "./dist/memory/base-memory-engine.js",
+    "./embeddings/engine": "./dist/embeddings/engine.js"
   },
   "scripts": {
     "build": "tsc",
@@ -64,6 +67,14 @@
     "type": "git",
     "url": "https://github.com/timmeck/brain-ecosystem",
     "directory": "packages/brain-core"
+  },
+  "peerDependencies": {
+    "@huggingface/transformers": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@huggingface/transformers": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

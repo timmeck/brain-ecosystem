@@ -5,7 +5,7 @@ import { loadConfig } from './config.js';
 import type { MarketingBrainConfig } from './types/config.types.js';
 import { createLogger, getLogger } from './utils/logger.js';
 import { getEventBus } from './utils/events.js';
-import { createConnection } from './db/connection.js';
+import { createConnection } from '@timmeck/brain-core';
 import { runMigrations } from './db/migrations/index.js';
 
 // Repositories
@@ -20,6 +20,7 @@ import { SynapseRepository } from './db/repositories/synapse.repository.js';
 import { InsightRepository } from './db/repositories/insight.repository.js';
 import { MemoryRepository } from './db/repositories/memory.repository.js';
 import { SessionRepository } from './db/repositories/session.repository.js';
+import { ABTestRepository } from './db/repositories/ab-test.repository.js';
 
 // Services
 import { PostService } from './services/post.service.js';
@@ -32,17 +33,20 @@ import { SynapseService } from './services/synapse.service.js';
 import { AnalyticsService } from './services/analytics.service.js';
 import { InsightService } from './services/insight.service.js';
 import { MemoryService } from './services/memory.service.js';
+import { ABTestService } from './services/ab-test.service.js';
+import { CalendarService } from './services/calendar.service.js';
 
 // Synapses
 import { SynapseManager } from './synapses/synapse-manager.js';
 
 // Engines
 import { LearningEngine } from './learning/learning-engine.js';
+import { PatternExtractor } from './learning/pattern-extractor.js';
 import { ResearchEngine } from './research/research-engine.js';
 
 // IPC
 import { IpcRouter, type Services } from './ipc/router.js';
-import { IpcServer } from './ipc/server.js';
+import { IpcServer } from '@timmeck/brain-core';
 
 // API
 import { ApiServer } from './api/server.js';
@@ -51,22 +55,23 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Dashboard
-import { DashboardServer } from './dashboard/server.js';
+import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
   private ipcServer: IpcServer | null = null;
   private apiServer: ApiServer | null = null;
   private mcpHttpServer: McpHttpServer | null = null;
-  private dashboardServer: DashboardServer | null = null;
+  private dashboardServer: ReturnType<typeof createMarketingDashboardServer> | null = null;
   private learningEngine: LearningEngine | null = null;
   private researchEngine: ResearchEngine | null = null;
   private crossBrain: CrossBrainClient | null = null;
   private notifier: CrossBrainNotifier | null = null;
+  private subscriptionManager: CrossBrainSubscriptionManager | null = null;
   private config: MarketingBrainConfig | null = null;
   private configPath?: string;
   private restarting = false;
@@ -106,12 +111,16 @@ export class MarketingCore {
     const insightRepo = new InsightRepository(this.db);
     const memoryRepo = new MemoryRepository(this.db);
     const sessionRepo = new SessionRepository(this.db);
+    const abTestRepo = new ABTestRepository(this.db);
 
     // 6. Synapse Manager
     const synapseManager = new SynapseManager(synapseRepo, config.synapses);
 
     // 7. Services
     const memoryService = new MemoryService(memoryRepo, sessionRepo, synapseManager);
+    const patternExtractor = new PatternExtractor(this.db);
+    const abTestService = new ABTestService(abTestRepo);
+    const calendarService = new CalendarService(this.db);
     const services: Services = {
       post: new PostService(postRepo, engagementRepo, synapseManager),
       campaign: new CampaignService(campaignRepo, postRepo, engagementRepo, synapseManager),
@@ -128,6 +137,9 @@ export class MarketingCore {
       ),
       insight: new InsightService(insightRepo, synapseManager),
       memory: memoryService,
+      patternExtractor,
+      abTest: abTestService,
+      calendar: calendarService,
     };
 
     // 8. Learning Engine
@@ -154,10 +166,16 @@ export class MarketingCore {
     this.crossBrain = new CrossBrainClient('marketing-brain');
     this.notifier = new CrossBrainNotifier(this.crossBrain, 'marketing-brain');
 
+    // 10b. Cross-Brain Subscription Manager
+    this.subscriptionManager = new CrossBrainSubscriptionManager('marketing-brain');
+
     // 11. IPC Server
     const router = new IpcRouter(services);
-    this.ipcServer = new IpcServer(router, config.ipc.pipeName);
+    this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'marketing-brain', 'marketing-brain');
     this.ipcServer.start();
+
+    // Wire subscription manager into IPC router
+    router.setSubscriptionManager(this.subscriptionManager, this.ipcServer);
 
     // 12. MCP HTTP Server (SSE for Cursor/Windsurf/Cline)
     if (config.mcpHttp.enabled) {
@@ -189,7 +207,7 @@ export class MarketingCore {
         rule: services.rule,
         synapse: services.synapse,
       };
-      this.dashboardServer = new DashboardServer({
+      this.dashboardServer = createMarketingDashboardServer({
         port: config.dashboard.port,
         getDashboardHtml: () => {
           try {
@@ -207,6 +225,9 @@ export class MarketingCore {
 
     // 13. Event listeners (synapse wiring)
     this.setupEventListeners(synapseManager);
+
+    // 13b. Cross-Brain Event Subscriptions
+    this.setupCrossBrainSubscriptions();
 
     // 14. PID file
     const pidPath = path.join(path.dirname(config.dbPath), 'marketing-brain.pid');
@@ -239,6 +260,7 @@ export class MarketingCore {
   }
 
   private cleanup(): void {
+    this.subscriptionManager?.disconnectAll();
     this.researchEngine?.stop();
     this.learningEngine?.stop();
     this.dashboardServer?.stop();
@@ -254,6 +276,7 @@ export class MarketingCore {
     this.dashboardServer = null;
     this.learningEngine = null;
     this.researchEngine = null;
+    this.subscriptionManager = null;
   }
 
   restart(): void {
@@ -282,6 +305,17 @@ export class MarketingCore {
 
     logger.info('Marketing Brain daemon stopped');
     process.exit(0);
+  }
+
+  private setupCrossBrainSubscriptions(): void {
+    if (!this.subscriptionManager) return;
+    const logger = getLogger();
+
+    // Subscribe to brain: error:reported events for project health context
+    this.subscriptionManager.subscribe('brain', ['error:reported'], (event: string, data: unknown) => {
+      logger.info(`[cross-brain] Received ${event} from brain`, { data });
+      // TODO: deeper integration — adjust content tone/urgency based on project health
+    });
   }
 
   private setupEventListeners(synapseManager: SynapseManager): void {

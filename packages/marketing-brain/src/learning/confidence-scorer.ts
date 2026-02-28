@@ -1,6 +1,3 @@
-// Re-export from brain-core
-export { wilsonScore } from '@timmeck/brain-core';
-
 /**
  * Compute engagement score from raw metrics.
  * Weights: shares > comments > clicks > likes > impressions

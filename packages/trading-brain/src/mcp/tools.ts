@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { IpcClient } from '../ipc/client.js';
+import type { IpcClient } from '@timmeck/brain-core';
 import type { IpcRouter } from '../ipc/router.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -226,6 +226,109 @@ function registerToolsWithCaller(server: McpServer, call: BrainCall): void {
     async () => {
       const result = await call('calibration.get', {});
       return textResult(result);
+    },
+  );
+
+  // 13b. trading_explain_signal
+  server.tool(
+    'trading_explain_signal',
+    'Explain the confidence assessment for a specific trading signal — Wilson Score breakdown, sample size, historical accuracy, and synapse connections to similar signals.',
+    {
+      fingerprint: z.string().describe('The signal fingerprint to explain'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('signal.explain', { fingerprint: params.fingerprint });
+      const lines: string[] = [
+        `Signal: ${result.fingerprint}`,
+        '',
+        '── Wilson Score ──',
+        `  Successes:   ${result.wilson.successes}`,
+        `  Total:       ${result.wilson.total}`,
+        `  Lower bound: ${(result.wilson.lowerBound * 100).toFixed(1)}%`,
+        `  Z-score:     ${result.wilson.z} (${result.wilson.z >= 2.33 ? '99%' : result.wilson.z >= 1.96 ? '95%' : '90%'} CI)`,
+        '',
+        '── Sample Size ──',
+        `  ${result.sampleSize} observation(s)`,
+        '',
+        '── Historical Accuracy ──',
+        `  Wins:     ${result.accuracy.wins}`,
+        `  Losses:   ${result.accuracy.losses}`,
+        `  Win rate: ${(result.accuracy.winRate * 100).toFixed(1)}%`,
+      ];
+
+      if (result.synapse) {
+        lines.push(
+          '',
+          '── Synapse ──',
+          `  Weight:       ${result.synapse.weight.toFixed(3)}`,
+          `  Activations:  ${result.synapse.activations}`,
+          `  Total profit: ${result.synapse.totalProfit.toFixed(2)}%`,
+        );
+      } else {
+        lines.push('', '── Synapse ──', '  No synapse found for this fingerprint.');
+      }
+
+      if (result.similarSignals.length > 0) {
+        lines.push('', '── Similar Signals ──');
+        for (const s of result.similarSignals) {
+          lines.push(`  ${s.fingerprint} (${(s.similarity * 100).toFixed(0)}% similar, weight: ${s.weight.toFixed(3)}, activations: ${s.activations})`);
+        }
+      }
+
+      if (result.relatedPatterns.length > 0) {
+        lines.push('', '── Related Learned Patterns ──');
+        for (const p of result.relatedPatterns) {
+          lines.push(`  ${p.pattern} — confidence: ${(p.confidence * 100).toFixed(1)}%, win rate: ${(p.winRate * 100).toFixed(1)}%, samples: ${p.sampleCount}, avg profit: ${p.avgProfit.toFixed(2)}%`);
+        }
+      }
+
+      return textResult(lines.join('\n'));
+    },
+  );
+
+  // 13c. trading_calibration_history
+  server.tool(
+    'trading_calibration_history',
+    'Show current calibration parameters and how they have changed over time — confidence thresholds, position sizing multipliers, and learning adjustments.',
+    {},
+    async () => {
+      const result: AnyResult = await call('calibration.history', {});
+      const lines: string[] = [];
+
+      if (result.current) {
+        const c = result.current;
+        lines.push(
+          '── Current Calibration ──',
+          `  Learning rate:       ${c.learningRate}`,
+          `  Weaken penalty:      ${c.weakenPenalty}`,
+          `  Decay half-life:     ${c.decayHalfLifeDays} days`,
+          `  Pattern extraction:  every ${c.patternExtractionInterval} trades`,
+          `  Pattern min samples: ${c.patternMinSamples}`,
+          `  Wilson threshold:    ${c.patternWilsonThreshold}`,
+          `  Wilson Z:            ${c.wilsonZ} (${c.wilsonZ >= 2.33 ? '99%' : c.wilsonZ >= 1.96 ? '95%' : '90%'} CI)`,
+          `  Spreading decay:     ${c.spreadingActivationDecay}`,
+          `  Spreading threshold: ${c.spreadingActivationThreshold}`,
+          `  Min activations:     ${c.minActivationsForWeight}`,
+          `  Min outcomes:        ${c.minOutcomesForWeights}`,
+        );
+      } else {
+        lines.push('No current calibration data.');
+      }
+
+      if (Array.isArray(result.history) && result.history.length > 0) {
+        lines.push('', '── Calibration History ──');
+        for (const h of result.history) {
+          lines.push(
+            `  [${h.created_at}] trades: ${h.trade_count}, synapses: ${h.synapse_count} — ` +
+            `lr: ${h.learning_rate}, z: ${h.wilson_z}, halfLife: ${h.decay_half_life_days}d, ` +
+            `minSamples: ${h.pattern_min_samples}, threshold: ${h.pattern_wilson_threshold}`
+          );
+        }
+      } else {
+        lines.push('', 'No calibration history yet (snapshots are saved on each recalibration).');
+      }
+
+      return textResult(lines.join('\n'));
     },
   );
 

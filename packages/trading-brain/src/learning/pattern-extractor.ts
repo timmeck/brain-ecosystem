@@ -1,6 +1,6 @@
 import type { TradeRecord } from '../db/repositories/trade.repository.js';
 import { fingerprintSimilarity } from '../signals/fingerprint.js';
-import { wilsonScore } from '../signals/wilson-score.js';
+import { wilsonScore } from '@timmeck/brain-core';
 import type { CalibrationConfig } from '../types/config.types.js';
 
 export interface ExtractedRule {

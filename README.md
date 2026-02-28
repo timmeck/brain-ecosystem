@@ -1,5 +1,6 @@
 # Brain Ecosystem
 
+[![CI](https://github.com/timmeck/brain-ecosystem/actions/workflows/ci.yml/badge.svg)](https://github.com/timmeck/brain-ecosystem/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain)
 [![npm downloads](https://img.shields.io/npm/dm/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -224,6 +225,27 @@ Each brain is configured via environment variables or config files:
 | Brain | `BRAIN_DATA_DIR` (default: `~/.brain`) | `~/.brain/config.json` |
 | Trading Brain | `TRADING_BRAIN_DATA_DIR` (default: `~/.trading-brain`) | `~/.trading-brain/config.json` |
 | Marketing Brain | `MARKETING_BRAIN_DATA_DIR` (default: `~/.marketing-brain`) | `~/.marketing-brain/config.json` |
+
+## Docker
+
+Run the entire ecosystem with Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+This starts all three brains with:
+- Persistent database volumes
+- Shared IPC socket volume for cross-brain communication
+- Health checks for automatic restart
+- Exposed REST API and MCP HTTP ports
+
+Individual services:
+```bash
+docker-compose up brain          # Just the main brain
+docker-compose logs trading-brain # View trading brain logs
+docker-compose down               # Stop everything
+```
 
 ## Development
 

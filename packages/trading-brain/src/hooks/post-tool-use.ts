@@ -6,7 +6,7 @@
 // Configured in .claude/settings.json:
 // { "hooks": { "PostToolUse": [{ "matcher": { "tool_name": "Bash" }, "hooks": [{ "type": "command", "command": "npx tsx C:/Users/mecklenburg/Desktop/trading-brain/src/hooks/post-tool-use.ts" }] }] } }
 
-import { IpcClient } from '../ipc/client.js';
+import { IpcClient } from '@timmeck/brain-core';
 import { getPipeName } from '../utils/paths.js';
 
 interface HookInput {

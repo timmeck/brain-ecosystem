@@ -6,7 +6,7 @@
 
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { IpcClient } from '../ipc/client.js';
+import { IpcClient } from '@timmeck/brain-core';
 import { getPipeName } from '../utils/paths.js';
 
 function readStdin(): Promise<string> {

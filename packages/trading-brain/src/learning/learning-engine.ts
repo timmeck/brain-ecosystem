@@ -49,10 +49,12 @@ export class LearningEngine extends BaseLearningEngine {
 
     // Recalibrate every 25 trades
     if (outcomeCount > 0 && outcomeCount % 25 === 0) {
-      const newCal = calibrate(this.cal, outcomeCount, this.synapseManager.count());
+      const synapseCount = this.synapseManager.count();
+      const newCal = calibrate(this.cal, outcomeCount, synapseCount);
       this.cal = newCal;
       this.synapseManager.updateCalibration(newCal);
       this.calRepo.save(newCal);
+      this.calRepo.saveSnapshot(newCal, outcomeCount, synapseCount);
       this.logger.info(`Recalibrated — lr: ${newCal.learningRate}, z: ${newCal.wilsonZ}, halfLife: ${newCal.decayHalfLifeDays}d`);
       bus.emit('calibration:updated', { outcomeCount, learningRate: newCal.learningRate });
     }

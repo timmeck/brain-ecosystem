@@ -12,7 +12,11 @@ import type { AnalyticsService } from '../services/analytics.service.js';
 import type { InsightService } from '../services/insight.service.js';
 import type { MemoryService } from '../services/memory.service.js';
 import type { LearningEngine } from '../learning/learning-engine.js';
-import type { CrossBrainClient } from '@timmeck/brain-core';
+import type { PatternExtractor } from '../learning/pattern-extractor.js';
+import type { ABTestService } from '../services/ab-test.service.js';
+import type { CalendarService } from '../services/calendar.service.js';
+import type { CrossBrainClient, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
+import type { IpcServer } from '@timmeck/brain-core';
 
 export interface Services {
   post: PostService;
@@ -26,6 +30,9 @@ export interface Services {
   insight: InsightService;
   memory: MemoryService;
   learning?: LearningEngine;
+  patternExtractor?: PatternExtractor;
+  abTest?: ABTestService;
+  calendar?: CalendarService;
   crossBrain?: CrossBrainClient;
 }
 
@@ -33,9 +40,42 @@ type MethodHandler = (params: unknown) => unknown;
 
 export class IpcRouter {
   private methods: Map<string, MethodHandler>;
+  private subscriptionManager: CrossBrainSubscriptionManager | null = null;
+  private ipcServer: IpcServer | null = null;
 
   constructor(private services: Services) {
     this.methods = this.buildMethodMap();
+  }
+
+  /**
+   * Wire the subscription manager and IPC server for cross-brain event routing.
+   */
+  setSubscriptionManager(manager: CrossBrainSubscriptionManager, server: IpcServer): void {
+    this.subscriptionManager = manager;
+    this.ipcServer = server;
+
+    // Register cross-brain subscription handlers
+    this.methods.set('cross-brain.subscribe', (params) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { subscriber, events } = params as any;
+      server.addSubscriber(subscriber, events);
+      return { subscribed: true, subscriber, events };
+    });
+
+    this.methods.set('cross-brain.unsubscribe', (params) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { subscriber } = params as any;
+      server.removeSubscriber(subscriber);
+      return { unsubscribed: true, subscriber };
+    });
+
+    this.methods.set('cross-brain.event', (params) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { source, event, data } = params as any;
+      logger.info(`Cross-brain event from ${source}: ${event}`);
+      manager.handleIncomingEvent(source, event, data);
+      return { received: true, source, event };
+    });
   }
 
   handle(method: string, params: unknown): unknown {
@@ -137,6 +177,44 @@ export class IpcRouter {
       ['learning.run',         () => {
         if (!s.learning) throw new Error('Learning engine not available');
         return s.learning.runCycle();
+      }],
+
+      // Patterns
+      ['pattern.extract',      () => {
+        if (!s.patternExtractor) throw new Error('Pattern extractor not available');
+        return s.patternExtractor.extractPatterns();
+      }],
+      ['pattern.list',         () => {
+        if (!s.patternExtractor) throw new Error('Pattern extractor not available');
+        return s.patternExtractor.extractPatterns();
+      }],
+
+      // A/B Tests
+      ['ab-test.create',       (params) => {
+        if (!s.abTest) throw new Error('A/B test service not available');
+        return s.abTest.create(p(params));
+      }],
+      ['ab-test.record',       (params) => {
+        if (!s.abTest) throw new Error('A/B test service not available');
+        return s.abTest.recordDataPoint(p(params).test_id, p(params).variant, p(params).metric_value);
+      }],
+      ['ab-test.status',       (params) => {
+        if (!s.abTest) throw new Error('A/B test service not available');
+        return s.abTest.getStatus(p(params).test_id ?? p(params).id);
+      }],
+      ['ab-test.list',         (params) => {
+        if (!s.abTest) throw new Error('A/B test service not available');
+        return s.abTest.listAll(p(params)?.limit);
+      }],
+
+      // Calendar
+      ['calendar.suggest',     (params) => {
+        if (!s.calendar) throw new Error('Calendar service not available');
+        return s.calendar.suggestNextPostTime(p(params)?.platform);
+      }],
+      ['calendar.weekly',      (params) => {
+        if (!s.calendar) throw new Error('Calendar service not available');
+        return s.calendar.getWeeklySchedule(p(params)?.platform);
       }],
 
       // Cross-Brain Notifications

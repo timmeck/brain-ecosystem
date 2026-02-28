@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench": "node --import tsx error-matching.bench.ts && node --import tsx learning-cycle.bench.ts && node --import tsx ipc-roundtrip.bench.ts && node --import tsx embedding-coldstart.bench.ts",
+    "bench:errors": "node --import tsx error-matching.bench.ts",
+    "bench:learning": "node --import tsx learning-cycle.bench.ts",
+    "bench:ipc": "node --import tsx ipc-roundtrip.bench.ts",
+    "bench:embedding": "node --import tsx embedding-coldstart.bench.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}

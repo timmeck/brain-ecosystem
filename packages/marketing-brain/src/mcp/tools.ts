@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { IpcClient } from '../ipc/client.js';
+import type { IpcClient } from '@timmeck/brain-core';
 import type { IpcRouter } from '../ipc/router.js';
 
 type BrainCall = (method: string, params: unknown) => unknown | Promise<unknown>;
@@ -313,6 +313,65 @@ function registerToolsWithCaller(server: McpServer, call: BrainCall): void {
         `#${s.id} [${s.outcome ?? 'active'}] ${s.summary ?? '(no summary)'} — ${s.started_at}`
       );
       return { content: [{ type: 'text' as const, text: `${sessions.length} session(s):\n${lines.join('\n')}` }] };
+    },
+  );
+
+  // === Pattern Extraction & A/B Testing & Calendar ===
+
+  // 19. marketing_extract_patterns — Run pattern extraction
+  server.tool(
+    'marketing_extract_patterns',
+    'Extract engagement patterns from post history — discover what content performs best and when.',
+    {},
+    async () => {
+      const result = await call('pattern.extract', {});
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // 20. marketing_track_ab_test — Create a new A/B test
+  server.tool(
+    'marketing_track_ab_test',
+    'Create a new A/B test to compare two content variants.',
+    {
+      name: z.string().describe('Test name'),
+      variant_a: z.string().describe('Description of variant A'),
+      variant_b: z.string().describe('Description of variant B'),
+      metric: z.string().optional().default('engagement').describe('Metric to track (default: engagement)'),
+    },
+    async ({ name, variant_a, variant_b, metric }) => {
+      const result = await call('ab-test.create', { name, variant_a, variant_b, metric });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // 21. marketing_ab_test_result — Record data point for an A/B test
+  server.tool(
+    'marketing_ab_test_result',
+    'Record a data point for a running A/B test.',
+    {
+      test_id: z.number().describe('A/B test ID'),
+      variant: z.enum(['a', 'b']).describe('Which variant this data point is for'),
+      metric_value: z.number().describe('The metric value to record'),
+    },
+    async ({ test_id, variant, metric_value }) => {
+      const result = await call('ab-test.record', { test_id, variant, metric_value });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // 22. marketing_content_calendar — Get suggested posting schedule
+  server.tool(
+    'marketing_content_calendar',
+    'Get AI-suggested posting schedule based on learned timing patterns.',
+    {
+      platform: z.string().optional().describe('Filter schedule for a specific platform'),
+    },
+    async ({ platform }) => {
+      const suggest = await call('calendar.suggest', { platform });
+      const weekly = await call('calendar.weekly', { platform });
+      const result = { nextPost: suggest, weeklySchedule: weekly };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
     },
   );
 

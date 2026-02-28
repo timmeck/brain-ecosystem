@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { timeDecayFactor } from '../../../src/synapses/decay.js';
+import { timeDecayFactor } from '@timmeck/brain-core';
 
 describe('timeDecayFactor', () => {
   it('returns ~1.0 for recent activation', () => {

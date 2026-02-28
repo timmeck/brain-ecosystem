@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { IpcClient } from '../ipc/client.js';
+import type { IpcClient } from '@timmeck/brain-core';
 import type { IpcRouter } from '../ipc/router.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -680,6 +680,63 @@ function registerToolsWithCaller(server: McpServer, call: BrainCall): void {
         `Recent changes: ${result.recentChanges?.length ?? 0}`,
       ];
       return textResult(sections.join('\n'));
+    },
+  );
+
+  // === Learning Explainability Tools ===
+
+  server.tool(
+    'brain_explain_learning',
+    'Show what Brain has learned — active rules with confidence scores, the errors that generated them, and their success rates.',
+    {
+      rule_id: z.number().optional().describe('Specific rule ID to explain in detail. Omit to see all active rules.'),
+    },
+    async (params) => {
+      if (params.rule_id) {
+        const result: AnyResult = await call('rule.explain', { ruleId: params.rule_id });
+        const r = result.rule;
+        const lines = [
+          `Rule #${r.id}`,
+          `  Pattern:     ${r.pattern}`,
+          `  Action:      ${r.action}`,
+          `  Confidence:  ${(r.confidence * 100).toFixed(0)}%`,
+          `  Occurrences: ${r.occurrences}`,
+          `  Description: ${r.description ?? 'none'}`,
+          `  Created:     ${r.created_at}`,
+          '',
+        ];
+        if (result.connections?.length) {
+          lines.push(`Synapse Connections (${result.connections.length}):`);
+          for (const c of result.connections) {
+            lines.push(`  ${c.node.type}:${c.node.id} (activation: ${c.activation.toFixed(3)}, depth: ${c.depth})`);
+          }
+        } else {
+          lines.push('No synapse connections found.');
+        }
+        return textResult(lines.join('\n'));
+      } else {
+        const rules: AnyResult = await call('rule.list', {});
+        if (!rules?.length) return textResult('No active rules. Run "brain learn" to trigger a learning cycle.');
+        const lines = rules.map((r: AnyResult) => {
+          const conf = (r.confidence * 100).toFixed(0);
+          return `#${r.id} [${conf}%] ${r.pattern} → ${r.action} (seen ${r.occurrences}x)${r.description ? ` — ${r.description}` : ''}`;
+        });
+        return textResult(`${rules.length} active rules:\n${lines.join('\n')}`);
+      }
+    },
+  );
+
+  server.tool(
+    'brain_override_rule',
+    'Override a learned rule — boost its confidence, suppress it, or delete it entirely. Provide a reason for the override.',
+    {
+      rule_id: z.number().describe('The rule ID to override'),
+      action: z.enum(['boost', 'suppress', 'delete']).describe('boost: increase confidence, suppress: decrease confidence, delete: deactivate rule'),
+      reason: z.string().optional().describe('Why this rule is being overridden'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('rule.override', { ruleId: params.rule_id, action: params.action, reason: params.reason });
+      return textResult(`Rule #${params.rule_id} ${params.action}ed. ${params.reason || ''}`);
     },
   );
 

@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { Statement } from 'better-sqlite3';
 import type { Post, PostCreate } from '../../types/post.types.js';
-import { sha256 } from '../../utils/hash.js';
+import { sha256 } from '@timmeck/brain-core';
 
 export class PostRepository {
   private stmts: Record<string, Statement>;

@@ -7,7 +7,7 @@ import { fingerprintCode } from '../code/fingerprint.js';
 import { computeReusabilityScore } from '../code/scorer.js';
 import { detectGranularity } from '../code/registry.js';
 import { findExactMatches, findSemanticMatches, findStructuralMatches } from '../code/matcher.js';
-import { sha256 } from '../utils/hash.js';
+import { sha256 } from '@timmeck/brain-core';
 import { getEventBus } from '../utils/events.js';
 import { getLogger } from '../utils/logger.js';
 import type { EmbeddingEngine } from '../embeddings/engine.js';

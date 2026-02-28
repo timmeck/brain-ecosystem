@@ -55,6 +55,10 @@ export type { LearningEngineConfig } from './learning/base-engine.js';
 export { BaseResearchEngine } from './research/base-engine.js';
 export type { ResearchEngineConfig } from './research/base-engine.js';
 
+// ── Embeddings ──────────────────────────────────────────
+export { BaseEmbeddingEngine } from './embeddings/engine.js';
+export type { EmbeddingConfig } from './embeddings/engine.js';
+
 // ── Memory ───────────────────────────────────────────────
 export type {
   MemoryRecord, SessionRecord, MemoryCategory, MemorySource, SessionOutcome,
@@ -64,8 +68,14 @@ export type {
 } from './memory/types.js';
 export { BaseMemoryEngine } from './memory/base-memory-engine.js';
 
+// ── Dashboard ────────────────────────────────────────────
+export { DashboardServer } from './dashboard/server.js';
+export type { DashboardServerOptions } from './dashboard/server.js';
+
 // ── Cross-Brain ────────────────────────────────────────────
 export { CrossBrainClient } from './cross-brain/client.js';
 export type { BrainPeer } from './cross-brain/client.js';
 export { CrossBrainNotifier } from './cross-brain/notifications.js';
 export type { CrossBrainEvent } from './cross-brain/notifications.js';
+export { CrossBrainSubscriptionManager } from './cross-brain/subscription.js';
+export type { EventSubscription } from './cross-brain/subscription.js';

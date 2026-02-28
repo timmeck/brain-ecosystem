@@ -19,6 +19,24 @@ export interface CalibrationRecord {
   updated_at: string;
 }
 
+export interface CalibrationHistoryRecord {
+  id: number;
+  trade_count: number;
+  synapse_count: number;
+  learning_rate: number;
+  weaken_penalty: number;
+  decay_half_life_days: number;
+  pattern_extraction_interval: number;
+  pattern_min_samples: number;
+  pattern_wilson_threshold: number;
+  wilson_z: number;
+  spreading_activation_decay: number;
+  spreading_activation_threshold: number;
+  min_activations_for_weight: number;
+  min_outcomes_for_weights: number;
+  created_at: string;
+}
+
 export class CalibrationRepository {
   private stmts: Record<string, Statement>;
 
@@ -47,6 +65,19 @@ export class CalibrationRepository {
           last_calibration = datetime('now'), updated_at = datetime('now')
       `),
       get: db.prepare('SELECT * FROM calibration WHERE id = "main"'),
+      insertHistory: db.prepare(`
+        INSERT INTO calibration_history (trade_count, synapse_count,
+          learning_rate, weaken_penalty, decay_half_life_days,
+          pattern_extraction_interval, pattern_min_samples, pattern_wilson_threshold,
+          wilson_z, spreading_activation_decay, spreading_activation_threshold,
+          min_activations_for_weight, min_outcomes_for_weights)
+        VALUES (@trade_count, @synapse_count,
+          @learning_rate, @weaken_penalty, @decay_half_life_days,
+          @pattern_extraction_interval, @pattern_min_samples, @pattern_wilson_threshold,
+          @wilson_z, @spreading_activation_decay, @spreading_activation_threshold,
+          @min_activations_for_weight, @min_outcomes_for_weights)
+      `),
+      getHistory: db.prepare('SELECT * FROM calibration_history ORDER BY created_at DESC LIMIT ?'),
     };
   }
 
@@ -82,5 +113,27 @@ export class CalibrationRepository {
       minActivationsForWeight: row.min_activations_for_weight,
       minOutcomesForWeights: row.min_outcomes_for_weights,
     };
+  }
+
+  saveSnapshot(cal: CalibrationConfig, tradeCount: number, synapseCount: number): void {
+    this.stmts['insertHistory']!.run({
+      trade_count: tradeCount,
+      synapse_count: synapseCount,
+      learning_rate: cal.learningRate,
+      weaken_penalty: cal.weakenPenalty,
+      decay_half_life_days: cal.decayHalfLifeDays,
+      pattern_extraction_interval: cal.patternExtractionInterval,
+      pattern_min_samples: cal.patternMinSamples,
+      pattern_wilson_threshold: cal.patternWilsonThreshold,
+      wilson_z: cal.wilsonZ,
+      spreading_activation_decay: cal.spreadingActivationDecay,
+      spreading_activation_threshold: cal.spreadingActivationThreshold,
+      min_activations_for_weight: cal.minActivationsForWeight,
+      min_outcomes_for_weights: cal.minOutcomesForWeights,
+    });
+  }
+
+  getHistory(limit: number = 20): CalibrationHistoryRecord[] {
+    return this.stmts['getHistory']!.all(limit) as CalibrationHistoryRecord[];
   }
 }

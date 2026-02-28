@@ -1,0 +1,10 @@
+node_modules
+dist
+*.db
+.git
+.github
+docs
+benchmarks
+examples
+*.md
+!package.json

@@ -126,11 +126,13 @@ export function setupCommand(): Command {
         skip('Skipped hook configuration', '--no-hooks');
       } else {
         // Verify hook file exists
+        let resolvedHookPath = hookPath;
         const hookFileExists = fs.existsSync(hookPath);
         if (!hookFileExists) {
           // Try dist-relative path as fallback
           const fallbackPath = path.resolve(import.meta.dirname, '../../hooks/post-tool-use.js');
           if (fs.existsSync(fallbackPath)) {
+            resolvedHookPath = fallbackPath;
             pass('Hook file found', fallbackPath);
           } else {
             fail('Hook file not found', `Expected at: ${hookPath}`);
@@ -139,6 +141,18 @@ export function setupCommand(): Command {
           }
         } else {
           pass('Hook file found', hookPath);
+        }
+
+        // Dry-run: verify hook is executable
+        if (fs.existsSync(resolvedHookPath)) {
+          try {
+            execSync(`node "${resolvedHookPath}" --dry-run`, { timeout: 5000, stdio: 'pipe' });
+            pass('Hook dry-run passed', 'hook is executable');
+          } catch {
+            fail('Hook dry-run failed', `"node ${resolvedHookPath} --dry-run" returned an error`);
+            console.log(`    ${c.dim('The hook file exists but could not be executed. Check Node.js compatibility.')}`);
+            allGood = false;
+          }
         }
 
         if (!settings.hooks) {

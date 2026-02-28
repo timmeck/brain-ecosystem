@@ -3,7 +3,7 @@ import type { EngagementRepository } from '../db/repositories/engagement.reposit
 import type { SynapseManager } from '../synapses/synapse-manager.js';
 import type { Post, PostCreate, EngagementCreate } from '../types/post.types.js';
 import { getEventBus } from '../utils/events.js';
-import { sha256 } from '../utils/hash.js';
+import { sha256 } from '@timmeck/brain-core';
 
 export class PostService {
   constructor(

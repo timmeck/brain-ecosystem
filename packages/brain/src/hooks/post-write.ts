@@ -4,7 +4,7 @@
 // Configured in .claude/settings.json:
 // { "hooks": { "PostToolUse": [{ "matcher": { "tool_name": "Write" }, "command": "node <brain-dist>/hooks/post-write.js" }] } }
 
-import { IpcClient } from '../ipc/client.js';
+import { IpcClient } from '@timmeck/brain-core';
 import { getPipeName } from '../utils/paths.js';
 
 interface HookInput {

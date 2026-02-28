@@ -5,7 +5,7 @@ import { loadConfig } from './config.js';
 import type { TradingBrainConfig } from './types/config.types.js';
 import { createLogger, getLogger } from './utils/logger.js';
 import { getEventBus } from './utils/events.js';
-import { createConnection } from './db/connection.js';
+import { createConnection } from '@timmeck/brain-core';
 import { runMigrations } from './db/migrations/index.js';
 
 // Repositories
@@ -41,14 +41,14 @@ import { ResearchEngine } from './research/research-engine.js';
 
 // IPC
 import { IpcRouter, type Services } from './ipc/router.js';
-import { IpcServer } from './ipc/server.js';
+import { IpcServer } from '@timmeck/brain-core';
 
 // API & MCP HTTP
 import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
 
 export class TradingCore {
   private db: Database.Database | null = null;
@@ -59,6 +59,7 @@ export class TradingCore {
   private researchEngine: ResearchEngine | null = null;
   private crossBrain: CrossBrainClient | null = null;
   private notifier: CrossBrainNotifier | null = null;
+  private subscriptionManager: CrossBrainSubscriptionManager | null = null;
   private config: TradingBrainConfig | null = null;
   private configPath?: string;
   private restarting = false;
@@ -122,7 +123,7 @@ export class TradingCore {
     const memoryService = new MemoryService(memoryRepo, sessionRepo);
     const services: Services = {
       trade: new TradeService(tradeRepo, signalRepo, chainRepo, synapseManager, graph, cal, config.learning),
-      signal: new SignalService(synapseManager, graph, cal, tradeCount),
+      signal: new SignalService(synapseManager, graph, cal, tradeCount, ruleRepo, tradeRepo),
       strategy: new StrategyService(synapseManager, graph, cal, tradeCount),
       synapse: new SynapseService(synapseManager, graph),
       analytics: new AnalyticsService(tradeRepo, ruleRepo, chainRepo, insightRepo, synapseManager, graph, memoryRepo, sessionRepo),
@@ -165,10 +166,16 @@ export class TradingCore {
     this.crossBrain = new CrossBrainClient('trading-brain');
     this.notifier = new CrossBrainNotifier(this.crossBrain, 'trading-brain');
 
+    // 12b. Cross-Brain Subscription Manager
+    this.subscriptionManager = new CrossBrainSubscriptionManager('trading-brain');
+
     // 13. IPC Server
     const router = new IpcRouter(services);
-    this.ipcServer = new IpcServer(router, config.ipc.pipeName);
+    this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'trading-brain', 'trading-brain');
     this.ipcServer.start();
+
+    // Wire subscription manager into IPC router
+    router.setSubscriptionManager(this.subscriptionManager, this.ipcServer);
 
     // 13. REST API Server
     if (config.api.enabled) {
@@ -190,6 +197,9 @@ export class TradingCore {
 
     // 15. Event listeners (synapse wiring)
     this.setupEventListeners(synapseManager);
+
+    // 15b. Cross-Brain Event Subscriptions
+    this.setupCrossBrainSubscriptions();
 
     // 16. PID file
     const pidPath = path.join(path.dirname(config.dbPath), 'trading-brain.pid');
@@ -222,6 +232,7 @@ export class TradingCore {
   }
 
   private cleanup(): void {
+    this.subscriptionManager?.disconnectAll();
     this.researchEngine?.stop();
     this.learningEngine?.stop();
     this.mcpHttpServer?.stop();
@@ -235,6 +246,7 @@ export class TradingCore {
     this.mcpHttpServer = null;
     this.learningEngine = null;
     this.researchEngine = null;
+    this.subscriptionManager = null;
   }
 
   restart(): void {
@@ -264,6 +276,17 @@ export class TradingCore {
 
     logger.info('Trading Brain daemon stopped');
     process.exit(0);
+  }
+
+  private setupCrossBrainSubscriptions(): void {
+    if (!this.subscriptionManager) return;
+    const logger = getLogger();
+
+    // Subscribe to brain: error:reported events for system problem awareness during trades
+    this.subscriptionManager.subscribe('brain', ['error:reported'], (event: string, data: unknown) => {
+      logger.info(`[cross-brain] Received ${event} from brain`, { data });
+      // TODO: deeper integration — pause or flag trades when system errors spike
+    });
   }
 
   private setupEventListeners(_synapseManager: SynapseManager): void {

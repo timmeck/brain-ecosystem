@@ -17,7 +17,8 @@ import type { ChangelogService } from '../services/changelog.service.js';
 import type { TaskService } from '../services/task.service.js';
 import type { DocService } from '../services/doc.service.js';
 import type { LearningEngine, LearningCycleResult } from '../learning/learning-engine.js';
-import type { CrossBrainClient } from '@timmeck/brain-core';
+import type { CrossBrainClient, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
+import type { IpcServer } from '@timmeck/brain-core';
 
 export interface Services {
   error: ErrorService;
@@ -43,9 +44,42 @@ type MethodHandler = (params: unknown) => unknown;
 
 export class IpcRouter {
   private methods: Map<string, MethodHandler>;
+  private subscriptionManager: CrossBrainSubscriptionManager | null = null;
+  private ipcServer: IpcServer | null = null;
 
   constructor(private services: Services) {
     this.methods = this.buildMethodMap();
+  }
+
+  /**
+   * Wire the subscription manager and IPC server for cross-brain event routing.
+   */
+  setSubscriptionManager(manager: CrossBrainSubscriptionManager, server: IpcServer): void {
+    this.subscriptionManager = manager;
+    this.ipcServer = server;
+
+    // Register cross-brain subscription handlers
+    this.methods.set('cross-brain.subscribe', (params) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { subscriber, events } = params as any;
+      server.addSubscriber(subscriber, events);
+      return { subscribed: true, subscriber, events };
+    });
+
+    this.methods.set('cross-brain.unsubscribe', (params) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { subscriber } = params as any;
+      server.removeSubscriber(subscriber);
+      return { unsubscribed: true, subscriber };
+    });
+
+    this.methods.set('cross-brain.event', (params) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { source, event, data } = params as any;
+      logger.info(`Cross-brain event from ${source}: ${event}`);
+      manager.handleIncomingEvent(source, event, data);
+      return { received: true, source, event };
+    });
   }
 
   handle(method: string, params: unknown): unknown {
@@ -105,7 +139,44 @@ export class IpcRouter {
       ['prevention.antipatterns',  (params) => s.prevention.checkAntipatterns(p(params).errorType ?? '', p(params).message ?? p(params).error_output ?? '', p(params).projectId)],
       ['prevention.checkCode',    (params) => s.prevention.checkCodeForPatterns(p(params).source, p(params).filePath)],
 
+      // Rules (Learning Explainability)
+      ['rule.list',               () => s.prevention.listRules()],
+      ['rule.explain',            (params) => {
+        const ruleId = p(params).ruleId;
+        const rule = s.prevention.getRule(ruleId);
+        if (!rule) throw new Error(`Rule #${ruleId} not found`);
+        const matchedErrors = s.prevention.checkRules(rule.pattern, '', undefined);
+        const connections = s.synapse.getRelated({ nodeType: 'rule', nodeId: ruleId, maxDepth: 2 });
+        return { rule, matchedErrors, connections };
+      }],
+      ['rule.override',           (params) => {
+        const { ruleId, action, reason } = p(params);
+        const rule = s.prevention.getRule(ruleId);
+        if (!rule) throw new Error(`Rule #${ruleId} not found`);
+        if (action === 'boost') {
+          return s.prevention.updateRule(ruleId, { confidence: Math.min(1.0, rule.confidence + 0.2) });
+        } else if (action === 'suppress') {
+          return s.prevention.updateRule(ruleId, { confidence: Math.max(0.01, rule.confidence - 0.3) });
+        } else if (action === 'delete') {
+          return s.prevention.updateRule(ruleId, { active: 0 });
+        }
+        throw new Error(`Unknown action: ${action}`);
+      }],
+
       // Synapses
+      ['synapse.list',            (params) => {
+        const limit = p(params)?.limit ?? 20;
+        const synapses = s.synapse.getStrongestSynapses(limit);
+        return synapses.map((syn) => ({
+          sourceType: syn.source_type,
+          sourceId: syn.source_id,
+          targetType: syn.target_type,
+          targetId: syn.target_id,
+          weight: syn.weight,
+          type: syn.synapse_type,
+          lastActivated: syn.last_activated_at,
+        }));
+      }],
       ['synapse.context',         (params) => s.synapse.getErrorContext(p(params).errorId ?? p(params).error_id ?? p(params).node_id)],
       ['synapse.path',            (params) => s.synapse.findPath(p(params).from_type ?? p(params).fromType, p(params).from_id ?? p(params).fromId, p(params).to_type ?? p(params).toType, p(params).to_id ?? p(params).toId)],
       ['synapse.related',         (params) => s.synapse.getRelated(p(params))],

@@ -1,6 +1,5 @@
-import path from 'node:path';
 import type Database from 'better-sqlite3';
-import { getLogger } from '../utils/logger.js';
+import { BaseEmbeddingEngine } from '@timmeck/brain-core';
 
 export interface EmbeddingConfig {
   enabled: boolean;
@@ -10,43 +9,27 @@ export interface EmbeddingConfig {
   batchSize: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Pipeline = any;
-
-export class EmbeddingEngine {
-  private pipeline: Pipeline = null;
-  private ready = false;
-  private loading = false;
-  private logger = getLogger();
+/**
+ * Brain-specific embedding engine.
+ * Extends BaseEmbeddingEngine with sweep logic for brain's domain tables:
+ * errors, code_modules, memories, sessions, decisions, tasks, project_docs.
+ */
+export class EmbeddingEngine extends BaseEmbeddingEngine {
   private sweepTimer: ReturnType<typeof setInterval> | null = null;
+  private sweepIntervalMs: number;
+  private batchSize: number;
 
   constructor(
     private config: EmbeddingConfig,
     private db: Database.Database,
-  ) {}
-
-  async initialize(): Promise<void> {
-    if (!this.config.enabled || this.loading || this.ready) return;
-
-    this.loading = true;
-    try {
-      const { pipeline, env } = await import('@huggingface/transformers');
-      env.cacheDir = this.config.cacheDir;
-
-      this.pipeline = await pipeline(
-        'feature-extraction',
-        this.config.modelName,
-        { dtype: 'q8' },
-      );
-
-      this.ready = true;
-      this.logger.info(`Embedding model loaded: ${this.config.modelName}`);
-    } catch (err) {
-      this.logger.warn(`Failed to load embedding model (will retry): ${err}`);
-      this.ready = false;
-    } finally {
-      this.loading = false;
-    }
+  ) {
+    super({
+      enabled: config.enabled,
+      modelName: config.modelName,
+      cacheDir: config.cacheDir,
+    });
+    this.sweepIntervalMs = config.sweepIntervalMs;
+    this.batchSize = config.batchSize;
   }
 
   /** Start background embedding sweep */
@@ -55,18 +38,20 @@ export class EmbeddingEngine {
 
     // Initialize model in background
     this.initialize().then(() => {
-      if (this.ready) {
+      if (this.isReady()) {
         // Run initial sweep
         this.sweep().catch(err => this.logger.error('Embedding sweep error:', err));
       }
+    }).catch(() => {
+      // initialize() already logs warnings
     });
 
     // Periodic sweep for new entries
     this.sweepTimer = setInterval(() => {
-      if (this.ready) {
+      if (this.isReady()) {
         this.sweep().catch(err => this.logger.error('Embedding sweep error:', err));
       }
-    }, this.config.sweepIntervalMs);
+    }, this.sweepIntervalMs);
   }
 
   stop(): void {
@@ -76,35 +61,13 @@ export class EmbeddingEngine {
     }
   }
 
-  isReady(): boolean {
-    return this.ready;
-  }
-
-  /** Generate embedding for a single text */
-  async embed(text: string): Promise<Float32Array | null> {
-    if (!this.ready || !this.pipeline) return null;
-
+  /** Generate embedding for a single text, returning null on failure (backward compat) */
+  async embedSafe(text: string): Promise<Float32Array | null> {
+    if (!this.isReady()) return null;
     try {
-      const output = await this.pipeline(text, { pooling: 'mean', normalize: true });
-      const data = output.tolist()[0] as number[];
-      return new Float32Array(data);
-    } catch (err) {
-      this.logger.error(`Embedding error: ${err}`);
+      return await this.embed(text);
+    } catch {
       return null;
-    }
-  }
-
-  /** Generate embeddings for a batch of texts */
-  async embedBatch(texts: string[]): Promise<(Float32Array | null)[]> {
-    if (!this.ready || !this.pipeline || texts.length === 0) return texts.map(() => null);
-
-    try {
-      const output = await this.pipeline(texts, { pooling: 'mean', normalize: true });
-      const list = output.tolist() as number[][];
-      return list.map(v => new Float32Array(v));
-    } catch (err) {
-      this.logger.error(`Batch embedding error: ${err}`);
-      return texts.map(() => null);
     }
   }
 
@@ -121,7 +84,7 @@ export class EmbeddingEngine {
     // Process errors without embeddings
     const pendingErrors = this.db.prepare(
       'SELECT id, type, message, context FROM errors WHERE embedding IS NULL ORDER BY id DESC LIMIT ?'
-    ).all(this.config.batchSize) as Array<{ id: number; type: string; message: string; context: string | null }>;
+    ).all(this.batchSize) as Array<{ id: number; type: string; message: string; context: string | null }>;
 
     if (pendingErrors.length > 0) {
       const texts = pendingErrors.map(e =>
@@ -142,7 +105,7 @@ export class EmbeddingEngine {
     // Process code modules without embeddings
     const pendingModules = this.db.prepare(
       'SELECT id, name, description, file_path FROM code_modules WHERE embedding IS NULL ORDER BY id DESC LIMIT ?'
-    ).all(this.config.batchSize) as Array<{ id: number; name: string; description: string | null; file_path: string }>;
+    ).all(this.batchSize) as Array<{ id: number; name: string; description: string | null; file_path: string }>;
 
     if (pendingModules.length > 0) {
       const texts = pendingModules.map(m =>
@@ -163,7 +126,7 @@ export class EmbeddingEngine {
     // Process memories without embeddings
     const pendingMemories = this.db.prepare(
       'SELECT id, category, key, content FROM memories WHERE embedding IS NULL AND active = 1 ORDER BY id DESC LIMIT ?'
-    ).all(this.config.batchSize) as Array<{ id: number; category: string; key: string | null; content: string }>;
+    ).all(this.batchSize) as Array<{ id: number; category: string; key: string | null; content: string }>;
 
     if (pendingMemories.length > 0) {
       const texts = pendingMemories.map(m =>
@@ -183,7 +146,7 @@ export class EmbeddingEngine {
     // Process sessions without embeddings
     const pendingSessions = this.db.prepare(
       'SELECT id, summary, goals FROM sessions WHERE embedding IS NULL AND summary IS NOT NULL ORDER BY id DESC LIMIT ?'
-    ).all(this.config.batchSize) as Array<{ id: number; summary: string; goals: string | null }>;
+    ).all(this.batchSize) as Array<{ id: number; summary: string; goals: string | null }>;
 
     if (pendingSessions.length > 0) {
       const texts = pendingSessions.map(s =>
@@ -203,7 +166,7 @@ export class EmbeddingEngine {
     // Process decisions without embeddings
     const pendingDecisions = this.db.prepare(
       'SELECT id, title, description, alternatives FROM decisions WHERE embedding IS NULL ORDER BY id DESC LIMIT ?'
-    ).all(this.config.batchSize) as Array<{ id: number; title: string; description: string; alternatives: string | null }>;
+    ).all(this.batchSize) as Array<{ id: number; title: string; description: string; alternatives: string | null }>;
 
     if (pendingDecisions.length > 0) {
       const texts = pendingDecisions.map(d =>
@@ -223,7 +186,7 @@ export class EmbeddingEngine {
     // Process tasks without embeddings
     const pendingTasks = this.db.prepare(
       'SELECT id, title, description, notes FROM tasks WHERE embedding IS NULL ORDER BY id DESC LIMIT ?'
-    ).all(this.config.batchSize) as Array<{ id: number; title: string; description: string | null; notes: string | null }>;
+    ).all(this.batchSize) as Array<{ id: number; title: string; description: string | null; notes: string | null }>;
 
     if (pendingTasks.length > 0) {
       const texts = pendingTasks.map(t =>
@@ -243,7 +206,7 @@ export class EmbeddingEngine {
     // Process project docs without embeddings
     const pendingDocs = this.db.prepare(
       'SELECT id, file_path, content FROM project_docs WHERE embedding IS NULL ORDER BY id DESC LIMIT ?'
-    ).all(this.config.batchSize) as Array<{ id: number; file_path: string; content: string }>;
+    ).all(this.batchSize) as Array<{ id: number; file_path: string; content: string }>;
 
     if (pendingDocs.length > 0) {
       const texts = pendingDocs.map(d =>
@@ -321,26 +284,5 @@ export class EmbeddingEngine {
     }
 
     return scores;
-  }
-
-  /** Serialize Float32Array to Buffer for SQLite BLOB storage */
-  static serialize(embedding: Float32Array): Buffer {
-    return Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength);
-  }
-
-  /** Deserialize SQLite BLOB to Float32Array */
-  static deserialize(buffer: Buffer): Float32Array {
-    const copy = Buffer.from(buffer);
-    return new Float32Array(copy.buffer, copy.byteOffset, copy.length / 4);
-  }
-
-  /** Cosine similarity (embeddings are L2-normalized, so dot product = cosine) */
-  static similarity(a: Float32Array, b: Float32Array): number {
-    if (a.length !== b.length) return 0;
-    let dot = 0;
-    for (let i = 0; i < a.length; i++) {
-      dot += a[i]! * b[i]!;
-    }
-    return Math.max(0, Math.min(1, dot));
   }
 }

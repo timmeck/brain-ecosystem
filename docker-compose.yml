@@ -1,0 +1,58 @@
+services:
+  brain:
+    build:
+      context: .
+      target: brain
+    volumes:
+      - brain-data:/data
+      - ipc-sockets:/tmp/brain-ipc
+    ports:
+      - "7777:7777"   # REST API
+      - "7778:7778"   # MCP HTTP
+    environment:
+      - BRAIN_DATA_DIR=/data
+      - BRAIN_IPC_DIR=/tmp/brain-ipc
+    restart: unless-stopped
+
+  trading-brain:
+    build:
+      context: .
+      target: trading-brain
+    volumes:
+      - trading-data:/data
+      - ipc-sockets:/tmp/brain-ipc
+    ports:
+      - "7779:7779"   # REST API
+      - "7780:7780"   # MCP HTTP
+    environment:
+      - TRADING_BRAIN_DATA_DIR=/data
+      - BRAIN_IPC_DIR=/tmp/brain-ipc
+    depends_on:
+      brain:
+        condition: service_healthy
+    restart: unless-stopped
+
+  marketing-brain:
+    build:
+      context: .
+      target: marketing-brain
+    volumes:
+      - marketing-data:/data
+      - ipc-sockets:/tmp/brain-ipc
+    ports:
+      - "7781:7781"   # REST API
+      - "7782:7782"   # MCP HTTP
+      - "7783:7783"   # Dashboard
+    environment:
+      - MARKETING_BRAIN_DATA_DIR=/data
+      - BRAIN_IPC_DIR=/tmp/brain-ipc
+    depends_on:
+      brain:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  brain-data:
+  trading-data:
+  marketing-data:
+  ipc-sockets:

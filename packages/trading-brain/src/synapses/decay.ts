@@ -1,6 +1,6 @@
 import type { SynapseRecord } from '../db/repositories/synapse.repository.js';
 
-// Re-export timeDecayFactor from brain-core for consumers
+// Re-export timeDecayFactor from brain-core (used by synapse-manager and learning engine)
 export { timeDecayFactor } from '@timmeck/brain-core';
 
 /**

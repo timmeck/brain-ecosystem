@@ -1,4 +1,4 @@
-import type { RuleRepository } from '../db/repositories/rule.repository.js';
+import type { RuleRepository, RuleRecord } from '../db/repositories/rule.repository.js';
 import type { AntipatternRepository } from '../db/repositories/antipattern.repository.js';
 import type { SynapseManager } from '../synapses/synapse-manager.js';
 import { getLogger } from '../utils/logger.js';
@@ -143,6 +143,19 @@ export class PreventionService {
     }
 
     return { warnings: warnings.slice(0, 5) };
+  }
+
+  listRules(): RuleRecord[] {
+    return this.ruleRepo.findActive();
+  }
+
+  getRule(ruleId: number): RuleRecord | undefined {
+    return this.ruleRepo.getById(ruleId);
+  }
+
+  updateRule(ruleId: number, data: { confidence?: number; active?: number }): RuleRecord | undefined {
+    this.ruleRepo.update(ruleId, data);
+    return this.ruleRepo.getById(ruleId);
   }
 
   reportPrevention(ruleId: number, errorId: number): void {

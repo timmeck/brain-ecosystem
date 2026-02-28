@@ -1,4 +1,4 @@
-import { IpcClient } from '../ipc/client.js';
+import { IpcClient } from '@timmeck/brain-core';
 import { getPipeName } from '../utils/paths.js';
 import { c, icons } from './colors.js';
 
