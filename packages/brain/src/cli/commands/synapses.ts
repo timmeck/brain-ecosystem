@@ -9,10 +9,10 @@ export function synapsesCommand(): Command {
     .option('-t, --type <type>', 'Filter by connection type')
     .action(async (opts) => {
       await withIpc(async (client) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const synapses = await client.request('synapse.list', {
           limit: parseInt(opts.limit, 10),
           type: opts.type,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }) as any[];
 
         console.log(header('Synapse Network', icons.brain));

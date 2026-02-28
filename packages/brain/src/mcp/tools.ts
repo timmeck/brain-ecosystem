@@ -735,7 +735,7 @@ function registerToolsWithCaller(server: McpServer, call: BrainCall): void {
       reason: z.string().optional().describe('Why this rule is being overridden'),
     },
     async (params) => {
-      const result: AnyResult = await call('rule.override', { ruleId: params.rule_id, action: params.action, reason: params.reason });
+      await call('rule.override', { ruleId: params.rule_id, action: params.action, reason: params.reason });
       return textResult(`Rule #${params.rule_id} ${params.action}ed. ${params.reason || ''}`);
     },
   );

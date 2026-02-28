@@ -35,6 +35,7 @@ export function projectsCommand(): Command {
         }
 
         console.log(table(rows, [5, 24, 14, 9, 40]));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         console.log(`\n  ${c.label('Total:')} ${c.value(String(projects.length))} projects, ${c.green(String(projects.reduce((s: number, p: any) => s + p.moduleCount, 0)))} modules`);
         console.log(`\n${divider()}`);
       });

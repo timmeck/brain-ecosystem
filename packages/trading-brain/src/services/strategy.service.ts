@@ -80,7 +80,7 @@ export class StrategyService {
    * Brain-recommended grid spacing based on volatility history.
    * Ported from tradingBrain.js getGridParams().
    */
-  getGridParams(regime: string, volatility: number, pair: string): GridParamsResult {
+  getGridParams(regime: string, volatility: number, _pair: string): GridParamsResult {
     const result: GridParamsResult = { spacingMultiplier: 1.0, reason: 'Standard' };
     if (this.tradeCount() < 10) return result;
 

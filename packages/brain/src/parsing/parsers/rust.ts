@@ -3,7 +3,8 @@ import path from 'node:path';
 
 const RUST_ERROR_RE = /error(?:\[E(\d+)\])?: (.+)/;
 const RUST_LOCATION_RE = /^\s*--> (.+):(\d+):(\d+)/m;
-const RUST_NOTE_RE = /^\s*= note: (.+)/gm;
+// Reserved for future note extraction
+// const RUST_NOTE_RE = /^\s*= note: (.+)/gm;
 
 export const rustParser: ErrorParser = {
   name: 'rust',

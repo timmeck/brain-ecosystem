@@ -50,7 +50,6 @@ export function renderDashboard(template: string, services: DashboardServices): 
 
   // Platform chart
   const platforms = s.posts?.byPlatform ?? {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const maxCount = Math.max(1, ...Object.values(platforms as Record<string, number>));
   let platformHtml = '';
   for (const [platform, count] of Object.entries(platforms as Record<string, number>)) {

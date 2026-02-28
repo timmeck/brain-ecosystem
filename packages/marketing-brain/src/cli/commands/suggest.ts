@@ -17,6 +17,7 @@ export function suggestCommand(): Command {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const templates: any[] = (opts.platform
           ? await client.request('template.byPlatform', { platform: opts.platform, limit: 3 })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           : await client.request('template.find', { query: topic, limit: 3 })) as any[];
 
         // Check rules

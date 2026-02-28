@@ -3,7 +3,7 @@ import type { WeightedGraph } from '../graph/weighted-graph.js';
 import type { CalibrationConfig } from '../types/config.types.js';
 import type { RuleRepository } from '../db/repositories/rule.repository.js';
 import type { TradeRepository } from '../db/repositories/trade.repository.js';
-import { fingerprint, fingerprintSimilarity, classifyVolatility, type SignalInput } from '../signals/fingerprint.js';
+import { fingerprint, fingerprintSimilarity, type SignalInput } from '../signals/fingerprint.js';
 import { wilsonScore } from '@timmeck/brain-core';
 import { NODE_TYPES } from '../graph/weighted-graph.js';
 

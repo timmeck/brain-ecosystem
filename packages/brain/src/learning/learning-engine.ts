@@ -7,7 +7,7 @@ import type { SynapseManager } from '../synapses/synapse-manager.js';
 import { extractPatterns } from './pattern-extractor.js';
 import { generateRules, persistRules } from './rule-generator.js';
 import { shouldPruneRule } from './decay.js';
-import { computeAdaptiveThresholds, type AdaptiveThresholds } from './confidence-scorer.js';
+import { computeAdaptiveThresholds } from './confidence-scorer.js';
 import { BaseLearningEngine } from '@timmeck/brain-core';
 
 export interface LearningCycleResult {
@@ -51,7 +51,6 @@ export class LearningEngine extends BaseLearningEngine {
     this.logger.debug(`Adaptive thresholds: minOcc=${adaptive.minOccurrences}, minSuccess=${adaptive.minSuccessRate.toFixed(2)}, minConf=${adaptive.minConfidence.toFixed(2)}`);
 
     // Phase 1: Collect recent errors
-    const since = this.lastCycleAt ?? new Date(Date.now() - this.config.intervalMs).toISOString();
     const recentErrors = this.errorRepo.findUnresolved();
 
     // Phase 2: Extract patterns

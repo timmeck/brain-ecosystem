@@ -55,7 +55,7 @@ export function analyzeCode(source: string, language: string): AnalysisResult {
  * Computes cyclomatic complexity: counts decision points in the code.
  * CC = 1 + number of decision points (if, else if, for, while, case, catch, &&, ||, ?:)
  */
-export function computeCyclomaticComplexity(source: string, language: string): number {
+export function computeCyclomaticComplexity(source: string, _language: string): number {
   // Remove comments and strings to avoid false positives
   const cleaned = source
     .replace(/\/\/.*$/gm, '')           // single-line comments

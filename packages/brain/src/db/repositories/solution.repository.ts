@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { Statement } from 'better-sqlite3';
-import type { SolutionRecord, ErrorSolution, SolutionAttempt } from '../../types/solution.types.js';
+import type { SolutionRecord, SolutionAttempt } from '../../types/solution.types.js';
 
 type CreateSolutionData = Omit<SolutionRecord, 'id' | 'success_count' | 'fail_count' | 'created_at' | 'updated_at'>;
 type UpdateSolutionData = Partial<Omit<SolutionRecord, 'id' | 'created_at'>>;

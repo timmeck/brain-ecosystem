@@ -31,7 +31,6 @@ export function statusCommand(): Command {
       console.log(header('Marketing Brain Status', icons.megaphone));
       console.log(`  ${c.green(`${icons.dot} RUNNING`)} ${c.dim(`(PID ${pid})`)}`);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await withIpc(async (client) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const summary: any = await client.request('analytics.summary', {});

@@ -80,7 +80,7 @@ export class LearningEngine extends BaseLearningEngine {
     }
 
     // Find best/worst hours
-    for (const [hour, data] of Object.entries(hourBuckets)) {
+    for (const [, data] of Object.entries(hourBuckets)) {
       if (data.total < this.config.minOccurrences) continue;
       data.avgScore /= data.total;
     }
@@ -122,7 +122,7 @@ export class LearningEngine extends BaseLearningEngine {
       formatBuckets[post.format].avgScore += score;
     }
 
-    for (const [format, data] of Object.entries(formatBuckets)) {
+    for (const [, data] of Object.entries(formatBuckets)) {
       if (data.total < this.config.minOccurrences) continue;
       data.avgScore /= data.total;
     }

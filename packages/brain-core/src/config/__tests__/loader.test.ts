@@ -38,6 +38,7 @@ describe('deepMerge', () => {
     deepMerge(target, {
       level1: { level2: { level3: { replace: 'new' } } },
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((target as any).level1.level2.level3).toEqual({ keep: true, replace: 'new' });
   });
 });

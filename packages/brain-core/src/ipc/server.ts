@@ -186,7 +186,7 @@ export class IpcServer {
    * Fire-and-forget — does not block if a subscriber is offline.
    */
   notifySubscribers(event: string, data: unknown): void {
-    for (const [subscriber, sub] of this.subscribers) {
+    for (const [, sub] of this.subscribers) {
       if (sub.events.includes(event)) {
         const client = new IpcClient(sub.pipeName, 3000);
         client.connect()

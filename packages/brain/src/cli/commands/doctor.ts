@@ -64,11 +64,9 @@ export function doctorCommand(): Command {
 
       // 3. MCP configured?
       const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
-      let mcpConfigured = false;
       try {
         const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
         if (settings.mcpServers?.brain || settings.mcpServers?.['brain-mcp']) {
-          mcpConfigured = true;
           pass('MCP server configured');
         } else {
           fail('MCP server not configured', `edit ${settingsPath}`);

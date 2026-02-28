@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../utils/logger.js', () => ({
   getLogger: () => ({
@@ -11,11 +11,11 @@ vi.mock('../../utils/logger.js', () => ({
 
 import { BaseEmbeddingEngine } from '../engine.js';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 describe('BaseEmbeddingEngine', () => {
   describe('constructor', () => {
     it('sets modelName default to Xenova/all-MiniLM-L6-v2', () => {
       const engine = new BaseEmbeddingEngine({ enabled: true });
-      // Access protected field via cast
       expect((engine as any).modelName).toBe('Xenova/all-MiniLM-L6-v2');
     });
 

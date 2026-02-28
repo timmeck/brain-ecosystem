@@ -46,6 +46,7 @@ function startServer(
     dashboard.start();
 
     // Access the underlying server to get the assigned port
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const internal = (dashboard as any).server as http.Server;
     internal.on('listening', () => {
       const addr = internal.address() as { port: number };

@@ -105,7 +105,7 @@ export class PreventionService {
     });
   }
 
-  checkCodeForPatterns(source: string, filePath?: string): { warnings: Array<{ message: string; severity: string; ruleId?: number }> } {
+  checkCodeForPatterns(source: string, _filePath?: string): { warnings: Array<{ message: string; severity: string; ruleId?: number }> } {
     const warnings: Array<{ message: string; severity: string; ruleId?: number }> = [];
 
     // Check antipatterns against the code itself

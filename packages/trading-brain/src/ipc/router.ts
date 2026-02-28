@@ -167,7 +167,7 @@ export class IpcRouter {
 
       // ─── Cross-Brain Notifications ──────────────────────────
       ['cross-brain.notify', (params) => {
-        const { source, event, data, timestamp } = p(params);
+        const { source, event, timestamp } = p(params);
         logger.info(`Cross-brain notification from ${source}: ${event}`);
         return { received: true, source, event, timestamp };
       }],

@@ -3,9 +3,10 @@ import path from 'node:path';
 
 const GO_FILE_ERROR_RE = /^\.?\/?(.+\.go):(\d+):(\d+): (.+)/m;
 const GO_PANIC_RE = /^panic: (.+)/m;
-const GO_GOROUTINE_RE = /^goroutine \d+ \[.+\]:/m;
-const GO_STACK_RE = /^\t(.+\.go):(\d+)/gm;
-const GO_FUNC_RE = /^(.+)\(.*\)$/gm;
+// Reserved for future goroutine stack trace parsing
+// const GO_GOROUTINE_RE = /^goroutine \d+ \[.+\]:/m;
+// const GO_STACK_RE = /^\t(.+\.go):(\d+)/gm;
+// const GO_FUNC_RE = /^(.+)\(.*\)$/gm;
 
 export const goParser: ErrorParser = {
   name: 'go',

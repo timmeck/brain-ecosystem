@@ -16,7 +16,7 @@ import type { DecisionService } from '../services/decision.service.js';
 import type { ChangelogService } from '../services/changelog.service.js';
 import type { TaskService } from '../services/task.service.js';
 import type { DocService } from '../services/doc.service.js';
-import type { LearningEngine, LearningCycleResult } from '../learning/learning-engine.js';
+import type { LearningEngine } from '../learning/learning-engine.js';
 import type { CrossBrainClient, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
 import type { IpcServer } from '@timmeck/brain-core';
 
@@ -150,7 +150,7 @@ export class IpcRouter {
         return { rule, matchedErrors, connections };
       }],
       ['rule.override',           (params) => {
-        const { ruleId, action, reason } = p(params);
+        const { ruleId, action } = p(params);
         const rule = s.prevention.getRule(ruleId);
         if (!rule) throw new Error(`Rule #${ruleId} not found`);
         if (action === 'boost') {
@@ -214,7 +214,7 @@ export class IpcRouter {
 
       // Cross-Brain Notifications
       ['cross-brain.notify',      (params) => {
-        const { source, event, data, timestamp } = p(params);
+        const { source, event, timestamp } = p(params);
         logger.info(`Cross-brain notification from ${source}: ${event}`);
         return { received: true, source, event, timestamp };
       }],
