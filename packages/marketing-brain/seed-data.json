@@ -1,0 +1,78 @@
+{
+  "posts": [
+    {
+      "platform": "reddit",
+      "content": "I built \"Brain\" — a persistent error memory system for Claude Code that learns from every bug you fix (open source, MCP). Every time you start a new Claude Code session, it forgets everything. So I built Brain — an MCP server that gives Claude Code persistent memory with Hebbian synapse network, hybrid search, and adaptive learning.",
+      "format": "article",
+      "url": "https://www.reddit.com/r/ClaudeAI/",
+      "hashtags": "ClaudeAI,MCP,OpenSource,Brain",
+      "campaign": "Brain Launch",
+      "brand": "Brain",
+      "status": "draft",
+      "published_at": "2026-02-20T12:00:00Z",
+      "strategy": {
+        "description": "Long-form technical post on r/ClaudeAI showing real numbers and architecture",
+        "approach": "Problem → Solution → Architecture → Real stats → Call to action",
+        "outcome": "Targets Claude Code power users who experience session amnesia"
+      }
+    },
+    {
+      "platform": "reddit",
+      "content": "I built a persistent memory system for Claude Code — it remembers every error, solution, and code module across all your projects. Claude Code starts fresh every session. After months of hitting the same errors, I built Brain — an MCP server with Hebbian learning. 18,160 modules, 37,277 synapses, 4,902 insights.",
+      "format": "article",
+      "url": "https://www.reddit.com/r/ClaudeAI/",
+      "hashtags": "ClaudeAI,MCP,OpenSource",
+      "campaign": "Brain Launch",
+      "brand": "Brain",
+      "status": "draft",
+      "published_at": "2026-02-20T12:00:00Z",
+      "strategy": {
+        "description": "Concise Reddit pitch focusing on key numbers and pain point",
+        "approach": "Short hook → Real numbers → Feature list → GitHub link",
+        "outcome": "Quick scan-friendly format for Reddit scrollers"
+      }
+    },
+    {
+      "platform": "x",
+      "content": "Just shipped Brain v1.8 — a persistent error memory system for Claude Code. It remembers every bug you fix across all sessions using Hebbian synapse networks. 18K+ modules tracked, 37K+ synapses, 5K insights. Open source + MCP. github.com/timmeck/brain",
+      "format": "text",
+      "hashtags": "#ClaudeCode,#MCP,#OpenSource,#AI,#DevTools",
+      "campaign": "Brain Launch",
+      "brand": "Brain",
+      "status": "draft",
+      "strategy": {
+        "description": "X announcement tweet with key stats",
+        "approach": "Ship announcement + impressive numbers + GitHub link",
+        "outcome": "DevTools audience on X"
+      }
+    },
+    {
+      "platform": "reddit",
+      "content": "REPOSIGNAL — Real-time GitHub signal intelligence. Tracks 1000+ repos, AI-powered scoring, trending detection, auto-posting to X. Built with Python/FastAPI, deployed on Railway.",
+      "format": "article",
+      "hashtags": "GitHub,OpenSource,AI,DevTools",
+      "campaign": "REPOSIGNAL Promotion",
+      "brand": "REPOSIGNAL",
+      "status": "draft",
+      "strategy": {
+        "description": "REPOSIGNAL product announcement on Reddit",
+        "approach": "Show real-time intelligence angle, emphasize automation",
+        "outcome": "Target GitHub power users and open source enthusiasts"
+      }
+    },
+    {
+      "platform": "x",
+      "content": "Built Marketing Brain — a self-learning system that tracks every post, learns what works, and suggests strategies. Hebbian synapse network connecting posts, campaigns, and insights. Same architecture as Brain, applied to marketing.",
+      "format": "text",
+      "hashtags": "#MarketingBrain,#AI,#ContentStrategy,#DevTools",
+      "campaign": "Marketing Brain Launch",
+      "brand": "Marketing Brain",
+      "status": "draft",
+      "strategy": {
+        "description": "Meta-marketing: announce the marketing tool itself",
+        "approach": "Self-referential hook — the tool tracks its own launch",
+        "outcome": "Developer audience interested in AI-powered content tools"
+      }
+    }
+  ]
+}

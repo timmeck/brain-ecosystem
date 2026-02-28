@@ -1,0 +1,83 @@
+{
+  "name": "@timmeck/brain-core",
+  "version": "1.6.0",
+  "description": "Shared core infrastructure for the Brain ecosystem — IPC, MCP, CLI, DB connection, and utilities",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./types": "./dist/types/ipc.types.js",
+    "./utils/hash": "./dist/utils/hash.js",
+    "./utils/logger": "./dist/utils/logger.js",
+    "./utils/paths": "./dist/utils/paths.js",
+    "./utils/events": "./dist/utils/events.js",
+    "./db": "./dist/db/connection.js",
+    "./ipc/protocol": "./dist/ipc/protocol.js",
+    "./ipc/server": "./dist/ipc/server.js",
+    "./ipc/client": "./dist/ipc/client.js",
+    "./mcp/server": "./dist/mcp/server.js",
+    "./mcp/http-server": "./dist/mcp/http-server.js",
+    "./cli/colors": "./dist/cli/colors.js",
+    "./api/server": "./dist/api/server.js",
+    "./math/wilson-score": "./dist/math/wilson-score.js",
+    "./math/time-decay": "./dist/math/time-decay.js",
+    "./config/loader": "./dist/config/loader.js",
+    "./synapses/types": "./dist/synapses/types.js",
+    "./synapses/hebbian": "./dist/synapses/hebbian.js",
+    "./synapses/decay": "./dist/synapses/decay.js",
+    "./synapses/activation": "./dist/synapses/activation.js",
+    "./synapses/pathfinder": "./dist/synapses/pathfinder.js",
+    "./synapses/synapse-manager": "./dist/synapses/synapse-manager.js",
+    "./cross-brain": "./dist/cross-brain/client.js",
+    "./memory/types": "./dist/memory/types.js",
+    "./memory/base-memory-engine": "./dist/memory/base-memory-engine.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "test:coverage": "vitest --coverage"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "claude",
+    "claude-code",
+    "cursor",
+    "windsurf",
+    "cline",
+    "ai-tools",
+    "ipc",
+    "named-pipes",
+    "synapse-network",
+    "developer-tools",
+    "hebbian-learning",
+    "shared-infrastructure"
+  ],
+  "author": "Tim Mecklenburg",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/timmeck/brain-core"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "better-sqlite3": "^11.7.0",
+    "chalk": "^5.6.2",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.39.3",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^3.0.0"
+  }
+}

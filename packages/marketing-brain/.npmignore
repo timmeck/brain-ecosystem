@@ -1,0 +1,10 @@
+src/
+tests/
+.claude/
+.mcp.json
+tsconfig.json
+vitest.config.ts
+.github/
+*.md
+!README.md
+!LICENSE

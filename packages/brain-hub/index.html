@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brain Ecosystem — MCP Servers for Claude Code</title>
+<meta name="description" content="Open-source MCP servers that give Claude Code persistent memory, adaptive learning, and cross-domain intelligence.">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#04060e;--bg2:rgba(10,12,24,.7);--bg3:rgba(20,24,50,.6);
+    --glass:rgba(15,18,40,.55);--glass-border:rgba(100,120,255,.12);--glass-hover:rgba(100,120,255,.2);
+    --text:#e8eaf6;--text2:#8b8fb0;--text3:#4a4d6e;
+    --blue:#5b9cff;--red:#ff5577;--green:#3dffa0;
+    --purple:#b47aff;--orange:#ffb347;--cyan:#47e5ff;
+  }
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+
+  #neural-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  .orb{position:fixed;border-radius:50%;filter:blur(150px);opacity:.1;pointer-events:none;z-index:0}
+  .orb-1{width:700px;height:700px;background:var(--purple);top:-250px;left:-150px;animation:orb-float 22s ease-in-out infinite}
+  .orb-2{width:600px;height:600px;background:var(--green);bottom:-200px;right:-150px;animation:orb-float 28s ease-in-out infinite reverse}
+  .orb-3{width:500px;height:500px;background:var(--cyan);top:35%;left:45%;animation:orb-float 20s ease-in-out infinite 3s}
+  @keyframes orb-float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(80px,-50px) scale(1.1)}66%{transform:translate(-50px,80px) scale(.9)}}
+
+  .container{max-width:1100px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.visible{opacity:1;transform:translateY(0)}
+
+  /* Hero */
+  .hero{text-align:center;padding:100px 0 80px}
+  .hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:.78rem;color:var(--cyan);font-weight:600;margin-bottom:24px;backdrop-filter:blur(10px)}
+  .hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .hero h1{font-size:4rem;font-weight:900;letter-spacing:-2px;line-height:1.1;margin-bottom:20px}
+  .hero h1 .gradient{background:linear-gradient(135deg,var(--purple),var(--blue),var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .hero p{font-size:1.15rem;color:var(--text2);max-width:650px;margin:0 auto 36px;font-weight:300}
+  .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:12px;font-size:.9rem;font-weight:600;text-decoration:none;transition:all .3s ease;font-family:inherit;border:none;cursor:pointer}
+  .btn-primary{background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;box-shadow:0 4px 20px rgba(91,156,255,.25)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(91,156,255,.35)}
+  .btn-secondary{background:var(--glass);color:var(--text);border:1px solid var(--glass-border);backdrop-filter:blur(10px)}
+  .btn-secondary:hover{border-color:var(--glass-hover);transform:translateY(-2px)}
+  .btn code{font-size:.85rem;opacity:.7}
+
+  /* Install */
+  .install{text-align:center;margin:0 0 80px}
+  .install-cmd{display:inline-block;background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;padding:16px 32px;font-family:'Fira Code',monospace;font-size:1rem;color:var(--cyan);backdrop-filter:blur(20px);letter-spacing:.5px}
+
+  /* Brains grid */
+  .section-title{font-size:2rem;font-weight:800;text-align:center;margin-bottom:48px;letter-spacing:-1px}
+  .brains-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;margin-bottom:80px}
+  .brain-card{
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;
+    padding:36px 28px;position:relative;overflow:hidden;backdrop-filter:blur(20px);
+    transition:all .4s ease;
+  }
+  .brain-card:hover{transform:translateY(-6px);border-color:var(--glass-hover);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .brain-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .brain-card.error::before{background:linear-gradient(90deg,var(--purple),var(--blue))}
+  .brain-card.trading::before{background:linear-gradient(90deg,var(--green),var(--cyan))}
+  .brain-card.marketing::before{background:linear-gradient(90deg,var(--orange),var(--red))}
+  .brain-card.core::before{background:linear-gradient(90deg,var(--cyan),var(--blue),var(--purple))}
+  .brain-icon{font-size:2.5rem;margin-bottom:16px}
+  .brain-card h3{font-size:1.3rem;font-weight:700;margin-bottom:8px}
+  .brain-card .pkg{font-size:.78rem;color:var(--cyan);font-family:'Fira Code',monospace;margin-bottom:14px}
+  .brain-card p{color:var(--text2);font-size:.9rem;margin-bottom:20px}
+  .brain-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+  .brain-tag{font-size:.7rem;padding:3px 10px;border-radius:8px;background:rgba(91,156,255,.08);color:var(--blue);border:1px solid rgba(91,156,255,.15);font-weight:500}
+  .brain-links{display:flex;gap:12px}
+  .brain-links a{font-size:.82rem;color:var(--text2);text-decoration:none;display:flex;align-items:center;gap:4px;transition:color .2s}
+  .brain-links a:hover{color:var(--cyan)}
+
+  /* Architecture */
+  .arch{margin:0 0 80px}
+  .arch-diagram{background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:40px;backdrop-filter:blur(20px);overflow-x:auto}
+  .arch-diagram pre{font-family:'Fira Code',monospace;font-size:.8rem;color:var(--text2);line-height:1.8;white-space:pre}
+  .arch-diagram .highlight{color:var(--cyan)}
+
+  /* Ports */
+  .ports{margin:0 0 80px}
+  .port-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .port-row{
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;
+    padding:16px 20px;display:flex;justify-content:space-between;align-items:center;
+    backdrop-filter:blur(20px);transition:all .2s;
+  }
+  .port-row:hover{border-color:var(--glass-hover);transform:translateX(4px)}
+  .port-name{font-weight:600;font-size:.9rem}
+  .port-number{font-family:'Fira Code',monospace;color:var(--cyan);font-size:.85rem}
+  .port-type{font-size:.72rem;color:var(--text3);text-transform:uppercase}
+
+  /* Sponsor */
+  .sponsor{text-align:center;padding:60px 0;margin:0 0 40px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;backdrop-filter:blur(20px)}
+  .sponsor h2{font-size:1.8rem;font-weight:800;margin-bottom:12px}
+  .sponsor p{color:var(--text2);margin-bottom:24px;font-size:.95rem}
+  .sponsor .btn{font-size:.95rem}
+
+  footer{text-align:center;padding:40px 0;border-top:1px solid var(--glass-border)}
+  footer p{color:var(--text3);font-size:.8rem}
+  footer a{color:var(--cyan);text-decoration:none}
+
+  @media(max-width:600px){.hero h1{font-size:2.4rem}.brains-grid{grid-template-columns:1fr}.arch-diagram{padding:20px}}
+</style>
+</head>
+<body>
+
+<canvas id="neural-bg"></canvas>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="container">
+
+  <section class="hero reveal">
+    <div class="hero-badge"><span class="dot"></span> Open Source MCP Ecosystem</div>
+    <h1>The <span class="gradient">Brain</span> Ecosystem</h1>
+    <p>Open-source MCP servers that give Claude Code persistent memory, adaptive learning, and cross-domain intelligence. Each brain learns from every interaction and gets smarter over time.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/timmeck/brain" class="btn btn-primary">View on GitHub</a>
+      <a href="https://www.npmjs.com/package/@timmeck/brain" class="btn btn-secondary">npm</a>
+      <a href="#brains" class="btn btn-secondary">Explore Brains</a>
+    </div>
+  </section>
+
+  <div class="install reveal" style="margin-bottom:20px">
+    <h3 style="font-size:1.3rem;font-weight:700;margin-bottom:16px;color:var(--text)">Get Started in 30 Seconds</h3>
+    <div class="install-cmd" style="margin-bottom:12px">npm install -g @timmeck/brain && brain setup</div>
+    <p style="color:var(--text3);font-size:.82rem;margin-top:10px">One command. Configures MCP server, hooks, and daemon. Brain starts learning immediately.</p>
+  </div>
+
+  <div class="install reveal">
+    <div class="install-cmd" style="font-size:.85rem;color:var(--text2)">npm install -g @timmeck/trading-brain @timmeck/marketing-brain</div>
+    <p style="color:var(--text3);font-size:.78rem;margin-top:8px">Optional: add trading intelligence and marketing intelligence</p>
+  </div>
+
+  <section id="brains">
+    <h2 class="section-title reveal">Four Packages, One Ecosystem</h2>
+    <div class="brains-grid">
+
+      <div class="brain-card error reveal">
+        <div class="brain-icon">&#129504;</div>
+        <h3>Brain</h3>
+        <div class="pkg">@timmeck/brain</div>
+        <p>Adaptive error memory, code intelligence, and persistent context. Never forgets preferences, decisions, sessions, or goals. 28 MCP tools, Hebbian synapse network, hybrid search. <em style="color:var(--text3);font-size:.8rem">v2.2.0</em></p>
+        <div class="brain-tags">
+          <span class="brain-tag">Error Memory</span>
+          <span class="brain-tag">Persistent Context</span>
+          <span class="brain-tag">Session Tracking</span>
+          <span class="brain-tag">Hebbian Learning</span>
+          <span class="brain-tag">Vector Search</span>
+          <span class="brain-tag">Decision History</span>
+        </div>
+        <div class="brain-links">
+          <a href="https://github.com/timmeck/brain">GitHub</a>
+          <a href="https://www.npmjs.com/package/@timmeck/brain">npm</a>
+        </div>
+      </div>
+
+      <div class="brain-card trading reveal">
+        <div class="brain-icon">&#128185;</div>
+        <h3>Trading Brain</h3>
+        <div class="pkg">@timmeck/trading-brain</div>
+        <p>Adaptive trading intelligence and signal learning. Wilson Score confidence, DCA/grid recommendations, memory & sessions. <em style="color:var(--text3);font-size:.8rem">v1.3.0</em></p>
+        <div class="brain-tags">
+          <span class="brain-tag">Signal Learning</span>
+          <span class="brain-tag">Wilson Score</span>
+          <span class="brain-tag">DCA Multiplier</span>
+          <span class="brain-tag">Chain Detection</span>
+          <span class="brain-tag">Memory</span>
+        </div>
+        <div class="brain-links">
+          <a href="https://github.com/timmeck/trading-brain">GitHub</a>
+          <a href="https://www.npmjs.com/package/@timmeck/trading-brain">npm</a>
+        </div>
+      </div>
+
+      <div class="brain-card marketing reveal">
+        <div class="brain-icon">&#128227;</div>
+        <h3>Marketing Brain</h3>
+        <div class="pkg">@timmeck/marketing-brain</div>
+        <p>Self-learning marketing intelligence. Content strategy optimization, engagement tracking, memory & sessions. <em style="color:var(--text3);font-size:.8rem">v0.5.0</em></p>
+        <div class="brain-tags">
+          <span class="brain-tag">Content Strategy</span>
+          <span class="brain-tag">Engagement</span>
+          <span class="brain-tag">Multi-Platform</span>
+          <span class="brain-tag">Templates</span>
+          <span class="brain-tag">Memory</span>
+        </div>
+        <div class="brain-links">
+          <a href="https://github.com/timmeck/marketing-brain">GitHub</a>
+          <a href="https://www.npmjs.com/package/@timmeck/marketing-brain">npm</a>
+        </div>
+      </div>
+
+      <div class="brain-card core reveal">
+        <div class="brain-icon">&#9881;&#65039;</div>
+        <h3>Brain Core</h3>
+        <div class="pkg">@timmeck/brain-core</div>
+        <p>Shared infrastructure: IPC protocol, MCP servers, REST API base, DB connection, CLI colors, memory types, cross-brain peering. <em style="color:var(--text3);font-size:.8rem">v1.6.0</em></p>
+        <div class="brain-tags">
+          <span class="brain-tag">IPC</span>
+          <span class="brain-tag">MCP</span>
+          <span class="brain-tag">REST API</span>
+          <span class="brain-tag">Memory Types</span>
+          <span class="brain-tag">Cross-Brain</span>
+        </div>
+        <div class="brain-links">
+          <a href="https://github.com/timmeck/brain-core">GitHub</a>
+          <a href="https://www.npmjs.com/package/@timmeck/brain-core">npm</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="arch reveal">
+    <h2 class="section-title">Architecture</h2>
+    <div class="arch-diagram">
+<pre>
+  <span class="highlight">Claude Code</span>          <span class="highlight">Cursor/Windsurf</span>        <span class="highlight">REST Clients</span>
+       |                      |                      |
+  MCP (stdio)           MCP (HTTP/SSE)          REST API
+       |                      |                      |
+  +----+----------------------+----------------------+----+
+  |                    <span class="highlight">Brain Core</span>                         |
+  |  IPC Protocol  |  MCP Server  |  REST API Base      |
+  |  Named Pipes   |  HTTP/SSE    |  CORS + Auth         |
+  +----+----------------------+----------------------+----+
+       |                      |                      |
+  +----+----+          +------+------+        +------+------+
+  |  <span class="highlight">Brain</span>   |          | <span class="highlight">Trading</span>     |        | <span class="highlight">Marketing</span>  |
+  |  :7777  |   &lt;---&gt;  |  <span class="highlight">Brain</span>      |  &lt;---&gt; |  <span class="highlight">Brain</span>     |
+  |  :7778  |          |  :7779     |        |  :7781     |
+  +---------+          |  :7780     |        |  :7782     |
+       |               +------------+        +------------+
+       |                      |                      |
+  <span class="highlight">Never Forget</span>          <span class="highlight">Never Forget</span>          <span class="highlight">Never Forget</span>
+  Memories · Sessions   Memories · Sessions   Memories · Sessions
+  Decisions · Tasks     Recall · Stats        Recall · Synapses
+       |                      |                      |
+  +----+----+          +------+------+        +------+------+
+  |  SQLite  |          |   SQLite    |        |   SQLite    |
+  | .brain/  |          | .trading-   |        | .marketing- |
+  |  db      |          |  brain/db   |        |  brain/db   |
+  +---------+          +-------------+        +-------------+
+</pre>
+    </div>
+  </section>
+
+  <section class="arch reveal" style="margin-bottom:40px">
+    <h2 class="section-title">What's New in v2.2 — Never Forget</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+      <div class="port-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="port-name">Persistent Memory</div>
+        <div style="color:var(--text2);font-size:.85rem">Remember preferences, decisions, facts, goals, and lessons across sessions. Key-based upsert auto-supersedes old values. <code style="color:var(--cyan)">brain_remember</code> / <code style="color:var(--cyan)">brain_recall</code></div>
+      </div>
+      <div class="port-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="port-name">Session Tracking</div>
+        <div style="color:var(--text2);font-size:.85rem">Auto-starts sessions per working directory via hooks. Tracks goals, summaries, and outcomes. "What was I working on?" — answered instantly.</div>
+      </div>
+      <div class="port-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="port-name">Decision History</div>
+        <div style="color:var(--text2);font-size:.85rem">Record architecture decisions with alternatives and rationale. "Why did we choose Redux?" — Brain knows.</div>
+      </div>
+      <div class="port-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="port-name">Semantic Changelog</div>
+        <div style="color:var(--text2);font-size:.85rem">Track what changed and why. Linked to errors and decisions via synapse network.</div>
+      </div>
+      <div class="port-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="port-name">Task & Goal Tracking</div>
+        <div style="color:var(--text2);font-size:.85rem">Priorities, subtasks, full context aggregation. <code style="color:var(--cyan)">brain_task_context</code> combines task + memories + decisions + changes.</div>
+      </div>
+      <div class="port-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="port-name">Cross-Brain Peering</div>
+        <div style="color:var(--text2);font-size:.85rem">Brains discover and query each other over IPC named pipes. Run <code style="color:var(--cyan)">brain peers</code> to see ecosystem status.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ports reveal">
+    <h2 class="section-title">Port Map</h2>
+    <div class="port-grid">
+      <div class="port-row"><div><div class="port-name">Brain REST API</div><div class="port-type">HTTP</div></div><div class="port-number">:7777</div></div>
+      <div class="port-row"><div><div class="port-name">Brain MCP HTTP</div><div class="port-type">SSE</div></div><div class="port-number">:7778</div></div>
+      <div class="port-row"><div><div class="port-name">Trading Brain REST</div><div class="port-type">HTTP</div></div><div class="port-number">:7779</div></div>
+      <div class="port-row"><div><div class="port-name">Trading Brain MCP</div><div class="port-type">SSE</div></div><div class="port-number">:7780</div></div>
+      <div class="port-row"><div><div class="port-name">Marketing Brain REST</div><div class="port-type">HTTP</div></div><div class="port-number">:7781</div></div>
+      <div class="port-row"><div><div class="port-name">Marketing Brain MCP</div><div class="port-type">SSE</div></div><div class="port-number">:7782</div></div>
+      <div class="port-row"><div><div class="port-name">Marketing Dashboard</div><div class="port-type">SSE</div></div><div class="port-number">:7783</div></div>
+    </div>
+  </section>
+
+  <section class="reveal" style="margin-bottom:60px">
+    <h2 class="section-title">Live Ecosystem Status</h2>
+    <div class="packages-grid" id="ecosystem-status">
+      <div class="package-card" id="peer-brain"><div class="pkg-header"><div class="pkg-icon" style="background:linear-gradient(135deg,var(--red),var(--orange))">&#129504;</div><div><div class="pkg-name">Brain</div><div class="pkg-tag" style="color:var(--text3)">checking...</div></div></div><p class="pkg-desc">:7777</p></div>
+      <div class="package-card" id="peer-trading"><div class="pkg-header"><div class="pkg-icon" style="background:linear-gradient(135deg,var(--green),var(--cyan))">&#128176;</div><div><div class="pkg-name">Trading Brain</div><div class="pkg-tag" style="color:var(--text3)">checking...</div></div></div><p class="pkg-desc">:7779</p></div>
+      <div class="package-card" id="peer-marketing"><div class="pkg-header"><div class="pkg-icon" style="background:linear-gradient(135deg,var(--purple),var(--blue))">&#128227;</div><div><div class="pkg-name">Marketing Brain</div><div class="pkg-tag" style="color:var(--text3)">checking...</div></div></div><p class="pkg-desc">:7781</p></div>
+    </div>
+    <script>
+    (function(){
+      const brains = [
+        { id: 'peer-brain', url: 'http://localhost:7777/api/v1/health', name: 'Brain' },
+        { id: 'peer-trading', url: 'http://localhost:7779/api/v1/health', name: 'Trading Brain' },
+        { id: 'peer-marketing', url: 'http://localhost:7781/api/v1/health', name: 'Marketing Brain' },
+      ];
+      async function check() {
+        for (const b of brains) {
+          const card = document.getElementById(b.id);
+          if (!card) continue;
+          const tag = card.querySelector('.pkg-tag');
+          const desc = card.querySelector('.pkg-desc');
+          try {
+            const r = await fetch(b.url, { signal: AbortSignal.timeout(2000) });
+            const d = await r.json();
+            if (tag) { tag.textContent = 'online'; tag.style.color = 'var(--green)'; }
+            if (desc) desc.textContent = `v${d.version ?? '?'} \u2022 PID ${d.pid ?? '?'} \u2022 uptime ${Math.floor((d.uptime ?? 0) / 60)}m \u2022 ${d.methods ?? '?'} methods`;
+          } catch {
+            if (tag) { tag.textContent = 'offline'; tag.style.color = 'var(--red)'; }
+            if (desc) desc.textContent = 'Not running';
+          }
+        }
+      }
+      check();
+      setInterval(check, 30000);
+    })();
+    </script>
+  </section>
+
+  <div class="sponsor reveal">
+    <h2>&#10084;&#65039; Support the Ecosystem</h2>
+    <p>Brain is free and open source. If it saves you time, consider sponsoring.</p>
+    <a href="https://github.com/sponsors/timmeck" class="btn btn-primary">Sponsor on GitHub</a>
+    <a href="https://paypal.me/tmeck86" class="btn btn-primary" style="margin-left:12px">Donate via PayPal</a>
+  </div>
+
+  <footer class="reveal">
+    <p>Built by <a href="https://github.com/timmeck">Tim Mecklenburg</a> &mdash; MIT License</p>
+  </footer>
+
+</div>
+
+<script>
+// Neural canvas
+(function(){
+  const canvas=document.getElementById('neural-bg'),ctx=canvas.getContext('2d');
+  let W,H,nodes=[],mouse={x:-1e3,y:-1e3};
+  function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
+  resize();addEventListener('resize',resize);
+  addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});
+  const N=Math.min(60,Math.floor(innerWidth/22));
+  for(let i=0;i<N;i++)nodes.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*2+1,p:Math.random()*6.28});
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<200){ctx.strokeStyle='rgba(91,156,255,'+(1-d/200)*.12+')';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke()}}
+      const mx=nodes[i].x-mouse.x,my=nodes[i].y-mouse.y,md=Math.sqrt(mx*mx+my*my);
+      if(md<220){ctx.strokeStyle='rgba(180,122,255,'+(1-md/220)*.3+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(mouse.x,mouse.y);ctx.stroke()}
+    }
+    const t=Date.now()*.001;
+    for(const n of nodes){ctx.fillStyle='rgba(91,156,255,'+(0.35+Math.sin(t*1.5+n.p)*.25)+')';ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,6.28);ctx.fill();n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>W)n.vx*=-1;if(n.y<0||n.y>H)n.vy*=-1}
+    requestAnimationFrame(draw)
+  }
+  draw()
+})();
+// Reveal
+const obs=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('visible')}),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>

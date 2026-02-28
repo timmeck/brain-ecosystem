@@ -1,0 +1,74 @@
+import { Command } from 'commander';
+import fs from 'node:fs';
+import path from 'node:path';
+import { getDataDir } from '../../utils/paths.js';
+import { withIpc } from '../ipc-helper.js';
+import { c, icons, header, keyValue, divider } from '../colors.js';
+
+export function statusCommand(): Command {
+  return new Command('status')
+    .description('Show Trading Brain daemon status')
+    .action(async () => {
+      const pidPath = path.join(getDataDir(), 'trading-brain.pid');
+
+      if (!fs.existsSync(pidPath)) {
+        console.log(`${icons.trade}  Trading Brain Daemon: ${c.red.bold('NOT RUNNING')}`);
+        return;
+      }
+
+      const pid = parseInt(fs.readFileSync(pidPath, 'utf8').trim(), 10);
+      let running = false;
+      try { process.kill(pid, 0); running = true; } catch { /* not running */ }
+
+      if (!running) {
+        console.log(`${icons.trade}  Trading Brain Daemon: ${c.red.bold('NOT RUNNING')} ${c.dim('(stale PID file)')}`);
+        return;
+      }
+
+      console.log(header('Trading Brain Status v1.0.0', icons.trade));
+      console.log(`  ${c.green(`${icons.dot} RUNNING`)} ${c.dim(`(PID ${pid})`)}`);
+
+       
+      await withIpc(async (client) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const summary: any = await client.request('analytics.summary', {});
+
+        const dbPath = path.join(getDataDir(), 'trading-brain.db');
+        let dbSize = '?';
+        try {
+          const stat = fs.statSync(dbPath);
+          dbSize = `${(stat.size / 1024 / 1024).toFixed(1)} MB`;
+        } catch { /* ignore */ }
+
+        console.log(keyValue('Database', `${dbPath} (${dbSize})`));
+        console.log();
+
+        console.log(`  ${icons.trade}  ${c.green.bold('Trade Brain')}`);
+        console.log(`     ${c.label('Trades:')}     ${c.value(summary.trades?.total ?? 0)} total, ${c.cyan(`${summary.trades?.recentWinRate ?? 0}%`)} recent win-rate`);
+        console.log(`     ${c.label('Rules:')}      ${c.green(summary.rules?.total ?? 0)} learned`);
+        console.log();
+
+        console.log(`  ${icons.synapse}  ${c.cyan.bold('Synapse Network')}`);
+        console.log(`     ${c.label('Synapses:')}   ${c.value(summary.network?.synapses ?? 0)}`);
+        console.log(`     ${c.label('Avg weight:')} ${c.value(summary.network?.avgWeight ?? 0)}`);
+        console.log(`     ${c.label('Graph:')}      ${c.value(summary.network?.graphNodes ?? 0)} nodes, ${c.value(summary.network?.graphEdges ?? 0)} edges`);
+        console.log();
+
+        console.log(`  ${icons.insight}  ${c.orange.bold('Research')}`);
+        console.log(`     ${c.label('Insights:')}   ${c.value(summary.insights?.total ?? 0)}`);
+        console.log(`     ${c.label('Chains:')}     ${c.value(summary.chains?.total ?? 0)}`);
+        console.log();
+
+        console.log(`  ${icons.brain}  ${c.purple.bold('Memory')}`);
+        console.log(`     ${c.label('Memories:')}   ${c.value(summary.memory?.active ?? 0)} active`);
+        console.log(`     ${c.label('Sessions:')}   ${c.value(summary.memory?.sessions ?? 0)}`);
+        const cats = summary.memory?.byCategory;
+        if (cats && Object.keys(cats).length > 0) {
+          const catStr = Object.entries(cats).map(([k, v]) => `${k}: ${v}`).join(', ');
+          console.log(`     ${c.label('Categories:')} ${c.dim(catStr)}`);
+        }
+
+        console.log(`\n${divider()}`);
+      });
+    });
+}

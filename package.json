@@ -1,0 +1,23 @@
+{
+  "name": "brain-ecosystem",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Brain Ecosystem — Self-learning MCP servers for Claude Code",
+  "workspaces": [
+    "packages/brain-core",
+    "packages/brain",
+    "packages/trading-brain",
+    "packages/marketing-brain"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "build:core": "npm run build -w packages/brain-core",
+    "build:brain": "npm run build -w packages/brain",
+    "build:trading": "npm run build -w packages/trading-brain",
+    "build:marketing": "npm run build -w packages/marketing-brain"
+  },
+  "author": "Tim Mecklenburg",
+  "license": "MIT"
+}

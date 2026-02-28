@@ -1,0 +1,76 @@
+# Brain
+
+Adaptive error memory & code intelligence MCP server. Part of the Brain Ecosystem.
+
+## Quick Reference
+
+- **Package:** `@timmeck/brain` v2.1.0
+- **Binary:** `brain`
+- **Ports:** 7777 (REST API), 7778 (MCP HTTP/SSE)
+- **Data:** `~/.brain/` (SQLite, PID file, logs)
+- **Config:** `~/.brain/config.json` or env vars (`BRAIN_DATA_DIR`, `BRAIN_LOG_LEVEL`, etc.)
+
+## CLI Commands
+
+```
+brain setup              One-command setup (MCP + hooks + daemon)
+brain start              Start daemon (background, with watchdog)
+brain stop               Stop daemon
+brain status             Stats: errors, solutions, modules, synapses, insights
+brain doctor             Health check: daemon, DB, MCP, hooks
+brain query <text>       Search errors and solutions (hybrid: TF-IDF + vector + synapse)
+brain modules            List registered code modules
+brain insights           Research insights (trends, gaps, synergies)
+brain learn              Trigger learning cycle manually
+brain explain <id>       Full error report: solutions, chains, rules, insights
+brain projects           List imported projects
+brain import <dir>       Import project directory (scans for source files)
+brain export             Export all data as JSON
+brain network            Explore synapse network
+brain dashboard          HTML dashboard (--live for SSE streaming)
+brain config             View/set configuration
+brain peers              Ecosystem peer status
+```
+
+## MCP Tools (17)
+
+`brain_report_error`, `brain_query_error`, `brain_report_solution`, `brain_report_attempt`,
+`brain_find_reusable_code`, `brain_register_code`, `brain_check_code_similarity`,
+`brain_explore`, `brain_connections`, `brain_insights`, `brain_rate_insight`,
+`brain_suggest`, `brain_status`, `brain_notifications`,
+`brain_ecosystem_status`, `brain_query_peer`, `brain_error_trading_context`
+
+## Architecture
+
+```
+Claude Code → MCP Server (stdio) → BrainCore → Services → SQLite
+                                       ├── Error Memory (fingerprint, hybrid match)
+                                       ├── Code Module Registry
+                                       ├── Synapse Network (Hebbian learning)
+                                       ├── Learning Engine (patterns, rules, antipatterns)
+                                       ├── Research Engine (trends, gaps, synergies)
+                                       ├── Embedding Engine (all-MiniLM-L6-v2, local)
+                                       └── Git Intelligence (commit linking)
+```
+
+Key directories: `src/cli/commands/`, `src/mcp/`, `src/db/`, `src/learning/`, `src/synapses/`, `src/code/`, `src/hooks/`
+
+## Development
+
+```bash
+npm run build          # TypeScript compile
+npm test               # Vitest (189 tests)
+npm run lint           # ESLint
+npm run dev            # Run via tsx (no build needed)
+```
+
+## Brain Ecosystem
+
+| Package | Purpose | Ports |
+|---------|---------|-------|
+| **@timmeck/brain** (this) | Error memory & code intelligence | 7777/7778 |
+| @timmeck/trading-brain | Trading intelligence & signal learning | 7779/7780 |
+| @timmeck/marketing-brain | Marketing intelligence & content strategy | 7781/7782 |
+| @timmeck/brain-core | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses) | — |
+
+Cross-brain communication via IPC named pipes. Events propagate automatically.

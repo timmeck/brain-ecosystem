@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "marketing-brain": {
+      "command": "npx",
+      "args": ["tsx", "src/index.ts", "mcp-server"],
+      "cwd": "C:/Users/mecklenburg/Desktop/marketing-brain"
+    }
+  }
+}

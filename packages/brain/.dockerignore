@@ -1,0 +1,11 @@
+node_modules
+src
+tests
+*.db
+*.log
+.env
+.git
+.gitignore
+dashboard.html
+gen_avatar.py
+BRAIN_PLAN.md
