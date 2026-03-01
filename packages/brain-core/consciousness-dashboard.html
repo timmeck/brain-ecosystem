@@ -161,6 +161,8 @@
   .engine-prediction .thought-engine { color: #00e5ff; }
   .engine-self_improvement { border-left-color: #ffd700; }
   .engine-self_improvement .thought-engine { color: #ffd700; }
+  .engine-auto_responder { border-left-color: #ff9100; }
+  .engine-auto_responder .thought-engine { color: #ff9100; }
 
   /* ── Neural Canvas (Center) ─────────────────── */
   .neural-canvas {
@@ -531,6 +533,7 @@
     data_miner: '#ccff90',
     prediction: '#00e5ff',
     self_improvement: '#ffd700',
+    auto_responder: '#ff9100',
   };
 
   const nodeColors = {
@@ -557,6 +560,7 @@
     reflecting: '📝',
     correlating: '🔗',
     predicting: '🔮',
+    responding: '⚡',
   };
 
   // ── DOM ────────────────────────────────────────────────
@@ -949,7 +953,7 @@
     const allEngines = [
       'orchestrator', 'self_observer', 'anomaly_detective', 'cross_domain',
       'adaptive_strategy', 'experiment', 'knowledge_distiller', 'research_agenda',
-      'counterfactual', 'dream', 'journal', 'data_miner', 'prediction', 'self_improvement',
+      'counterfactual', 'dream', 'journal', 'data_miner', 'prediction', 'auto_responder', 'self_improvement',
     ];
 
     const engineMap = new Map((engineData || []).map(e => [e.engine, e]));

@@ -159,6 +159,10 @@ export type { Anomaly, AnomalyType, AnomalySeverity, DriftReport, AnomalyDetecti
 export { ResearchJournal, runJournalMigration } from './research/journal.js';
 export type { JournalEntry, JournalEntryType, Significance, JournalSummary, JournalConfig } from './research/journal.js';
 
+// ── Auto-Responder ──────────────────────────────────
+export { AutoResponder, runAutoResponderMigration } from './research/auto-responder.js';
+export type { AutoResponse, ResponseRule, ResponseAction, AutoResponderConfig, AutoResponderStatus } from './research/auto-responder.js';
+
 // ── Research Orchestrator ─────────────────────────────
 export { ResearchOrchestrator } from './research/research-orchestrator.js';
 export type { ResearchOrchestratorConfig } from './research/research-orchestrator.js';

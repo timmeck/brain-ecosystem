@@ -40,6 +40,7 @@ import type { ResearchJournal } from '@timmeck/brain-core';
 import type { DreamEngine } from '@timmeck/brain-core';
 import type { ThoughtStream, ConsciousnessServer } from '@timmeck/brain-core';
 import type { PredictionEngine } from '@timmeck/brain-core';
+import type { ResearchOrchestrator } from '@timmeck/brain-core';
 
 export interface Services {
   post: PostService;
@@ -81,6 +82,7 @@ export interface Services {
   thoughtStream?: ThoughtStream;
   consciousnessServer?: ConsciousnessServer;
   predictionEngine?: PredictionEngine;
+  orchestrator?: ResearchOrchestrator;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -447,6 +449,12 @@ export class IpcRouter {
       ['predict.summary',        () => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return s.predictionEngine.getSummary(); }],
       ['predict.resolve',        () => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return { resolved: s.predictionEngine.resolveExpired() }; }],
       ['predict.record',         (params) => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); s.predictionEngine.recordMetric(p(params).metric, p(params).value, p(params)?.domain); return { recorded: true }; }],
+
+      // ─── AutoResponder ──────────────────────────────────────
+      ['responder.status',   () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.autoResponder.getStatus(); }],
+      ['responder.history',  (params) => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.autoResponder.getHistory(p(params)?.limit ?? 20); }],
+      ['responder.rules',    () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.autoResponder.getRules(); }],
+      ['responder.add_rule', (params) => { if (!s.orchestrator) throw new Error('Orchestrator not available'); const pp = p(params); s.orchestrator.autoResponder.addRule(pp); return { added: true }; }],
 
       // ─── Consciousness ──────────────────────────────────────
       ['consciousness.status',    () => { if (!s.thoughtStream) throw new Error('ThoughtStream not available'); return { ...s.thoughtStream.getStats(), engines: s.thoughtStream.getEngineActivity(), clients: s.consciousnessServer?.getClientCount() ?? 0 }; }],

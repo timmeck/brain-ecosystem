@@ -222,6 +222,7 @@ export class MarketingCore {
     services.researchAgenda = this.orchestrator.researchAgenda;
     services.anomalyDetective = this.orchestrator.anomalyDetective;
     services.journal = this.orchestrator.journal;
+    services.orchestrator = this.orchestrator;
 
     // 10g. DataMiner — bootstrap historical data into research engines
     const dataMiner = new DataMiner(this.db!, new MarketingDataMinerAdapter(), {

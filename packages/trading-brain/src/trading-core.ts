@@ -222,6 +222,7 @@ export class TradingCore {
     services.researchAgenda = this.orchestrator.researchAgenda;
     services.anomalyDetective = this.orchestrator.anomalyDetective;
     services.journal = this.orchestrator.journal;
+    services.orchestrator = this.orchestrator;
 
     // 12e. DataMiner — bootstrap historical data into research engines
     const dataMiner = new DataMiner(this.db!, new TradingDataMinerAdapter(), {

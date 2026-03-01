@@ -18,6 +18,7 @@ import type { DataMiner } from './data-miner.js';
 import type { DreamEngine } from '../dream/dream-engine.js';
 import type { ThoughtStream } from '../consciousness/thought-stream.js';
 import type { PredictionEngine } from '../prediction/prediction-engine.js';
+import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
 
@@ -45,6 +46,7 @@ export class ResearchOrchestrator {
   readonly researchAgenda: ResearchAgendaEngine;
   readonly anomalyDetective: AnomalyDetective;
   readonly journal: ResearchJournal;
+  readonly autoResponder: AutoResponder;
 
   private dataMiner: DataMiner | null = null;
   private dreamEngine: DreamEngine | null = null;
@@ -74,6 +76,9 @@ export class ResearchOrchestrator {
     this.researchAgenda = new ResearchAgendaEngine(db, { brainName: config.brainName });
     this.anomalyDetective = new AnomalyDetective(db, { brainName: config.brainName });
     this.journal = new ResearchJournal(db, { brainName: config.brainName });
+    this.autoResponder = new AutoResponder(db, { brainName: config.brainName });
+    this.autoResponder.setAdaptiveStrategy(this.adaptiveStrategy);
+    this.autoResponder.setJournal(this.journal);
   }
 
   /** Set the DataMiner instance for DB-driven engine feeding. */
@@ -91,6 +96,7 @@ export class ResearchOrchestrator {
   /** Set the ThoughtStream for consciousness — emits thoughts at each step. */
   setThoughtStream(stream: ThoughtStream): void {
     this.thoughtStream = stream;
+    this.autoResponder.setThoughtStream(stream);
   }
 
   /** Set the PredictionEngine — wires journal into it. */
@@ -242,6 +248,24 @@ export class ResearchOrchestrator {
       ts?.emit('anomaly_detective', 'analyzing', 'No anomalies detected');
     }
 
+    // 2b. AutoResponder: react to anomalies automatically
+    if (anomalies.length > 0) {
+      ts?.emit('auto_responder', 'analyzing', `Processing ${anomalies.length} anomal${anomalies.length > 1 ? 'ies' : 'y'}...`);
+      const autoResponses = this.autoResponder.respond(anomalies);
+      if (autoResponses.length > 0) {
+        this.log.info(`[orchestrator] AutoResponder: ${autoResponses.length} actions taken`);
+        const paramAdjusts = autoResponses.filter(r => r.action === 'parameter_adjust');
+        const escalations = autoResponses.filter(r => r.action === 'escalate');
+        const parts: string[] = [];
+        if (paramAdjusts.length > 0) parts.push(`${paramAdjusts.length} Parameter angepasst`);
+        if (escalations.length > 0) parts.push(`${escalations.length} eskaliert`);
+        if (parts.length === 0) parts.push(`${autoResponses.length} Aktionen`);
+        ts?.emit('auto_responder', 'discovering', `AutoResponder: ${parts.join(', ')}`, escalations.length > 0 ? 'breakthrough' : 'notable');
+      } else {
+        ts?.emit('auto_responder', 'analyzing', 'No auto-responses needed (cooldown or no matching rules)');
+      }
+    }
+
     // 3. Cross-domain correlation analysis
     ts?.emit('cross_domain', 'correlating', 'Analyzing cross-brain event correlations...');
     const correlations = this.crossDomain.analyze();
@@ -383,10 +407,14 @@ export class ResearchOrchestrator {
       }
     }
 
-    // Check anomaly count
-    const anomalies = summary.anomalies as unknown[];
-    if (anomalies && anomalies.length > 5) {
-      suggestions.push(`Tell Claude: ${anomalies.length} unbehandelte Anomalien — Brain erkennt Probleme, kann aber noch nicht automatisch reagieren. Ein "AutoResponder" der auf Anomalien reagiert wäre der nächste Schritt.`);
+    // Check AutoResponder effectiveness
+    const responder = summary.autoResponder as Record<string, unknown> | null;
+    if (responder) {
+      const totalResp = (responder.total_responses as number) ?? 0;
+      const successRate = (responder.success_rate as number) ?? 0;
+      if (totalResp > 10 && successRate < 0.5) {
+        suggestions.push(`Tell Claude: AutoResponder Success-Rate ist nur ${(successRate * 100).toFixed(0)}% — die Response-Rules brauchen Feintuning. Mehr domainspezifische Regeln oder kleinere Adjustment-Werte könnten helfen.`);
+      }
     }
 
     // Check knowledge distillation
@@ -475,6 +503,7 @@ export class ResearchOrchestrator {
       strategy: this.adaptiveStrategy.getStatus(),
       dream: this.dreamEngine?.getStatus() ?? null,
       prediction: this.predictionEngine?.getSummary() ?? null,
+      autoResponder: this.autoResponder.getStatus(),
     };
   }
 }

@@ -6,6 +6,7 @@ import { registerAdvancedResearchTools } from './advanced-research-tools.js';
 import { registerDreamTools } from './dream-tools.js';
 import { registerConsciousnessTools } from './consciousness-tools.js';
 import { registerPredictionTools } from './prediction-tools.js';
+import { registerResponderTools } from './responder-tools.js';
 import { registerPrompts } from './prompts.js';
 
 export async function startMcpServer(): Promise<void> {
@@ -20,6 +21,7 @@ export async function startMcpServer(): Promise<void> {
       registerDreamTools(server, ipc);
       registerConsciousnessTools(server, ipc);
       registerPredictionTools(server, ipc);
+      registerResponderTools(server, ipc);
     },
     registerPrompts,
   });

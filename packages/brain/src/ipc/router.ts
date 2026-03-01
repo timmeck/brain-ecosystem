@@ -484,6 +484,12 @@ export class IpcRouter {
       ['consciousness.engines',   () => { if (!s.thoughtStream) throw new Error('ThoughtStream not available'); return s.thoughtStream.getEngineActivity(); }],
       ['consciousness.clear',     () => { if (!s.thoughtStream) throw new Error('ThoughtStream not available'); s.thoughtStream.clear(); return { cleared: true }; }],
 
+      // ─── AutoResponder ────────────────────────────────────
+      ['responder.status',        () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.autoResponder.getStatus(); }],
+      ['responder.history',       (params) => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.autoResponder.getHistory(p(params)?.limit ?? 20); }],
+      ['responder.rules',         () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.autoResponder.getRules(); }],
+      ['responder.add_rule',      (params) => { if (!s.orchestrator) throw new Error('Orchestrator not available'); const pp = p(params); s.orchestrator.autoResponder.addRule(pp); return { added: true }; }],
+
       // ─── Orchestrator ─────────────────────────────────────
       ['orchestrator.feedback',   () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); s.orchestrator.runFeedbackCycle(); return { triggered: true }; }],
       ['orchestrator.summary',    () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.getSummary(); }],

@@ -6,6 +6,7 @@ import { registerAdvancedResearchToolsDirect } from './advanced-research-tools.j
 import { registerDreamToolsDirect } from './dream-tools.js';
 import { registerConsciousnessToolsDirect } from './consciousness-tools.js';
 import { registerPredictionToolsDirect } from './prediction-tools.js';
+import { registerResponderToolsDirect } from './responder-tools.js';
 
 export class McpHttpServer {
   private inner: CoreMcpHttpServer;
@@ -22,6 +23,7 @@ export class McpHttpServer {
         registerDreamToolsDirect(server, router);
         registerConsciousnessToolsDirect(server, router);
         registerPredictionToolsDirect(server, router);
+        registerResponderToolsDirect(server, router);
       },
     );
   }
