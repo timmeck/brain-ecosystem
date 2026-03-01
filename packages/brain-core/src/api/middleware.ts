@@ -1,5 +1,3 @@
-import { getLogger } from '../utils/logger.js';
-
 // ── Rate Limiter ────────────────────────────────────────
 
 export interface RateLimitConfig {

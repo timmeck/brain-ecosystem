@@ -20,6 +20,9 @@ import type { LearningEngine } from '../learning/learning-engine.js';
 import type { AutoResolutionService } from '../services/auto-resolution.service.js';
 import type { CrossBrainClient, CrossBrainSubscriptionManager, EcosystemService } from '@timmeck/brain-core';
 import type { IpcServer } from '@timmeck/brain-core';
+import type { WebhookService } from '@timmeck/brain-core';
+import type { ExportService } from '@timmeck/brain-core';
+import type { BackupService } from '@timmeck/brain-core';
 
 export interface Services {
   error: ErrorService;
@@ -41,6 +44,9 @@ export interface Services {
   autoResolution?: AutoResolutionService;
   crossBrain?: CrossBrainClient;
   ecosystem?: EcosystemService;
+  webhook?: WebhookService;
+  export?: ExportService;
+  backup?: BackupService;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -301,10 +307,31 @@ export class IpcRouter {
       ['doc.projectContext',      (params) => s.doc.getProjectContext(p(params).projectId ?? p(params).project_id)],
       ['doc.get',                 (params) => s.doc.getById(p(params).id)],
 
+      // Webhooks
+      ['webhook.add',             (params) => s.webhook?.add(p(params))],
+      ['webhook.remove',          (params) => s.webhook?.remove(p(params).id)],
+      ['webhook.list',            () => s.webhook?.list()],
+      ['webhook.toggle',          (params) => s.webhook?.toggle(p(params).id, p(params).active)],
+      ['webhook.history',         (params) => s.webhook?.history(p(params)?.webhookId, p(params)?.limit)],
+      ['webhook.test',            (params) => s.webhook?.fire('test', { message: p(params)?.message ?? 'Test webhook' })],
+
+      // Export
+      ['export.tables',           () => s.export?.listTables()],
+      ['export.columns',          (params) => s.export?.getColumns(p(params).table)],
+      ['export.data',             (params) => s.export?.export(p(params))],
+      ['export.stats',            () => s.export?.getStats()],
+
+      // Backup
+      ['backup.create',           (params) => s.backup?.create(p(params)?.label)],
+      ['backup.list',             () => s.backup?.list()],
+      ['backup.restore',          (params) => s.backup?.restore(p(params).filename)],
+      ['backup.delete',           (params) => s.backup?.delete(p(params).filename)],
+      ['backup.info',             () => s.backup?.getInfo()],
+
       // Status (cross-brain)
       ['status',                  () => ({
         name: 'brain',
-        version: '3.2.0',
+        version: '3.3.0',
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

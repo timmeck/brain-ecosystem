@@ -53,7 +53,7 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService } from '@timmeck/brain-core';
 
 export class TradingCore {
   private db: Database.Database | null = null;
@@ -185,6 +185,11 @@ export class TradingCore {
     // 12c. Cross-Brain Subscription Manager
     this.subscriptionManager = new CrossBrainSubscriptionManager('trading-brain');
 
+    // 12b. Webhook, Export, Backup services
+    services.webhook = new WebhookService(this.db!);
+    services.export = new ExportService(this.db!);
+    services.backup = new BackupService(this.db!, config.dbPath);
+
     // 13. IPC Server
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'trading-brain', 'trading-brain');
@@ -219,7 +224,7 @@ export class TradingCore {
     }
 
     // 15. Event listeners (synapse wiring)
-    this.setupEventListeners(synapseManager);
+    this.setupEventListeners(synapseManager, services.webhook);
 
     // 15b. Cross-Brain Event Subscriptions
     this.setupCrossBrainSubscriptions();
@@ -325,15 +330,16 @@ export class TradingCore {
     });
   }
 
-  private setupEventListeners(_synapseManager: SynapseManager): void {
+  private setupEventListeners(_synapseManager: SynapseManager, webhook?: WebhookService): void {
     const bus = getEventBus();
     const notifier = this.notifier;
 
-    // Trade recorded → log + notify brain (error correlation) + feed correlator
+    // Trade recorded → log + notify brain (error correlation) + feed correlator + webhooks
     bus.on('trade:recorded', ({ tradeId, fingerprint, win }) => {
       getLogger().info(`Trade #${tradeId} recorded: ${fingerprint} (${win ? 'WIN' : 'LOSS'})`);
       notifier?.notifyPeer('brain', 'trade:outcome', { tradeId, fingerprint, win });
       this.correlator?.recordEvent('trading-brain', 'trade:outcome', { tradeId, fingerprint, win });
+      webhook?.fire('trade:recorded', { tradeId, fingerprint, win });
     });
 
     // Synapse updated → log at debug level

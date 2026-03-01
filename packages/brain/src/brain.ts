@@ -63,7 +63,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -206,6 +206,11 @@ export class BrainCore {
 
     // 11c. Cross-Brain Subscription Manager
     this.subscriptionManager = new CrossBrainSubscriptionManager('brain');
+
+    // 11d. Webhook, Export, Backup services
+    services.webhook = new WebhookService(this.db!);
+    services.export = new ExportService(this.db!);
+    services.backup = new BackupService(this.db!, config.dbPath);
 
     // 12. IPC Server
     const router = new IpcRouter(services);
@@ -378,8 +383,9 @@ export class BrainCore {
   private setupEventListeners(services: Services, synapseManager: SynapseManager): void {
     const bus = getEventBus();
     const notifier = this.notifier;
+    const webhook = services.webhook;
 
-    // Error → Project synapse + notify peers + feed correlator
+    // Error → Project synapse + notify peers + feed correlator + webhooks
     bus.on('error:reported', ({ errorId, projectId }) => {
       synapseManager.strengthen(
         { type: 'error', id: errorId },
@@ -388,6 +394,7 @@ export class BrainCore {
       );
       notifier?.notify('error:reported', { errorId, projectId });
       this.correlator?.recordEvent('brain', 'error:reported', { errorId, projectId });
+      webhook?.fire('error:reported', { errorId, projectId });
     });
 
     // Solution applied → strengthen or weaken
@@ -422,11 +429,12 @@ export class BrainCore {
       getLogger().info(`New rule #${ruleId} learned: ${pattern}`);
     });
 
-    // Insight created → log + notify marketing (content opportunity) + feed correlator
+    // Insight created → log + notify marketing (content opportunity) + feed correlator + webhooks
     bus.on('insight:created', ({ insightId, type }) => {
       getLogger().info(`New insight #${insightId} (${type})`);
       notifier?.notifyPeer('marketing-brain', 'insight:created', { insightId, type });
       this.correlator?.recordEvent('brain', 'insight:created', { insightId, type });
+      webhook?.fire('insight:created', { insightId, type });
     });
 
     // Memory → Project synapse

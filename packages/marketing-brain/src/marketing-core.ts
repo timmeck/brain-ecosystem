@@ -65,7 +65,7 @@ import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
@@ -185,6 +185,11 @@ export class MarketingCore {
     // 10c. Cross-Brain Subscription Manager
     this.subscriptionManager = new CrossBrainSubscriptionManager('marketing-brain');
 
+    // 10d. Webhook, Export, Backup services
+    services.webhook = new WebhookService(this.db!);
+    services.export = new ExportService(this.db!);
+    services.backup = new BackupService(this.db!, config.dbPath);
+
     // 11. IPC Server
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'marketing-brain', 'marketing-brain');
@@ -247,7 +252,7 @@ export class MarketingCore {
     }
 
     // 13. Event listeners (synapse wiring)
-    this.setupEventListeners(synapseManager);
+    this.setupEventListeners(synapseManager, services.webhook);
 
     // 13b. Cross-Brain Event Subscriptions
     this.setupCrossBrainSubscriptions();
@@ -359,7 +364,7 @@ export class MarketingCore {
     });
   }
 
-  private setupEventListeners(synapseManager: SynapseManager): void {
+  private setupEventListeners(synapseManager: SynapseManager, webhook?: WebhookService): void {
     const bus = getEventBus();
     const notifier = this.notifier;
 
@@ -373,11 +378,12 @@ export class MarketingCore {
       }
     });
 
-    // Post published → notify peers (engagement tracking) + feed correlator
+    // Post published → notify peers (engagement tracking) + feed correlator + webhooks
     bus.on('post:published', ({ postId, platform }) => {
       getLogger().info(`Post #${postId} published on ${platform}`);
       notifier?.notify('post:published', { postId, platform });
       this.correlator?.recordEvent('marketing-brain', 'post:published', { postId, platform });
+      webhook?.fire('post:published', { postId, platform });
     });
 
     bus.on('strategy:reported', ({ strategyId, postId }) => {

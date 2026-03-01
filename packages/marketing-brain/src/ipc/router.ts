@@ -21,6 +21,9 @@ import type { ContentGeneratorService } from '../services/content-generator.serv
 import type { PlatformAdapterService } from '../services/platform-adapter.service.js';
 import type { CrossBrainClient, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
 import type { IpcServer } from '@timmeck/brain-core';
+import type { WebhookService } from '@timmeck/brain-core';
+import type { ExportService } from '@timmeck/brain-core';
+import type { BackupService } from '@timmeck/brain-core';
 
 export interface Services {
   post: PostService;
@@ -42,6 +45,9 @@ export interface Services {
   abTest?: ABTestService;
   calendar?: CalendarService;
   crossBrain?: CrossBrainClient;
+  webhook?: WebhookService;
+  export?: ExportService;
+  backup?: BackupService;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -273,9 +279,30 @@ export class IpcRouter {
       }],
 
       // Status (cross-brain)
+      // Webhooks
+      ['webhook.add',             (params) => s.webhook?.add(p(params))],
+      ['webhook.remove',          (params) => s.webhook?.remove(p(params).id)],
+      ['webhook.list',            () => s.webhook?.list()],
+      ['webhook.toggle',          (params) => s.webhook?.toggle(p(params).id, p(params).active)],
+      ['webhook.history',         (params) => s.webhook?.history(p(params)?.webhookId, p(params)?.limit)],
+      ['webhook.test',            (params) => s.webhook?.fire('test', { message: p(params)?.message ?? 'Test webhook' })],
+
+      // Export
+      ['export.tables',           () => s.export?.listTables()],
+      ['export.columns',          (params) => s.export?.getColumns(p(params).table)],
+      ['export.data',             (params) => s.export?.export(p(params))],
+      ['export.stats',            () => s.export?.getStats()],
+
+      // Backup
+      ['backup.create',           (params) => s.backup?.create(p(params)?.label)],
+      ['backup.list',             () => s.backup?.list()],
+      ['backup.restore',          (params) => s.backup?.restore(p(params).filename)],
+      ['backup.delete',           (params) => s.backup?.delete(p(params).filename)],
+      ['backup.info',             () => s.backup?.getInfo()],
+
       ['status',               () => ({
         name: 'marketing-brain',
-        version: '1.3.0',
+        version: '1.4.0',
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

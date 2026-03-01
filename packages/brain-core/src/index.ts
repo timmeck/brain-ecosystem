@@ -92,3 +92,15 @@ export type { CorrelatorEvent, Correlation, EcosystemHealth, CorrelatorConfig } 
 // ── Ecosystem ──────────────────────────────────────────────
 export { EcosystemService } from './ecosystem/service.js';
 export type { BrainStatus, EcosystemStatus, AggregatedAnalytics } from './ecosystem/service.js';
+
+// ── Webhooks ──────────────────────────────────────────────
+export { WebhookService, runWebhookMigration } from './webhooks/service.js';
+export type { WebhookConfig, WebhookRecord, DeliveryRecord, WebhookDeliveryResult } from './webhooks/service.js';
+
+// ── Export ────────────────────────────────────────────────
+export { ExportService } from './export/service.js';
+export type { ExportOptions, ExportResult } from './export/service.js';
+
+// ── Backup ────────────────────────────────────────────────
+export { BackupService } from './backup/service.js';
+export type { BackupConfig, BackupRecord, RestoreResult } from './backup/service.js';

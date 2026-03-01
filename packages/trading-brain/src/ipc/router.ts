@@ -17,6 +17,9 @@ import type { ChainRepository } from '../db/repositories/chain.repository.js';
 import type { CalibrationRepository } from '../db/repositories/calibration.repository.js';
 import type { CrossBrainClient, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
 import type { IpcServer } from '@timmeck/brain-core';
+import type { WebhookService } from '@timmeck/brain-core';
+import type { ExportService } from '@timmeck/brain-core';
+import type { BackupService } from '@timmeck/brain-core';
 
 const logger = getLogger();
 
@@ -38,6 +41,9 @@ export interface Services {
   learning?: LearningEngine;
   research?: ResearchEngine;
   crossBrain?: CrossBrainClient;
+  webhook?: WebhookService;
+  export?: ExportService;
+  backup?: BackupService;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -225,9 +231,30 @@ export class IpcRouter {
       }],
 
       // ─── Status (cross-brain) ─────────────────────────────
+      // Webhooks
+      ['webhook.add',             (params) => s.webhook?.add(p(params))],
+      ['webhook.remove',          (params) => s.webhook?.remove(p(params).id)],
+      ['webhook.list',            () => s.webhook?.list()],
+      ['webhook.toggle',          (params) => s.webhook?.toggle(p(params).id, p(params).active)],
+      ['webhook.history',         (params) => s.webhook?.history(p(params)?.webhookId, p(params)?.limit)],
+      ['webhook.test',            (params) => s.webhook?.fire('test', { message: p(params)?.message ?? 'Test webhook' })],
+
+      // Export
+      ['export.tables',           () => s.export?.listTables()],
+      ['export.columns',          (params) => s.export?.getColumns(p(params).table)],
+      ['export.data',             (params) => s.export?.export(p(params))],
+      ['export.stats',            () => s.export?.getStats()],
+
+      // Backup
+      ['backup.create',           (params) => s.backup?.create(p(params)?.label)],
+      ['backup.list',             () => s.backup?.list()],
+      ['backup.restore',          (params) => s.backup?.restore(p(params).filename)],
+      ['backup.delete',           (params) => s.backup?.delete(p(params).filename)],
+      ['backup.info',             () => s.backup?.getInfo()],
+
       ['status', () => ({
         name: 'trading-brain',
-        version: '2.2.0',
+        version: '2.3.0',
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

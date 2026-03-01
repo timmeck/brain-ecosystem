@@ -1,6 +1,6 @@
 {
   "name": "@timmeck/brain-core",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Shared core infrastructure for the Brain ecosystem — IPC, MCP, CLI, DB connection, and utilities",
   "type": "module",
   "main": "dist/index.js",
@@ -40,7 +40,10 @@
     "./ecosystem/service": "./dist/ecosystem/service.js",
     "./memory/types": "./dist/memory/types.js",
     "./memory/base-memory-engine": "./dist/memory/base-memory-engine.js",
-    "./embeddings/engine": "./dist/embeddings/engine.js"
+    "./embeddings/engine": "./dist/embeddings/engine.js",
+    "./webhooks/service": "./dist/webhooks/service.js",
+    "./export/service": "./dist/export/service.js",
+    "./backup/service": "./dist/backup/service.js"
   },
   "scripts": {
     "build": "tsc",
