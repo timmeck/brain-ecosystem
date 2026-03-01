@@ -10,7 +10,8 @@ import { ResearchAgendaEngine } from './agenda-engine.js';
 import { AnomalyDetective } from './anomaly-detective.js';
 import { ResearchJournal } from './journal.js';
 import type { CausalGraph } from '../causal/engine.js';
-import type { AutonomousResearchScheduler, ResearchCycleReport } from './autonomous-scheduler.js';
+import type { ResearchCycleReport } from './autonomous-scheduler.js';
+import type { DataMiner } from './data-miner.js';
 
 // ── Types ───────────────────────────────────────────────
 
@@ -39,6 +40,8 @@ export class ResearchOrchestrator {
   readonly anomalyDetective: AnomalyDetective;
   readonly journal: ResearchJournal;
 
+  private dataMiner: DataMiner | null = null;
+
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
   private cycleCount = 0;
@@ -62,6 +65,11 @@ export class ResearchOrchestrator {
     this.researchAgenda = new ResearchAgendaEngine(db, { brainName: config.brainName });
     this.anomalyDetective = new AnomalyDetective(db, { brainName: config.brainName });
     this.journal = new ResearchJournal(db, { brainName: config.brainName });
+  }
+
+  /** Set the DataMiner instance for DB-driven engine feeding. */
+  setDataMiner(miner: DataMiner): void {
+    this.dataMiner = miner;
   }
 
   /** Start the autonomous feedback loop timer. */
@@ -149,6 +157,15 @@ export class ResearchOrchestrator {
     this.cycleCount++;
     const start = Date.now();
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} ───`);
+
+    // 0. DataMiner: mine new data from DB into engines
+    if (this.dataMiner) {
+      try {
+        this.dataMiner.mine();
+      } catch (err) {
+        this.log.error(`[orchestrator] DataMiner error: ${(err as Error).message}`);
+      }
+    }
 
     // 1. Self-observer analyzes accumulated observations → insights
     const insights = this.selfObserver.analyze();
@@ -258,6 +275,7 @@ export class ResearchOrchestrator {
     return {
       brainName: this.brainName,
       feedbackCycles: this.cycleCount,
+      dataMiner: this.dataMiner?.getState() ?? null,
       selfInsights: this.selfObserver.getInsights(undefined, 10),
       anomalies: this.anomalyDetective.getAnomalies(undefined, 10),
       experiments: this.experimentEngine.list(undefined, 10),

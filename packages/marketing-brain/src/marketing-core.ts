@@ -65,7 +65,7 @@ import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
@@ -221,7 +221,18 @@ export class MarketingCore {
     services.researchAgenda = this.orchestrator.researchAgenda;
     services.anomalyDetective = this.orchestrator.anomalyDetective;
     services.journal = this.orchestrator.journal;
-    logger.info('Research orchestrator started (9 engines, feedback loops active)');
+
+    // 10g. DataMiner — bootstrap historical data into research engines
+    const dataMiner = new DataMiner(this.db!, new MarketingDataMinerAdapter(), {
+      selfObserver: this.orchestrator.selfObserver,
+      anomalyDetective: this.orchestrator.anomalyDetective,
+      crossDomain: this.orchestrator.crossDomain,
+      causalGraph: researchScheduler.causalGraph,
+      hypothesisEngine: researchScheduler.hypothesisEngine,
+    });
+    this.orchestrator.setDataMiner(dataMiner);
+    dataMiner.bootstrap();
+    logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped)');
 
     // 11. IPC Server
     const router = new IpcRouter(services);

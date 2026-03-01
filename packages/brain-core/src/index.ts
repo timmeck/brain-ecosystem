@@ -162,3 +162,8 @@ export type { JournalEntry, JournalEntryType, Significance, JournalSummary, Jour
 // ── Research Orchestrator ─────────────────────────────
 export { ResearchOrchestrator } from './research/research-orchestrator.js';
 export type { ResearchOrchestratorConfig } from './research/research-orchestrator.js';
+
+// ── DataMiner ────────────────────────────────────────
+export { DataMiner, runDataMinerMigration } from './research/data-miner.js';
+export type { DataMinerAdapter, DataMinerEngines, DataMinerState, MineResult, MinedObservation, MinedCausalEvent, MinedMetric, MinedHypothesisObservation, MinedCrossDomainEvent } from './research/data-miner.js';
+export { BrainDataMinerAdapter, TradingDataMinerAdapter, MarketingDataMinerAdapter } from './research/adapters/index.js';

@@ -18,6 +18,8 @@ export interface McpServerOptions {
   registerTools: (server: McpServer, ipc: IpcClient) => void;
   /** Register MCP prompts on the server (optional) */
   registerPrompts?: (server: McpServer, ipc: IpcClient) => void;
+  /** Callback when a tool is called — used for DataMiner/SelfObserver tracking */
+  onToolCall?: (toolName: string, durationMs: number, success: boolean) => void;
 }
 
 function spawnDaemon(opts: McpServerOptions): void {
@@ -67,6 +69,20 @@ export async function startMcpServer(opts: McpServerOptions): Promise<void> {
       process.stderr.write(`${opts.name}: Could not connect to daemon after auto-start. Check logs.\n`);
       process.exit(1);
     }
+  }
+
+  // Wrap IPC client to track tool calls if onToolCall callback is provided
+  if (opts.onToolCall) {
+    const originalRequest = ipc.request.bind(ipc);
+    const onToolCall = opts.onToolCall;
+    ipc.request = (method: string, params?: unknown): Promise<unknown> => {
+      const start = Date.now();
+      let success = true;
+      return originalRequest(method, params).then(
+        (result) => { try { onToolCall(method, Date.now() - start, success); } catch { /* best effort */ } return result; },
+        (err) => { success = false; try { onToolCall(method, Date.now() - start, success); } catch { /* best effort */ } throw err; },
+      );
+    };
   }
 
   opts.registerTools(server, ipc);
