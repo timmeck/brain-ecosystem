@@ -85,22 +85,14 @@ export function importCommand(): Command {
     .option('-e, --extensions <list>', 'Comma-separated extensions (default: ts,tsx,js,jsx,py,rs,go,java,c,cpp,h,hpp,rb,sh,html,css,scss,json,yaml,yml,toml,md,sql,php,svelte,vue,astro)')
     .option('--dry-run', 'List files that would be imported without importing')
     .option('--max-size <kb>', 'Skip files larger than N KB', '100')
+    .option('--smart', 'Smart import: scan Git history, log files, and build output for errors + solutions')
+    .option('--no-build', 'Skip build scan (use with --smart)')
+    .option('--git-depth <n>', 'Number of git commits to scan (default: 200)', '200')
     .action(async (directory: string, opts) => {
       const dir = resolve(directory);
       const projectName = opts.project ?? basename(dir);
       const maxSizeKb = parseInt(opts.maxSize, 10) || 100;
       const maxSizeBytes = maxSizeKb * 1024;
-
-      // Parse extensions
-      let extensions = DEFAULT_EXTENSIONS;
-      if (opts.extensions) {
-        extensions = new Set(
-          opts.extensions.split(',').map((e: string) => {
-            const trimmed = e.trim();
-            return trimmed.startsWith('.') ? trimmed : `.${trimmed}`;
-          })
-        );
-      }
 
       // Verify directory exists
       try {
@@ -112,6 +104,79 @@ export function importCommand(): Command {
       } catch {
         console.error(`Directory not found: ${dir}`);
         process.exit(1);
+      }
+
+      // Smart Import Mode
+      if (opts.smart) {
+        console.log(`${icons.brain}  ${c.info('Smart Import')} ${c.value(dir)} as ${c.cyan(`"${projectName}"`)}`);
+        console.log(divider());
+
+        await withIpc(async (client) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const result: any = await client.request('scan.project', {
+            directory: dir,
+            project: projectName,
+            options: {
+              gitDepth: parseInt(opts.gitDepth, 10) || 200,
+              skipBuild: opts.build === false,
+            },
+          });
+
+          // Git results
+          if (result.git) {
+            const g = result.git;
+            console.log(`\n  ${icons.ok} ${c.label('Git History:')}`);
+            console.log(`    Commits scanned: ${c.value(g.commitsScanned)}`);
+            console.log(`    Fix commits:     ${c.value(g.fixCommits)}`);
+            console.log(`    Errors created:  ${c.green(g.errorsCreated)}`);
+            console.log(`    Solutions:       ${c.green(g.solutionsCreated)}`);
+            if (g.duplicates > 0) console.log(`    Duplicates:      ${c.dim(g.duplicates)}`);
+          }
+
+          // Log results
+          if (result.logs) {
+            const l = result.logs;
+            console.log(`\n  ${icons.ok} ${c.label('Log Files:')}`);
+            console.log(`    Files scanned:   ${c.value(l.filesScanned)}`);
+            console.log(`    Errors created:  ${c.green(l.errorsCreated)}`);
+            if (l.duplicates > 0) console.log(`    Duplicates:      ${c.dim(l.duplicates)}`);
+          }
+
+          // Build results
+          if (result.build && result.build.buildSystem !== 'unknown') {
+            const b = result.build;
+            const exitColor = b.exitCode === 0 ? c.green : c.red;
+            console.log(`\n  ${icons.ok} ${c.label(`Build (${b.buildSystem}):`)}`);
+            console.log(`    Command:         ${c.dim(b.command)}`);
+            console.log(`    Exit code:       ${exitColor(b.exitCode)}`);
+            console.log(`    Errors created:  ${c.green(b.errorsCreated)}`);
+          } else if (result.build?.buildSystem === 'unknown') {
+            console.log(`\n  ${c.dim('No build system detected.')}`);
+          }
+
+          // Totals
+          const t = result.totals;
+          console.log(header('Smart Import Summary', icons.brain));
+          console.log(`  ${c.label('Project:')}    ${c.cyan(projectName)}`);
+          console.log(`  ${c.label('Errors:')}     ${c.value(t.errors)}`);
+          console.log(`  ${c.label('Solutions:')}  ${c.value(t.solutions)}`);
+          console.log(`  ${c.label('Duplicates:')} ${c.dim(t.duplicates)}`);
+          console.log(`  ${c.label('Duration:')}   ${c.dim(`${result.duration}ms`)}`);
+          console.log(divider());
+        });
+        return;
+      }
+
+      // Regular Import Mode (existing behavior)
+      // Parse extensions
+      let extensions = DEFAULT_EXTENSIONS;
+      if (opts.extensions) {
+        extensions = new Set(
+          opts.extensions.split(',').map((e: string) => {
+            const trimmed = e.trim();
+            return trimmed.startsWith('.') ? trimmed : `.${trimmed}`;
+          })
+        );
       }
 
       console.log(`${icons.search}  ${c.info('Scanning')} ${c.value(dir)} ...`);

@@ -40,6 +40,7 @@ import type { DreamEngine } from '@timmeck/brain-core';
 import type { ThoughtStream, ConsciousnessServer } from '@timmeck/brain-core';
 import type { PredictionEngine } from '@timmeck/brain-core';
 import type { ResearchOrchestrator } from '@timmeck/brain-core';
+import type { ProjectScanner } from '../services/project-scanner.js';
 
 export interface Services {
   error: ErrorService;
@@ -82,6 +83,7 @@ export interface Services {
   consciousnessServer?: ConsciousnessServer;
   predictionEngine?: PredictionEngine;
   orchestrator?: ResearchOrchestrator;
+  projectScanner?: ProjectScanner;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -494,10 +496,17 @@ export class IpcRouter {
       ['orchestrator.feedback',   () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); s.orchestrator.runFeedbackCycle(); return { triggered: true }; }],
       ['orchestrator.summary',    () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.getSummary(); }],
 
+      // ─── Project Scanner ──────────────────────────────────
+      ['scan.project',            (params) => { if (!s.projectScanner) throw new Error('Project scanner not available'); return s.projectScanner.scan(p(params).directory, p(params).project ?? 'unknown', p(params).options); }],
+      ['scan.git',                (params) => { if (!s.projectScanner) throw new Error('Project scanner not available'); return s.projectScanner.scanGitHistory(p(params).directory, p(params).project ?? 'unknown', p(params).depth ?? p(params).git_depth ?? 200); }],
+      ['scan.logs',               (params) => { if (!s.projectScanner) throw new Error('Project scanner not available'); return s.projectScanner.scanLogFiles(p(params).directory, p(params).project ?? 'unknown'); }],
+      ['scan.build',              (params) => { if (!s.projectScanner) throw new Error('Project scanner not available'); return s.projectScanner.scanBuildOutput(p(params).directory, p(params).project ?? 'unknown'); }],
+      ['scan.status',             () => { if (!s.projectScanner) throw new Error('Project scanner not available'); return s.projectScanner.getLastResult(); }],
+
       // Status (cross-brain)
       ['status',                  () => ({
         name: 'brain',
-        version: '3.13.0',
+        version: '3.14.0',
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,
