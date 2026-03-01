@@ -2,6 +2,7 @@ services:
   brain:
     build:
       context: .
+      dockerfile: Dockerfile
       target: brain
     volumes:
       - brain-data:/data
@@ -12,11 +13,18 @@ services:
     environment:
       - BRAIN_DATA_DIR=/data
       - BRAIN_IPC_DIR=/tmp/brain-ipc
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:7777/api/stats', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
   trading-brain:
     build:
       context: .
+      dockerfile: Dockerfile
       target: trading-brain
     volumes:
       - trading-data:/data
@@ -27,6 +35,12 @@ services:
     environment:
       - TRADING_BRAIN_DATA_DIR=/data
       - BRAIN_IPC_DIR=/tmp/brain-ipc
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:7779/api/stats', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     depends_on:
       brain:
         condition: service_healthy
@@ -35,6 +49,7 @@ services:
   marketing-brain:
     build:
       context: .
+      dockerfile: Dockerfile
       target: marketing-brain
     volumes:
       - marketing-data:/data
@@ -46,6 +61,12 @@ services:
     environment:
       - MARKETING_BRAIN_DATA_DIR=/data
       - BRAIN_IPC_DIR=/tmp/brain-ipc
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:7781/api/stats', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     depends_on:
       brain:
         condition: service_healthy
