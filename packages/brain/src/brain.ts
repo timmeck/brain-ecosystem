@@ -63,7 +63,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -79,6 +79,7 @@ export class BrainCore {
   private correlator: CrossBrainCorrelator | null = null;
   private ecosystemService: EcosystemService | null = null;
   private researchScheduler: AutonomousResearchScheduler | null = null;
+  private orchestrator: ResearchOrchestrator | null = null;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   private config: BrainConfig | null = null;
   private configPath?: string;
@@ -230,6 +231,22 @@ export class BrainCore {
     services.hypothesis = researchScheduler.hypothesisEngine;
     logger.info('Autonomous research scheduler started');
 
+    // 11f. Research Orchestrator (feedback loops between all research engines)
+    this.orchestrator = new ResearchOrchestrator(this.db!, {
+      brainName: 'brain',
+    }, researchScheduler.causalGraph);
+    this.orchestrator.start();
+    services.selfObserver = this.orchestrator.selfObserver;
+    services.adaptiveStrategy = this.orchestrator.adaptiveStrategy;
+    services.experimentEngine = this.orchestrator.experimentEngine;
+    services.crossDomain = this.orchestrator.crossDomain;
+    services.counterfactual = this.orchestrator.counterfactual;
+    services.knowledgeDistiller = this.orchestrator.knowledgeDistiller;
+    services.researchAgenda = this.orchestrator.researchAgenda;
+    services.anomalyDetective = this.orchestrator.anomalyDetective;
+    services.journal = this.orchestrator.journal;
+    logger.info('Research orchestrator started (9 engines, feedback loops active)');
+
     // 12. IPC Server
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'brain', 'brain');
@@ -312,6 +329,7 @@ export class BrainCore {
     }
 
     this.subscriptionManager?.disconnectAll();
+    this.orchestrator?.stop();
     this.researchScheduler?.stop();
     this.researchEngine?.stop();
     this.embeddingEngine?.stop();
@@ -328,6 +346,7 @@ export class BrainCore {
     this.embeddingEngine = null;
     this.learningEngine = null;
     this.researchEngine = null;
+    this.orchestrator = null;
     this.subscriptionManager = null;
     this.correlator = null;
     this.ecosystemService = null;
@@ -372,11 +391,13 @@ export class BrainCore {
     this.subscriptionManager.subscribe('trading-brain', ['trade:completed'], (event: string, data: unknown) => {
       logger.info(`[cross-brain] Received ${event} from trading-brain`, { data });
       correlator.recordEvent('trading-brain', event, data);
+      this.orchestrator?.onCrossBrainEvent('trading-brain', event, data as Record<string, unknown>);
     });
 
     // Subscribe to trading-brain: trade:outcome for win/loss correlation with errors
     this.subscriptionManager.subscribe('trading-brain', ['trade:outcome'], (event: string, data: unknown) => {
       correlator.recordEvent('trading-brain', event, data);
+      this.orchestrator?.onCrossBrainEvent('trading-brain', event, data as Record<string, unknown>);
       const d = data as Record<string, unknown> | null;
       if (d && d.win === false) {
         // Check if correlator detected error-trade-loss pattern
@@ -392,11 +413,13 @@ export class BrainCore {
     this.subscriptionManager.subscribe('marketing-brain', ['post:published'], (event: string, data: unknown) => {
       logger.info(`[cross-brain] Received ${event} from marketing-brain`, { data });
       correlator.recordEvent('marketing-brain', event, data);
+      this.orchestrator?.onCrossBrainEvent('marketing-brain', event, data as Record<string, unknown>);
     });
 
     // Subscribe to marketing-brain: campaign:created for ecosystem awareness
     this.subscriptionManager.subscribe('marketing-brain', ['campaign:created'], (event: string, data: unknown) => {
       correlator.recordEvent('marketing-brain', event, data);
+      this.orchestrator?.onCrossBrainEvent('marketing-brain', event, data as Record<string, unknown>);
     });
   }
 
@@ -406,8 +429,9 @@ export class BrainCore {
     const webhook = services.webhook;
     const causal = services.causal;
     const hypothesis = services.hypothesis;
+    const orch = this.orchestrator;
 
-    // Error → Project synapse + notify peers + feed correlator + webhooks + causal + hypothesis
+    // Error → Project synapse + notify peers + feed correlator + webhooks + causal + hypothesis + orchestrator
     bus.on('error:reported', ({ errorId, projectId }) => {
       synapseManager.strengthen(
         { type: 'error', id: errorId },
@@ -419,6 +443,7 @@ export class BrainCore {
       webhook?.fire('error:reported', { errorId, projectId });
       causal?.recordEvent('brain', 'error:reported', { errorId, projectId });
       hypothesis?.observe({ source: 'brain', type: 'error:reported', value: 1, timestamp: Date.now() });
+      orch?.onEvent('error:reported', { errorId, projectId });
     });
 
     // Solution applied → strengthen or weaken
@@ -453,6 +478,7 @@ export class BrainCore {
       getLogger().info(`New rule #${ruleId} learned: ${pattern}`);
       causal?.recordEvent('brain', 'rule:learned', { ruleId, pattern });
       hypothesis?.observe({ source: 'brain', type: 'rule:learned', value: 1, timestamp: Date.now() });
+      orch?.onEvent('rule:learned', { ruleId });
     });
 
     // Insight created → log + notify marketing (content opportunity) + feed correlator + webhooks + causal + hypothesis
@@ -463,6 +489,12 @@ export class BrainCore {
       webhook?.fire('insight:created', { insightId, type });
       causal?.recordEvent('brain', 'insight:created', { insightId, type });
       hypothesis?.observe({ source: 'brain', type: 'insight:created', value: 1, timestamp: Date.now() });
+      orch?.onEvent('insight:created', { insightId, type });
+    });
+
+    // Solution applied → orchestrator
+    bus.on('solution:applied', ({ errorId, solutionId, success }) => {
+      orch?.onEvent('solution:applied', { errorId, solutionId, success: success ? 1 : 0 });
     });
 
     // Memory → Project synapse

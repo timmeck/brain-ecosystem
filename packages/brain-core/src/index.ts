@@ -78,6 +78,8 @@ export { DashboardServer } from './dashboard/server.js';
 export type { DashboardServerOptions } from './dashboard/server.js';
 export { createHubDashboard } from './dashboard/hub-server.js';
 export type { HubDashboardOptions } from './dashboard/hub-server.js';
+export { createResearchDashboard } from './dashboard/research-server.js';
+export type { ResearchDashboardOptions } from './dashboard/research-server.js';
 
 // ── Cross-Brain ────────────────────────────────────────────
 export { CrossBrainClient } from './cross-brain/client.js';
@@ -156,3 +158,7 @@ export type { Anomaly, AnomalyType, AnomalySeverity, DriftReport, AnomalyDetecti
 // ── Research Journal ───────────────────────────────────
 export { ResearchJournal, runJournalMigration } from './research/journal.js';
 export type { JournalEntry, JournalEntryType, Significance, JournalSummary, JournalConfig } from './research/journal.js';
+
+// ── Research Orchestrator ─────────────────────────────
+export { ResearchOrchestrator } from './research/research-orchestrator.js';
+export type { ResearchOrchestratorConfig } from './research/research-orchestrator.js';

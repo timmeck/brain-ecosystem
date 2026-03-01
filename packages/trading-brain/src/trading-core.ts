@@ -53,7 +53,7 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator } from '@timmeck/brain-core';
 
 export class TradingCore {
   private db: Database.Database | null = null;
@@ -66,6 +66,7 @@ export class TradingCore {
   private notifier: CrossBrainNotifier | null = null;
   private subscriptionManager: CrossBrainSubscriptionManager | null = null;
   private correlator: CrossBrainCorrelator | null = null;
+  private orchestrator: ResearchOrchestrator | null = null;
   private config: TradingBrainConfig | null = null;
   private configPath?: string;
   private restarting = false;
@@ -206,6 +207,22 @@ export class TradingCore {
     services.hypothesis = researchScheduler.hypothesisEngine;
     logger.info('Autonomous research scheduler started');
 
+    // 12d. Research Orchestrator (feedback loops between all research engines)
+    this.orchestrator = new ResearchOrchestrator(this.db!, {
+      brainName: 'trading-brain',
+    }, researchScheduler.causalGraph);
+    this.orchestrator.start();
+    services.selfObserver = this.orchestrator.selfObserver;
+    services.adaptiveStrategy = this.orchestrator.adaptiveStrategy;
+    services.experimentEngine = this.orchestrator.experimentEngine;
+    services.crossDomain = this.orchestrator.crossDomain;
+    services.counterfactual = this.orchestrator.counterfactual;
+    services.knowledgeDistiller = this.orchestrator.knowledgeDistiller;
+    services.researchAgenda = this.orchestrator.researchAgenda;
+    services.anomalyDetective = this.orchestrator.anomalyDetective;
+    services.journal = this.orchestrator.journal;
+    logger.info('Research orchestrator started (9 engines, feedback loops active)');
+
     // 13. IPC Server
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'trading-brain', 'trading-brain');
@@ -277,6 +294,7 @@ export class TradingCore {
 
   private cleanup(): void {
     this.subscriptionManager?.disconnectAll();
+    this.orchestrator?.stop();
     this.researchEngine?.stop();
     this.learningEngine?.stop();
     this.mcpHttpServer?.stop();
@@ -290,6 +308,7 @@ export class TradingCore {
     this.mcpHttpServer = null;
     this.learningEngine = null;
     this.researchEngine = null;
+    this.orchestrator = null;
     this.subscriptionManager = null;
     this.correlator = null;
   }
@@ -332,6 +351,7 @@ export class TradingCore {
     this.subscriptionManager.subscribe('brain', ['error:reported'], (event: string, data: unknown) => {
       logger.warn(`[cross-brain] System error from brain — flagging active trades for review`, { data });
       correlator.recordEvent('brain', event, data);
+      this.orchestrator?.onCrossBrainEvent('brain', event, data as Record<string, unknown>);
 
       // Check health: if degraded, log warning for trade awareness
       const health = correlator.getHealth();
@@ -343,6 +363,7 @@ export class TradingCore {
     // Subscribe to marketing-brain: post:published for ecosystem awareness
     this.subscriptionManager.subscribe('marketing-brain', ['post:published'], (event: string, data: unknown) => {
       correlator.recordEvent('marketing-brain', event, data);
+      this.orchestrator?.onCrossBrainEvent('marketing-brain', event, data as Record<string, unknown>);
     });
   }
 
@@ -351,6 +372,7 @@ export class TradingCore {
     const hypothesis = researchScheduler?.hypothesisEngine;
     const bus = getEventBus();
     const notifier = this.notifier;
+    const orch = this.orchestrator;
 
     // Trade recorded → log + notify brain (error correlation) + feed correlator + webhooks + causal + hypothesis
     bus.on('trade:recorded', ({ tradeId, fingerprint, win }) => {
@@ -360,6 +382,7 @@ export class TradingCore {
       webhook?.fire('trade:recorded', { tradeId, fingerprint, win });
       causal?.recordEvent('trading-brain', 'trade:outcome', { tradeId, fingerprint, win });
       hypothesis?.observe({ source: 'trading-brain', type: win ? 'trade:win' : 'trade:loss', value: 1, timestamp: Date.now() });
+      orch?.onEvent('trade:recorded', { tradeId, win: win ? 1 : 0 });
     });
 
     // Synapse updated → log at debug level
@@ -372,6 +395,7 @@ export class TradingCore {
       getLogger().info(`New rule #${ruleId} learned: ${pattern}`);
       causal?.recordEvent('trading-brain', 'rule:learned', { ruleId, pattern });
       hypothesis?.observe({ source: 'trading-brain', type: 'rule:learned', value: 1, timestamp: Date.now() });
+      orch?.onEvent('rule:learned', { ruleId });
     });
 
     // Chain detected → log + causal
@@ -386,6 +410,7 @@ export class TradingCore {
       getLogger().info(`New insight #${insightId} (${type})`);
       causal?.recordEvent('trading-brain', 'insight:created', { insightId, type });
       hypothesis?.observe({ source: 'trading-brain', type: 'insight:created', value: 1, timestamp: Date.now() });
+      orch?.onEvent('insight:created', { insightId, type });
     });
 
     // Calibration updated → log + notify peers (market regime change) + causal
@@ -393,6 +418,7 @@ export class TradingCore {
       getLogger().info(`Calibration updated (${outcomeCount} outcomes)`);
       notifier?.notify('signal:calibrated', { outcomeCount });
       causal?.recordEvent('trading-brain', 'calibration:updated', { outcomeCount });
+      orch?.onEvent('calibration:updated', { outcomeCount });
     });
   }
 }

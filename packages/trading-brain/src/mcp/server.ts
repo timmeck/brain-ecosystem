@@ -7,7 +7,7 @@ import { registerAdvancedResearchTools } from './advanced-research-tools.js';
 export async function startMcpServer(): Promise<void> {
   await coreStartMcpServer({
     name: 'trading-brain',
-    version: '2.7.0',
+    version: '2.8.0',
     entryPoint: path.resolve(import.meta.dirname, '../index.ts'),
     registerTools: (server, ipc) => {
       registerTools(server, ipc);

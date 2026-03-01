@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{BRAIN_NAME}} — Research Dashboard</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#04060e;--bg2:rgba(10,12,24,.7);--bg3:rgba(20,24,50,.6);--bg4:rgba(30,35,70,.5);
+    --glass:rgba(15,18,40,.55);--glass-border:rgba(100,120,255,.12);--glass-hover:rgba(100,120,255,.2);
+    --text:#e8eaf6;--text2:#8b8fb0;--text3:#4a4d6e;
+    --blue:#58a6ff;--red:#f85149;--green:#3fb950;
+    --purple:#d2a8ff;--orange:#d29922;--cyan:#47e5ff;
+    --accent:linear-gradient(135deg,#58a6ff,#d2a8ff,#47e5ff);
+    --radius:16px;--radius-sm:10px;
+  }
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;overflow-x:hidden}
+
+  /* Neural canvas background */
+  #neural-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+  /* Ambient glow orbs */
+  .orb{position:fixed;border-radius:50%;filter:blur(120px);opacity:.1;pointer-events:none;z-index:0}
+  .orb-1{width:600px;height:600px;background:var(--blue);top:-200px;left:-100px;animation:orb-float 20s ease-in-out infinite}
+  .orb-2{width:500px;height:500px;background:var(--purple);bottom:-150px;right:-100px;animation:orb-float 25s ease-in-out infinite reverse}
+  .orb-3{width:400px;height:400px;background:var(--cyan);top:40%;left:50%;animation:orb-float 18s ease-in-out infinite 5s}
+  @keyframes orb-float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(60px,-40px) scale(1.1)}66%{transform:translate(-40px,60px) scale(.9)}}
+
+  .container{max-width:1440px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+
+  section{margin-bottom:48px}
+
+  /* ---- Header ---- */
+  header{padding:48px 0 20px;border-bottom:1px solid var(--glass-border)}
+  .header-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  .logo{display:flex;align-items:center;gap:16px}
+  .logo-icon{
+    width:52px;height:52px;border-radius:14px;
+    background:linear-gradient(135deg,var(--blue),var(--purple));
+    display:flex;align-items:center;justify-content:center;font-size:24px;
+    box-shadow:0 0 40px rgba(88,166,255,.3);
+  }
+  .logo h1{font-size:1.8rem;font-weight:700;letter-spacing:-.5px;color:var(--text)}
+  .logo h1 span{color:var(--blue)}
+  .header-meta{display:flex;align-items:center;gap:16px}
+  .version-badge{font-size:.75rem;color:var(--text3);background:var(--glass);border:1px solid var(--glass-border);padding:4px 12px;border-radius:20px}
+  .connection-indicator{display:flex;align-items:center;gap:8px;padding:6px 16px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:.8rem;color:var(--text2)}
+  .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--red);transition:background .3s}
+  .conn-dot.connected{background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse-dot 2s ease-in-out infinite}
+  @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.5}}
+
+  /* ---- Section titles ---- */
+  .section-title{font-size:1.25rem;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+  .section-title .icon{font-size:1rem;width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center}
+  .section-title .count{font-size:.72rem;font-weight:500;color:var(--text3);background:var(--bg4);padding:2px 8px;border-radius:10px}
+
+  /* ---- Status Bar ---- */
+  .status-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin:28px 0}
+  .status-card{
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);
+    padding:22px 18px;text-align:center;position:relative;overflow:hidden;backdrop-filter:blur(20px);
+    transition:all .3s ease;
+  }
+  .status-card:hover{transform:translateY(-3px);border-color:var(--glass-hover);box-shadow:0 16px 48px rgba(0,0,0,.3)}
+  .status-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+  .status-card.blue::before{background:linear-gradient(90deg,transparent,var(--blue),transparent)}
+  .status-card.green::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+  .status-card.purple::before{background:linear-gradient(90deg,transparent,var(--purple),transparent)}
+  .status-card.orange::before{background:linear-gradient(90deg,transparent,var(--orange),transparent)}
+  .stat-number{font-size:2.2rem;font-weight:800;letter-spacing:-1.5px}
+  .status-card.blue .stat-number{color:var(--blue)}
+  .status-card.green .stat-number{color:var(--green)}
+  .status-card.purple .stat-number{color:var(--purple)}
+  .status-card.orange .stat-number{color:var(--orange)}
+  .stat-label{color:var(--text2);font-size:.78rem;margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+
+  /* ---- Glass card base ---- */
+  .glass-card{
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);
+    padding:22px;backdrop-filter:blur(20px);transition:border-color .25s ease;
+  }
+  .glass-card:hover{border-color:var(--glass-hover)}
+
+  /* ---- Kanban (Hypothesis Tracker) ---- */
+  .kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .kanban-col{background:var(--bg2);border:1px solid var(--glass-border);border-radius:var(--radius);padding:16px;min-height:200px}
+  .kanban-header{font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:8px}
+  .kanban-header .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .kanban-header .dot.pending{background:var(--blue)}
+  .kanban-header .dot.confirmed{background:var(--green)}
+  .kanban-header .dot.rejected{background:var(--red)}
+  .kanban-items{display:flex;flex-direction:column;gap:10px}
+  .hyp-card{
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);
+    padding:14px;font-size:.83rem;transition:all .2s ease;
+  }
+  .hyp-card:hover{transform:translateX(4px);border-color:var(--glass-hover)}
+  .hyp-card .hyp-title{font-weight:600;color:var(--text);margin-bottom:4px}
+  .hyp-card .hyp-detail{color:var(--text2);font-size:.78rem}
+  .hyp-card .hyp-confidence{display:inline-block;margin-top:6px;font-size:.7rem;padding:2px 8px;border-radius:10px;font-weight:600}
+  .hyp-card .hyp-confidence.high{background:rgba(63,185,80,.15);color:var(--green)}
+  .hyp-card .hyp-confidence.medium{background:rgba(88,166,255,.15);color:var(--blue)}
+  .hyp-card .hyp-confidence.low{background:rgba(139,143,176,.1);color:var(--text2)}
+
+  /* ---- Experiment Monitor ---- */
+  .exp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px}
+  .exp-card{
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);
+    padding:18px;border-left:3px solid var(--text3);transition:all .25s ease;backdrop-filter:blur(20px);
+  }
+  .exp-card:hover{transform:translateX(6px);border-color:var(--glass-hover);box-shadow:0 8px 30px rgba(0,0,0,.2)}
+  .exp-card.running{border-left-color:var(--blue)}
+  .exp-card.completed{border-left-color:var(--green)}
+  .exp-card.failed{border-left-color:var(--red)}
+  .exp-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .exp-status{font-size:.68rem;padding:3px 10px;border-radius:12px;text-transform:uppercase;font-weight:700;letter-spacing:.5px}
+  .exp-status.running{background:rgba(88,166,255,.15);color:var(--blue);border:1px solid rgba(88,166,255,.25)}
+  .exp-status.completed{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.25)}
+  .exp-status.failed{background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.25)}
+  .exp-name{font-weight:600;font-size:.9rem}
+  .exp-metrics{display:flex;gap:16px;margin-top:10px;font-size:.78rem;color:var(--text3);flex-wrap:wrap}
+  .exp-metrics span{display:flex;align-items:center;gap:4px}
+  .exp-metrics .label{color:var(--text3)}.exp-metrics .value{color:var(--text2);font-weight:600}
+  .exp-conclusion{margin-top:8px;font-size:.82rem;color:var(--text2);font-style:italic}
+
+  /* ---- Anomaly Feed ---- */
+  .anomaly-feed{max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+  .anomaly-feed::-webkit-scrollbar{width:6px}
+  .anomaly-feed::-webkit-scrollbar-track{background:transparent}
+  .anomaly-feed::-webkit-scrollbar-thumb{background:var(--glass-border);border-radius:3px}
+  .anomaly-item{
+    padding:12px 16px;border-radius:var(--radius-sm);font-size:.83rem;
+    border-left:3px solid var(--text3);background:var(--glass);transition:all .2s ease;
+  }
+  .anomaly-item:hover{transform:translateX(4px)}
+  .anomaly-item.low{border-left-color:var(--text3);background:rgba(110,118,129,.06)}
+  .anomaly-item.medium{border-left-color:var(--orange);background:rgba(210,153,34,.06)}
+  .anomaly-item.high{border-left-color:#e3872d;background:rgba(227,135,45,.06)}
+  .anomaly-item.critical{border-left-color:var(--red);background:rgba(248,81,73,.06)}
+  .anomaly-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .anomaly-severity{font-size:.68rem;padding:2px 8px;border-radius:10px;text-transform:uppercase;font-weight:700;letter-spacing:.5px}
+  .anomaly-severity.low{background:rgba(110,118,129,.15);color:var(--text2)}
+  .anomaly-severity.medium{background:rgba(210,153,34,.15);color:var(--orange)}
+  .anomaly-severity.high{background:rgba(227,135,45,.2);color:#e3872d}
+  .anomaly-severity.critical{background:rgba(248,81,73,.15);color:var(--red)}
+  .anomaly-time{font-size:.72rem;color:var(--text3)}
+  .anomaly-desc{color:var(--text2)}
+
+  /* ---- Principles & Anti-patterns ---- */
+  .knowledge-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .knowledge-list{display:flex;flex-direction:column;gap:10px}
+  .principle-item{
+    padding:14px;border-radius:var(--radius-sm);background:var(--glass);
+    border:1px solid var(--glass-border);border-left:3px solid var(--green);
+    font-size:.83rem;transition:all .2s ease;
+  }
+  .principle-item:hover{transform:translateX(4px);border-color:var(--glass-hover)}
+  .principle-item .p-title{font-weight:600;color:var(--text);margin-bottom:2px}
+  .principle-item .p-detail{color:var(--text2);font-size:.78rem}
+  .principle-item .p-confidence{font-size:.7rem;color:var(--text3);margin-top:4px}
+  .anti-pattern-item{
+    padding:14px;border-radius:var(--radius-sm);background:var(--glass);
+    border:1px solid var(--glass-border);border-left:3px solid var(--red);
+    font-size:.83rem;transition:all .2s ease;
+  }
+  .anti-pattern-item:hover{transform:translateX(4px);border-color:var(--glass-hover)}
+  .anti-pattern-item .ap-title{font-weight:600;color:var(--text);margin-bottom:2px}
+  .anti-pattern-item .ap-detail{color:var(--text2);font-size:.78rem}
+
+  /* ---- Journal ---- */
+  .journal-list{display:flex;flex-direction:column;gap:12px}
+  .journal-entry{
+    padding:16px;border-radius:var(--radius-sm);background:var(--glass);
+    border:1px solid var(--glass-border);transition:all .2s ease;
+  }
+  .journal-entry:hover{border-color:var(--glass-hover)}
+  .journal-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+  .journal-time{font-size:.72rem;color:var(--text3);font-family:'SFMono-Regular',Consolas,monospace}
+  .significance{font-size:.68rem;padding:2px 10px;border-radius:12px;text-transform:uppercase;font-weight:700;letter-spacing:.5px}
+  .significance.routine{background:rgba(139,143,176,.1);color:var(--text2);border:1px solid rgba(139,143,176,.15)}
+  .significance.notable{background:rgba(88,166,255,.12);color:var(--blue);border:1px solid rgba(88,166,255,.2)}
+  .significance.breakthrough{background:rgba(210,168,255,.12);color:var(--purple);border:1px solid rgba(210,168,255,.2)}
+  .significance.paradigm_shift{background:rgba(71,229,255,.12);color:var(--cyan);border:1px solid rgba(71,229,255,.2)}
+  .journal-body{color:var(--text2);font-size:.85rem;line-height:1.5}
+
+  /* ---- Insight Summary ---- */
+  .insight-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+  .insight-card{
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);
+    padding:18px;border-left:3px solid var(--purple);transition:all .25s ease;backdrop-filter:blur(20px);
+  }
+  .insight-card:hover{transform:translateX(6px);border-color:var(--glass-hover);box-shadow:0 8px 30px rgba(0,0,0,.2)}
+  .insight-card .i-title{font-weight:600;font-size:.9rem;margin-bottom:4px}
+  .insight-card .i-body{color:var(--text2);font-size:.83rem}
+  .insight-card .i-meta{font-size:.72rem;color:var(--text3);margin-top:8px}
+
+  /* ---- Correlations Table ---- */
+  .corr-table{width:100%;border-collapse:collapse}
+  .corr-table thead th{
+    text-align:left;font-size:.72rem;font-weight:600;color:var(--text3);
+    text-transform:uppercase;letter-spacing:.4px;padding:10px 14px;
+    border-bottom:1px solid var(--glass-border);
+  }
+  .corr-table tbody td{
+    padding:12px 14px;font-size:.83rem;border-bottom:1px solid rgba(100,120,255,.06);vertical-align:middle;
+  }
+  .corr-table tbody tr:last-child td{border-bottom:none}
+  .corr-table tbody tr:hover{background:rgba(255,255,255,.02)}
+  .corr-source{font-weight:600;color:var(--text)}
+  .corr-arrow{color:var(--text3);margin:0 4px}
+  .strength-bar{width:70px;height:5px;border-radius:3px;background:var(--bg4);overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+  .strength-fill{height:100%;border-radius:3px;background:var(--blue)}
+  .strength-val{font-size:.72rem;color:var(--text3)}
+  .lag-val{color:var(--text2);font-size:.8rem}
+
+  /* ---- Agenda ---- */
+  .agenda-list{display:flex;flex-direction:column;gap:10px}
+  .agenda-item{
+    display:grid;grid-template-columns:48px 1fr auto auto;gap:16px;align-items:center;
+    padding:14px 18px;border-radius:var(--radius-sm);background:var(--glass);
+    border:1px solid var(--glass-border);transition:all .2s ease;
+  }
+  .agenda-item:hover{transform:translateX(4px);border-color:var(--glass-hover)}
+  .agenda-priority{font-size:1.3rem;font-weight:800;text-align:center}
+  .agenda-priority.high{color:var(--orange)}
+  .agenda-priority.medium{color:var(--blue)}
+  .agenda-priority.low{color:var(--text3)}
+  .agenda-question{font-size:.85rem;color:var(--text)}
+  .agenda-type{font-size:.68rem;padding:3px 10px;border-radius:12px;text-transform:uppercase;font-weight:600;letter-spacing:.4px;background:var(--bg4);color:var(--text2);white-space:nowrap}
+  .agenda-feasibility{font-size:.78rem;color:var(--text3);white-space:nowrap}
+
+  /* ---- Empty state ---- */
+  .empty{color:var(--text3);font-style:italic;padding:24px;text-align:center;font-size:.85rem}
+
+  /* ---- Footer ---- */
+  footer{text-align:center;padding:32px 0;border-top:1px solid var(--glass-border)}
+  footer p{color:var(--text3);font-size:.78rem}
+
+  /* ---- Responsive ---- */
+  @media(max-width:960px){
+    .kanban{grid-template-columns:1fr}
+    .knowledge-grid{grid-template-columns:1fr}
+    .agenda-item{grid-template-columns:40px 1fr;gap:10px}
+    .agenda-type,.agenda-feasibility{grid-column:2}
+  }
+  @media(max-width:600px){
+    .status-bar{grid-template-columns:1fr 1fr}
+    .exp-list{grid-template-columns:1fr}
+    .insight-list{grid-template-columns:1fr}
+    .corr-table thead{display:none}
+    .corr-table tbody tr{display:flex;flex-wrap:wrap;gap:4px 12px;padding:10px 0}
+    .corr-table tbody td{border-bottom:none;padding:2px 0}
+    .header-row{flex-direction:column;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="neural-bg"></canvas>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="container">
+
+  <!-- ========== Header ========== -->
+  <header>
+    <div class="header-row">
+      <div class="logo">
+        <div class="logo-icon">&#128300;</div>
+        <h1><span>{{BRAIN_NAME}}</span> Research</h1>
+      </div>
+      <div class="header-meta">
+        <span class="version-badge">v{{VERSION}}</span>
+        <div class="connection-indicator">
+          <span class="conn-dot" id="conn-dot"></span>
+          <span id="conn-text">Disconnected</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== Research Status Bar ========== -->
+  <div class="status-bar">
+    <div class="status-card blue">
+      <div class="stat-number" id="stat-cycles">{{CYCLES}}</div>
+      <div class="stat-label">Research Cycles</div>
+    </div>
+    <div class="status-card green">
+      <div class="stat-number" id="stat-discoveries">{{DISCOVERIES}}</div>
+      <div class="stat-label">Discoveries</div>
+    </div>
+    <div class="status-card purple">
+      <div class="stat-number" id="stat-confirmation">{{CONFIRMATION_RATE}}</div>
+      <div class="stat-label">Confirmation Rate</div>
+    </div>
+    <div class="status-card orange">
+      <div class="stat-number" id="stat-anomalies">{{ANOMALIES}}</div>
+      <div class="stat-label">Anomalies</div>
+    </div>
+  </div>
+
+  <!-- ========== Hypothesis Tracker ========== -->
+  <section id="hypotheses">
+    <div class="section-title">
+      <div class="icon" style="background:rgba(88,166,255,.1)">&#128161;</div>
+      Hypothesis Tracker
+    </div>
+    <div class="kanban">
+      <div class="kanban-col">
+        <div class="kanban-header"><span class="dot pending"></span> Pending</div>
+        <div class="kanban-items" id="hyp-pending"></div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-header"><span class="dot confirmed"></span> Confirmed</div>
+        <div class="kanban-items" id="hyp-confirmed"></div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-header"><span class="dot rejected"></span> Rejected</div>
+        <div class="kanban-items" id="hyp-rejected"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Experiment Monitor ========== -->
+  <section id="experiments">
+    <div class="section-title">
+      <div class="icon" style="background:rgba(63,185,80,.1)">&#9879;</div>
+      Experiment Monitor
+      <span class="count" id="exp-count">0</span>
+    </div>
+    <div class="exp-list" id="exp-list"></div>
+  </section>
+
+  <!-- ========== Anomaly Feed ========== -->
+  <section id="anomalies">
+    <div class="section-title">
+      <div class="icon" style="background:rgba(210,153,34,.1)">&#9888;</div>
+      Anomaly Feed
+      <span class="count" id="anomaly-count">0</span>
+    </div>
+    <div class="glass-card">
+      <div class="anomaly-feed" id="anomaly-feed"></div>
+    </div>
+  </section>
+
+  <!-- ========== Knowledge Principles ========== -->
+  <section id="knowledge">
+    <div class="section-title">
+      <div class="icon" style="background:rgba(63,185,80,.1)">&#128218;</div>
+      Knowledge Principles
+    </div>
+    <div class="knowledge-grid">
+      <div>
+        <div class="section-title" style="font-size:1rem;margin-bottom:12px">
+          <span style="color:var(--green)">&#10003;</span> Principles
+        </div>
+        <div class="knowledge-list" id="principles-list"></div>
+      </div>
+      <div>
+        <div class="section-title" style="font-size:1rem;margin-bottom:12px">
+          <span style="color:var(--red)">&#10007;</span> Anti-Patterns
+        </div>
+        <div class="knowledge-list" id="anti-patterns-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Research Journal ========== -->
+  <section id="journal">
+    <div class="section-title">
+      <div class="icon" style="background:rgba(210,168,255,.1)">&#128221;</div>
+      Research Journal
+      <span class="count" id="journal-count">0</span>
+    </div>
+    <div class="glass-card">
+      <div class="journal-list" id="journal-list"></div>
+    </div>
+  </section>
+
+  <!-- ========== Self-Insight Summary ========== -->
+  <section id="insights">
+    <div class="section-title">
+      <div class="icon" style="background:rgba(210,168,255,.1)">&#129504;</div>
+      Self-Insight Summary
+    </div>
+    <div class="insight-list" id="insight-list"></div>
+  </section>
+
+  <!-- ========== Cross-Domain Correlations ========== -->
+  <section id="correlations">
+    <div class="section-title">
+      <div class="icon" style="background:rgba(71,229,255,.1)">&#128279;</div>
+      Cross-Domain Correlations
+      <span class="count" id="corr-count">0</span>
+    </div>
+    <div class="glass-card">
+      <table class="corr-table">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Target</th>
+            <th>Event Type</th>
+            <th>Strength</th>
+            <th>Lag</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody id="corr-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========== Research Agenda ========== -->
+  <section id="agenda">
+    <div class="section-title">
+      <div class="icon" style="background:rgba(88,166,255,.1)">&#128203;</div>
+      Research Agenda
+    </div>
+    <div class="agenda-list" id="agenda-list"></div>
+  </section>
+
+  <footer>
+    <p>{{BRAIN_NAME}} Research Dashboard &mdash; Powered by Autonomous Research Engine</p>
+  </footer>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ---- Parse embedded JSON data ----
+  var hypotheses = {{HYPOTHESES_JSON}};
+  var experiments = {{EXPERIMENTS_JSON}};
+  var anomalies = {{ANOMALIES_JSON}};
+  var principles = {{PRINCIPLES_JSON}};
+  var antiPatterns = {{ANTI_PATTERNS_JSON}};
+  var journal = {{JOURNAL_JSON}};
+  var insights = {{INSIGHTS_JSON}};
+  var correlations = {{CORRELATIONS_JSON}};
+  var agenda = {{AGENDA_JSON}};
+
+  // ---- Helpers ----
+  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  function fmtTime(ts) { if (!ts) return ''; try { return new Date(ts).toLocaleString(); } catch(e) { return String(ts); } }
+  function confClass(c) { if (c >= 0.7) return 'high'; if (c >= 0.4) return 'medium'; return 'low'; }
+  function prioClass(p) { if (p >= 0.7) return 'high'; if (p >= 0.4) return 'medium'; return 'low'; }
+
+  // ---- Render Hypotheses ----
+  function renderHypotheses() {
+    var cols = { pending: document.getElementById('hyp-pending'), confirmed: document.getElementById('hyp-confirmed'), rejected: document.getElementById('hyp-rejected') };
+    Object.values(cols).forEach(function(c) { c.innerHTML = ''; });
+    (hypotheses || []).forEach(function(h) {
+      var status = (h.status || 'pending').toLowerCase();
+      var col = cols[status] || cols.pending;
+      var conf = h.confidence != null ? h.confidence : 0;
+      col.innerHTML += '<div class="hyp-card">' +
+        '<div class="hyp-title">' + esc(h.hypothesis || h.title || h.name) + '</div>' +
+        '<div class="hyp-detail">' + esc(h.evidence || h.detail || '') + '</div>' +
+        '<span class="hyp-confidence ' + confClass(conf) + '">' + (conf * 100).toFixed(0) + '% confidence</span>' +
+        '</div>';
+    });
+    Object.values(cols).forEach(function(c) { if (!c.innerHTML) c.innerHTML = '<div class="empty">None</div>'; });
+  }
+
+  // ---- Render Experiments ----
+  function renderExperiments() {
+    var el = document.getElementById('exp-list');
+    if (!experiments || !experiments.length) { el.innerHTML = '<div class="empty">No experiments running</div>'; document.getElementById('exp-count').textContent = '0'; return; }
+    document.getElementById('exp-count').textContent = experiments.length;
+    el.innerHTML = experiments.map(function(e) {
+      var st = (e.status || 'running').toLowerCase();
+      return '<div class="exp-card ' + st + '">' +
+        '<div class="exp-header">' +
+          '<span class="exp-status ' + st + '">' + esc(st) + '</span>' +
+          '<span class="exp-name">' + esc(e.name || e.title || 'Experiment') + '</span>' +
+        '</div>' +
+        '<div class="exp-metrics">' +
+          (e.p_value != null ? '<span><span class="label">p-value:</span> <span class="value">' + Number(e.p_value).toFixed(4) + '</span></span>' : '') +
+          (e.effect_size != null ? '<span><span class="label">effect:</span> <span class="value">' + Number(e.effect_size).toFixed(3) + '</span></span>' : '') +
+          (e.samples != null ? '<span><span class="label">n=</span><span class="value">' + e.samples + '</span></span>' : '') +
+        '</div>' +
+        (e.conclusion ? '<div class="exp-conclusion">' + esc(e.conclusion) + '</div>' : '') +
+        '</div>';
+    }).join('');
+  }
+
+  // ---- Render Anomalies ----
+  function renderAnomalies() {
+    var el = document.getElementById('anomaly-feed');
+    if (!anomalies || !anomalies.length) { el.innerHTML = '<div class="empty">No anomalies detected</div>'; document.getElementById('anomaly-count').textContent = '0'; return; }
+    document.getElementById('anomaly-count').textContent = anomalies.length;
+    el.innerHTML = anomalies.map(function(a) {
+      var sev = (a.severity || 'low').toLowerCase();
+      return '<div class="anomaly-item ' + sev + '">' +
+        '<div class="anomaly-header">' +
+          '<span class="anomaly-severity ' + sev + '">' + esc(sev) + '</span>' +
+          '<span class="anomaly-time">' + fmtTime(a.detected_at || a.timestamp) + '</span>' +
+        '</div>' +
+        '<div class="anomaly-desc">' + esc(a.description || a.message) + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // ---- Render Principles ----
+  function renderPrinciples() {
+    var pl = document.getElementById('principles-list');
+    var al = document.getElementById('anti-patterns-list');
+    if (!principles || !principles.length) { pl.innerHTML = '<div class="empty">No principles distilled yet</div>'; }
+    else { pl.innerHTML = principles.map(function(p) {
+      return '<div class="principle-item">' +
+        '<div class="p-title">' + esc(p.principle || p.title || p.name) + '</div>' +
+        '<div class="p-detail">' + esc(p.evidence || p.detail || '') + '</div>' +
+        (p.confidence != null ? '<div class="p-confidence">Confidence: ' + (p.confidence * 100).toFixed(0) + '%</div>' : '') +
+        '</div>';
+    }).join(''); }
+    if (!antiPatterns || !antiPatterns.length) { al.innerHTML = '<div class="empty">No anti-patterns identified</div>'; }
+    else { al.innerHTML = antiPatterns.map(function(a) {
+      return '<div class="anti-pattern-item">' +
+        '<div class="ap-title">' + esc(a.pattern || a.title || a.name) + '</div>' +
+        '<div class="ap-detail">' + esc(a.description || a.detail || '') + '</div>' +
+        '</div>';
+    }).join(''); }
+  }
+
+  // ---- Render Journal ----
+  function renderJournal() {
+    var el = document.getElementById('journal-list');
+    if (!journal || !journal.length) { el.innerHTML = '<div class="empty">No journal entries</div>'; document.getElementById('journal-count').textContent = '0'; return; }
+    document.getElementById('journal-count').textContent = journal.length;
+    el.innerHTML = journal.map(function(j) {
+      var sig = (j.significance || 'routine').toLowerCase().replace(/ /g, '_');
+      return '<div class="journal-entry">' +
+        '<div class="journal-header">' +
+          '<span class="journal-time">' + fmtTime(j.timestamp || j.created_at) + '</span>' +
+          '<span class="significance ' + esc(sig) + '">' + esc(sig.replace(/_/g, ' ')) + '</span>' +
+        '</div>' +
+        '<div class="journal-body">' + esc(j.entry || j.content || j.summary) + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // ---- Render Insights ----
+  function renderInsights() {
+    var el = document.getElementById('insight-list');
+    if (!insights || !insights.length) { el.innerHTML = '<div class="empty">No self-insights yet</div>'; return; }
+    el.innerHTML = insights.map(function(i) {
+      return '<div class="insight-card">' +
+        '<div class="i-title">' + esc(i.title || i.insight || i.type) + '</div>' +
+        '<div class="i-body">' + esc(i.description || i.detail || i.content) + '</div>' +
+        '<div class="i-meta">' + fmtTime(i.timestamp || i.created_at) + (i.category ? ' &middot; ' + esc(i.category) : '') + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // ---- Render Correlations ----
+  function renderCorrelations() {
+    var el = document.getElementById('corr-body');
+    if (!correlations || !correlations.length) { el.innerHTML = '<tr><td colspan="6" class="empty">No correlations detected</td></tr>'; document.getElementById('corr-count').textContent = '0'; return; }
+    document.getElementById('corr-count').textContent = correlations.length;
+    el.innerHTML = correlations.map(function(c) {
+      var str = c.strength != null ? c.strength : 0;
+      var pct = Math.round(str * 100);
+      return '<tr>' +
+        '<td><span class="corr-source">' + esc(c.source || c.from_brain) + '</span></td>' +
+        '<td><span class="corr-source">' + esc(c.target || c.to_brain) + '</span></td>' +
+        '<td>' + esc(c.event_type || c.type || '') + '</td>' +
+        '<td><span class="strength-bar"><span class="strength-fill" style="width:' + pct + '%"></span></span><span class="strength-val">' + pct + '%</span></td>' +
+        '<td class="lag-val">' + (c.lag != null ? c.lag + 'ms' : '--') + '</td>' +
+        '<td style="font-weight:600">' + (c.count || 0) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  // ---- Render Agenda ----
+  function renderAgenda() {
+    var el = document.getElementById('agenda-list');
+    if (!agenda || !agenda.length) { el.innerHTML = '<div class="empty">No research agenda items</div>'; return; }
+    el.innerHTML = agenda.map(function(a) {
+      var prio = a.priority != null ? a.priority : 0;
+      return '<div class="agenda-item">' +
+        '<div class="agenda-priority ' + prioClass(prio) + '">' + (typeof prio === 'number' ? prio.toFixed(1) : esc(String(prio))) + '</div>' +
+        '<div class="agenda-question">' + esc(a.question || a.title) + '</div>' +
+        '<span class="agenda-type">' + esc(a.type || 'general') + '</span>' +
+        '<span class="agenda-feasibility">Feasibility: ' + (a.feasibility != null ? (a.feasibility * 100).toFixed(0) + '%' : '--') + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  // ---- Initial render ----
+  renderHypotheses();
+  renderExperiments();
+  renderAnomalies();
+  renderPrinciples();
+  renderJournal();
+  renderInsights();
+  renderCorrelations();
+  renderAgenda();
+
+  // ---- Neural Network Background ----
+  (function() {
+    var canvas = document.getElementById('neural-bg');
+    var ctx = canvas.getContext('2d');
+    var W, H, nodes = [], mouse = { x: -1000, y: -1000 };
+    function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+    resize();
+    window.addEventListener('resize', resize);
+    document.addEventListener('mousemove', function(e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+    var count = Math.min(60, Math.floor(window.innerWidth / 22));
+    for (var i = 0; i < count; i++) {
+      nodes.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .3, vy: (Math.random() - .5) * .3, r: Math.random() * 1.5 + .8, p: Math.random() * Math.PI * 2 });
+    }
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      for (var i = 0; i < nodes.length; i++) {
+        for (var j = i + 1; j < nodes.length; j++) {
+          var dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 160) { ctx.strokeStyle = 'rgba(88,166,255,' + (1 - d / 160) * .12 + ')'; ctx.lineWidth = .5; ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(nodes[j].x, nodes[j].y); ctx.stroke(); }
+        }
+        var mdx = nodes[i].x - mouse.x, mdy = nodes[i].y - mouse.y, md = Math.sqrt(mdx * mdx + mdy * mdy);
+        if (md < 180) { ctx.strokeStyle = 'rgba(210,168,255,' + (1 - md / 180) * .3 + ')'; ctx.lineWidth = .8; ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke(); }
+      }
+      var t = Date.now() * .001;
+      for (var k = 0; k < nodes.length; k++) {
+        var n = nodes[k];
+        ctx.fillStyle = 'rgba(88,166,255,' + (0.35 + Math.sin(t * 1.2 + n.p) * .25) + ')';
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2); ctx.fill();
+        n.x += n.vx; n.y += n.vy;
+        if (n.x < 0 || n.x > W) n.vx *= -1;
+        if (n.y < 0 || n.y > H) n.vy *= -1;
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  // ---- SSE Real-time Updates ----
+  function connectSSE() {
+    var dot = document.getElementById('conn-dot');
+    var txt = document.getElementById('conn-text');
+    var es;
+    try { es = new EventSource('/events'); } catch(e) { return; }
+
+    es.onopen = function() {
+      dot.classList.add('connected');
+      txt.textContent = 'Connected';
+    };
+
+    es.onerror = function() {
+      dot.classList.remove('connected');
+      txt.textContent = 'Reconnecting...';
+    };
+
+    es.addEventListener('research:status', function(e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.cycles != null) document.getElementById('stat-cycles').textContent = d.cycles;
+        if (d.discoveries != null) document.getElementById('stat-discoveries').textContent = d.discoveries;
+        if (d.confirmation_rate != null) document.getElementById('stat-confirmation').textContent = d.confirmation_rate;
+        if (d.anomalies != null) document.getElementById('stat-anomalies').textContent = d.anomalies;
+      } catch(ex) {}
+    });
+
+    es.addEventListener('research:hypothesis', function(e) {
+      try {
+        var h = JSON.parse(e.data);
+        hypotheses.push(h);
+        renderHypotheses();
+      } catch(ex) {}
+    });
+
+    es.addEventListener('research:experiment', function(e) {
+      try {
+        var exp = JSON.parse(e.data);
+        var idx = experiments.findIndex(function(x) { return x.id === exp.id; });
+        if (idx >= 0) experiments[idx] = exp; else experiments.unshift(exp);
+        renderExperiments();
+      } catch(ex) {}
+    });
+
+    es.addEventListener('research:anomaly', function(e) {
+      try {
+        var a = JSON.parse(e.data);
+        anomalies.unshift(a);
+        if (anomalies.length > 50) anomalies.pop();
+        renderAnomalies();
+      } catch(ex) {}
+    });
+
+    es.addEventListener('research:journal', function(e) {
+      try {
+        var j = JSON.parse(e.data);
+        journal.unshift(j);
+        if (journal.length > 30) journal.pop();
+        renderJournal();
+      } catch(ex) {}
+    });
+
+    es.addEventListener('research:insight', function(e) {
+      try {
+        var ins = JSON.parse(e.data);
+        insights.unshift(ins);
+        renderInsights();
+      } catch(ex) {}
+    });
+
+    es.addEventListener('research:correlation', function(e) {
+      try {
+        var c = JSON.parse(e.data);
+        correlations.push(c);
+        renderCorrelations();
+      } catch(ex) {}
+    });
+
+    es.addEventListener('message', function(e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.type === 'research:status' && d.data) {
+          var s = d.data;
+          if (s.cycles != null) document.getElementById('stat-cycles').textContent = s.cycles;
+          if (s.discoveries != null) document.getElementById('stat-discoveries').textContent = s.discoveries;
+          if (s.confirmation_rate != null) document.getElementById('stat-confirmation').textContent = s.confirmation_rate;
+          if (s.anomalies != null) document.getElementById('stat-anomalies').textContent = s.anomalies;
+        }
+      } catch(ex) {}
+    });
+  }
+  connectSSE();
+})();
+</script>
+</body>
+</html>

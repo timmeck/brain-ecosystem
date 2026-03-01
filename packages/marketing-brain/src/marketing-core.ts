@@ -65,7 +65,7 @@ import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
@@ -79,6 +79,7 @@ export class MarketingCore {
   private notifier: CrossBrainNotifier | null = null;
   private subscriptionManager: CrossBrainSubscriptionManager | null = null;
   private correlator: CrossBrainCorrelator | null = null;
+  private orchestrator: ResearchOrchestrator | null = null;
   private config: MarketingBrainConfig | null = null;
   private configPath?: string;
   private restarting = false;
@@ -206,6 +207,22 @@ export class MarketingCore {
     services.hypothesis = researchScheduler.hypothesisEngine;
     logger.info('Autonomous research scheduler started');
 
+    // 10f. Research Orchestrator (feedback loops between all research engines)
+    this.orchestrator = new ResearchOrchestrator(this.db!, {
+      brainName: 'marketing-brain',
+    }, researchScheduler.causalGraph);
+    this.orchestrator.start();
+    services.selfObserver = this.orchestrator.selfObserver;
+    services.adaptiveStrategy = this.orchestrator.adaptiveStrategy;
+    services.experimentEngine = this.orchestrator.experimentEngine;
+    services.crossDomain = this.orchestrator.crossDomain;
+    services.counterfactual = this.orchestrator.counterfactual;
+    services.knowledgeDistiller = this.orchestrator.knowledgeDistiller;
+    services.researchAgenda = this.orchestrator.researchAgenda;
+    services.anomalyDetective = this.orchestrator.anomalyDetective;
+    services.journal = this.orchestrator.journal;
+    logger.info('Research orchestrator started (9 engines, feedback loops active)');
+
     // 11. IPC Server
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'marketing-brain', 'marketing-brain');
@@ -305,6 +322,7 @@ export class MarketingCore {
 
   private cleanup(): void {
     this.subscriptionManager?.disconnectAll();
+    this.orchestrator?.stop();
     this.researchEngine?.stop();
     this.learningEngine?.stop();
     this.dashboardServer?.stop();
@@ -320,6 +338,7 @@ export class MarketingCore {
     this.dashboardServer = null;
     this.learningEngine = null;
     this.researchEngine = null;
+    this.orchestrator = null;
     this.subscriptionManager = null;
     this.correlator = null;
   }
@@ -361,6 +380,7 @@ export class MarketingCore {
     this.subscriptionManager.subscribe('brain', ['error:reported'], (event: string, data: unknown) => {
       logger.info(`[cross-brain] System error from brain — adjusting content context`, { data });
       correlator.recordEvent('brain', event, data);
+      this.orchestrator?.onCrossBrainEvent('brain', event, data as Record<string, unknown>);
 
       const health = correlator.getHealth();
       if (health.status === 'critical') {
@@ -372,11 +392,13 @@ export class MarketingCore {
     this.subscriptionManager.subscribe('brain', ['insight:created'], (event: string, data: unknown) => {
       logger.info(`[cross-brain] New insight from brain — potential content opportunity`, { data });
       correlator.recordEvent('brain', event, data);
+      this.orchestrator?.onCrossBrainEvent('brain', event, data as Record<string, unknown>);
     });
 
     // Subscribe to trading-brain: trade:outcome for cross-domain awareness
     this.subscriptionManager.subscribe('trading-brain', ['trade:outcome'], (event: string, data: unknown) => {
       correlator.recordEvent('trading-brain', event, data);
+      this.orchestrator?.onCrossBrainEvent('trading-brain', event, data as Record<string, unknown>);
     });
   }
 
@@ -385,6 +407,7 @@ export class MarketingCore {
     const hypothesis = researchScheduler?.hypothesisEngine;
     const bus = getEventBus();
     const notifier = this.notifier;
+    const orch = this.orchestrator;
 
     bus.on('post:created', ({ postId, campaignId }) => {
       if (campaignId) {
@@ -404,6 +427,7 @@ export class MarketingCore {
       webhook?.fire('post:published', { postId, platform });
       causal?.recordEvent('marketing-brain', 'post:published', { postId, platform });
       hypothesis?.observe({ source: 'marketing-brain', type: 'post:published', value: 1, timestamp: Date.now() });
+      orch?.onEvent('post:published', { postId, platform });
     });
 
     bus.on('strategy:reported', ({ strategyId, postId }) => {
@@ -424,6 +448,7 @@ export class MarketingCore {
       getLogger().info(`New rule #${ruleId} learned: ${pattern}`);
       causal?.recordEvent('marketing-brain', 'rule:learned', { ruleId, pattern });
       hypothesis?.observe({ source: 'marketing-brain', type: 'rule:learned', value: 1, timestamp: Date.now() });
+      orch?.onEvent('rule:learned', { ruleId });
     });
 
     bus.on('insight:created', ({ insightId, type }) => {
@@ -432,6 +457,7 @@ export class MarketingCore {
       this.correlator?.recordEvent('marketing-brain', 'insight:created', { insightId, type });
       causal?.recordEvent('marketing-brain', 'insight:created', { insightId, type });
       hypothesis?.observe({ source: 'marketing-brain', type: 'insight:created', value: 1, timestamp: Date.now() });
+      orch?.onEvent('insight:created', { insightId, type });
     });
   }
 }

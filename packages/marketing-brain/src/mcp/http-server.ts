@@ -11,7 +11,7 @@ export class McpHttpServer {
     this.inner = new CoreMcpHttpServer(
       port,
       router,
-      { name: 'marketing-brain', version: '1.8.0' },
+      { name: 'marketing-brain', version: '1.9.0' },
       (server, _r) => {
         registerToolsDirect(server, router);
         registerResearchToolsDirect(server, router);
