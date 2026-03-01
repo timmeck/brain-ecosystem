@@ -462,6 +462,17 @@ export class ResearchOrchestrator {
       this.feedExperimentMeasurements(anomalies.length, insights.length);
     }
 
+    // 13. Periodic Dream Consolidation: don't wait for idle, consolidate every 20 cycles
+    if (this.dreamEngine && this.cycleCount % 20 === 0) {
+      ts?.emit('dream', 'dreaming', 'Scheduled consolidation starting (every 20 cycles)...');
+      try {
+        this.dreamEngine.consolidate('auto');
+        ts?.emit('dream', 'dreaming', 'Scheduled consolidation complete', 'notable');
+      } catch (err) {
+        this.log.error(`[orchestrator] Dream consolidation error: ${(err as Error).message}`);
+      }
+    }
+
     const duration = Date.now() - start;
     ts?.emit('orchestrator', 'reflecting', `Feedback Cycle #${this.cycleCount} complete (${duration}ms)`);
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} complete (${duration}ms) ───`);
