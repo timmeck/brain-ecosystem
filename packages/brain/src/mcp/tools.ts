@@ -55,6 +55,17 @@ function registerToolsWithCaller(server: McpServer, call: BrainCall): void {
         const best = result.crossProjectMatches[0];
         response += `\nCross-project match found (#${best.errorId}, ${Math.round(best.score * 100)}% match from another project).`;
       }
+      if (result.suggestions?.suggestions?.length > 0) {
+        const sug = result.suggestions;
+        response += `\n\n${sug.suggestions.length} solution suggestion(s) found:`;
+        for (const s of sug.suggestions.slice(0, 3)) {
+          response += `\n  [${s.category.toUpperCase()}] Solution #${s.solution.id}: ${s.solution.description.slice(0, 120)}`;
+          if (s.solution.commands) response += `\n    Commands: ${s.solution.commands}`;
+        }
+        if (sug.autoApply) {
+          response += `\n\n→ RECOMMENDED: Solution #${sug.autoApply.solution.id} has high confidence (${(sug.autoApply.score * 100).toFixed(0)}%) and can be applied.`;
+        }
+      }
       return textResult(response);
     },
   );
@@ -115,6 +126,34 @@ function registerToolsWithCaller(server: McpServer, call: BrainCall): void {
         output: params.output,
       });
       return textResult(`Failed attempt recorded for error #${params.error_id}. Brain will avoid suggesting this approach for similar errors.`);
+    },
+  );
+
+  // === Auto-Resolution Tools ===
+
+  server.tool(
+    'brain_get_suggestions',
+    'Get solution suggestions for an error. Brain ranks solutions by confidence, match quality, and success rate. Returns "auto" (safe to apply), "suggest" (review first), or "learn" (low confidence) categories.',
+    {
+      error_id: z.number().describe('The error ID to get suggestions for'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('resolution.suggest', { errorId: params.error_id });
+      if (!result?.suggestions?.length) {
+        return textResult(`No solution suggestions found for error #${params.error_id}.`);
+      }
+      const lines = result.suggestions.map((s: AnyResult) => {
+        const sol = s.solution;
+        return `[${s.category.toUpperCase()}] Solution #${sol.id} (score: ${(s.score * 100).toFixed(0)}%)\n` +
+          `  ${sol.description.slice(0, 200)}\n` +
+          `  ${s.reasoning}` +
+          (sol.commands ? `\n  Commands: ${sol.commands}` : '');
+      });
+      let response = `${result.suggestions.length} suggestions for error #${params.error_id}:\n\n${lines.join('\n\n')}`;
+      if (result.autoApply) {
+        response += `\n\n→ Recommended: Solution #${result.autoApply.solution.id} is safe to auto-apply (${(result.autoApply.score * 100).toFixed(0)}% confidence).`;
+      }
+      return textResult(response);
     },
   );
 

@@ -42,6 +42,7 @@ import { DecisionService } from './services/decision.service.js';
 import { ChangelogService } from './services/changelog.service.js';
 import { TaskService } from './services/task.service.js';
 import { DocService } from './services/doc.service.js';
+import { AutoResolutionService } from './services/auto-resolution.service.js';
 
 // Synapses
 import { SynapseManager } from './synapses/synapse-manager.js';
@@ -155,6 +156,11 @@ export class BrainCore {
 
     // Wire memory repos into analytics for stats
     services.analytics.setMemoryRepos(memoryRepo, sessionRepo);
+
+    // Auto-Resolution Service
+    const autoResolution = new AutoResolutionService(solutionRepo, errorRepo, synapseManager);
+    services.error.setAutoResolution(autoResolution);
+    services.autoResolution = autoResolution;
 
     // 8. Embedding Engine (local vector search)
     if (config.embeddings.enabled) {

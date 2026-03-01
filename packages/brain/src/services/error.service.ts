@@ -4,6 +4,7 @@ import type { ProjectRepository } from '../db/repositories/project.repository.js
 import type { SynapseManager } from '../synapses/synapse-manager.js';
 import type { MatchingConfig } from '../types/config.types.js';
 import type { EmbeddingEngine } from '../embeddings/engine.js';
+import type { AutoResolutionService, AutoResolutionResult } from './auto-resolution.service.js';
 import { parseError } from '../parsing/error-parser.js';
 import { generateFingerprint } from '../matching/fingerprint.js';
 import { matchError, type MatchResult } from '../matching/error-matcher.js';
@@ -32,6 +33,7 @@ export class ErrorService {
   private eventBus = getEventBus();
   private matchingConfig: MatchingConfig | null = null;
   private embeddingEngine: EmbeddingEngine | null = null;
+  private autoResolution: AutoResolutionService | null = null;
 
   constructor(
     private errorRepo: ErrorRepository,
@@ -46,7 +48,11 @@ export class ErrorService {
     this.embeddingEngine = engine;
   }
 
-  report(input: ReportErrorInput): { errorId: number; isNew: boolean; matches: MatchResult[]; crossProjectMatches?: MatchResult[] } {
+  setAutoResolution(service: AutoResolutionService): void {
+    this.autoResolution = service;
+  }
+
+  report(input: ReportErrorInput): { errorId: number; isNew: boolean; matches: MatchResult[]; crossProjectMatches?: MatchResult[]; suggestions?: AutoResolutionResult } {
     // 1. Ensure project exists
     let project = this.projectRepo.findByName(input.project);
     if (!project) {
@@ -121,11 +127,14 @@ export class ErrorService {
       'co_occurs',
     );
 
-    // 8. Find similar errors
+    // 8. Find similar errors (with vector scores if embedding engine is available)
     const candidates = this.errorRepo.findByProject(project.id)
       .filter(e => e.id !== errorId);
     const newError = this.errorRepo.getById(errorId)!;
-    const matches = matchError(newError, candidates);
+    const vectorScores = this.embeddingEngine?.isReady()
+      ? this.embeddingEngine.computeErrorVectorScores(errorId, project.id)
+      : undefined;
+    const matches = matchError(newError, candidates, vectorScores);
 
     // 9. Create similarity synapses for strong matches
     for (const match of matches.filter(m => m.isStrong)) {
@@ -152,10 +161,16 @@ export class ErrorService {
       }
     }
 
+    // 12. Auto-Resolution: find solutions for matched errors
+    let suggestions: AutoResolutionResult | undefined;
+    if (this.autoResolution && (matches.length > 0 || crossProjectMatches.length > 0)) {
+      suggestions = this.autoResolution.getSuggestions(errorId, matches, crossProjectMatches);
+    }
+
     this.eventBus.emit('error:reported', { errorId, projectId: project.id, fingerprint });
     this.logger.info(`New error reported (id=${errorId}, type=${parsed.errorType})`);
 
-    return { errorId, isNew: true, matches, crossProjectMatches };
+    return { errorId, isNew: true, matches, crossProjectMatches, suggestions };
   }
 
   query(input: ErrorQueryInput): ErrorRecord[] {

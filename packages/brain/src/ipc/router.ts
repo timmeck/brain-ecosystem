@@ -17,6 +17,7 @@ import type { ChangelogService } from '../services/changelog.service.js';
 import type { TaskService } from '../services/task.service.js';
 import type { DocService } from '../services/doc.service.js';
 import type { LearningEngine } from '../learning/learning-engine.js';
+import type { AutoResolutionService } from '../services/auto-resolution.service.js';
 import type { CrossBrainClient, CrossBrainSubscriptionManager } from '@timmeck/brain-core';
 import type { IpcServer } from '@timmeck/brain-core';
 
@@ -37,6 +38,7 @@ export interface Services {
   task: TaskService;
   doc: DocService;
   learning?: LearningEngine;
+  autoResolution?: AutoResolutionService;
   crossBrain?: CrossBrainClient;
 }
 
@@ -161,6 +163,12 @@ export class IpcRouter {
           return s.prevention.updateRule(ruleId, { active: 0 });
         }
         throw new Error(`Unknown action: ${action}`);
+      }],
+
+      // Auto-Resolution
+      ['resolution.suggest',       (params) => {
+        if (!s.autoResolution) throw new Error('Auto-resolution service not available');
+        return s.autoResolution.getSuggestionsForError(p(params).error_id ?? p(params).errorId);
       }],
 
       // Synapses

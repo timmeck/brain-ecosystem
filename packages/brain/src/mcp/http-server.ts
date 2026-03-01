@@ -1,6 +1,7 @@
 import { McpHttpServer as CoreMcpHttpServer } from '@timmeck/brain-core';
 import type { IpcRouter } from '../ipc/router.js';
 import { registerToolsDirect } from './tools.js';
+import { registerPromptsDirect } from './prompts.js';
 
 export class McpHttpServer {
   private inner: CoreMcpHttpServer;
@@ -9,8 +10,11 @@ export class McpHttpServer {
     this.inner = new CoreMcpHttpServer(
       port,
       router,
-      { name: 'brain', version: '2.0.0' },
-      (server, _r) => registerToolsDirect(server, router),
+      { name: 'brain', version: '3.1.0' },
+      (server, _r) => {
+        registerToolsDirect(server, router);
+        registerPromptsDirect(server, router);
+      },
     );
   }
 

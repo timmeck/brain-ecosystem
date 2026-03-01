@@ -28,6 +28,8 @@ export type BrainEvents = {
   'task:completed': { taskId: number };
   // Doc events
   'doc:indexed': { docId: number; projectId: number; docType: string };
+  // Auto-Resolution events
+  'resolution:suggested': { errorId: number; suggestionCount: number; autoApply: boolean; bestScore: number };
 };
 
 export type BrainEventName = keyof BrainEvents;

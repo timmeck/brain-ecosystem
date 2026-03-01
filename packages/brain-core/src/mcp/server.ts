@@ -16,6 +16,8 @@ export interface McpServerOptions {
   entryPoint: string;
   /** Register MCP tools on the server */
   registerTools: (server: McpServer, ipc: IpcClient) => void;
+  /** Register MCP prompts on the server (optional) */
+  registerPrompts?: (server: McpServer, ipc: IpcClient) => void;
 }
 
 function spawnDaemon(opts: McpServerOptions): void {
@@ -68,6 +70,7 @@ export async function startMcpServer(opts: McpServerOptions): Promise<void> {
   }
 
   opts.registerTools(server, ipc);
+  opts.registerPrompts?.(server, ipc);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
