@@ -120,3 +120,39 @@ export type { CausalEvent, CausalEdge, CausalPath, CausalAnalysis } from './caus
 // ── Hypothesis Engine ────────────────────────────────────
 export { HypothesisEngine, runHypothesisMigration } from './hypothesis/engine.js';
 export type { Hypothesis, HypothesisStatus, HypothesisCondition, HypothesisTestResult, Observation } from './hypothesis/engine.js';
+
+// ── Self-Observer ───────────────────────────────────────
+export { SelfObserver, runSelfObserverMigration } from './research/self-observer.js';
+export type { SelfObservation, SelfInsight, ImprovementSuggestion, SelfObserverConfig, ObservationCategory, InsightType } from './research/self-observer.js';
+
+// ── Adaptive Strategy ──────────────────────────────────
+export { AdaptiveStrategyEngine, runAdaptiveStrategyMigration } from './research/adaptive-strategy.js';
+export type { StrategyAdaptation, StrategyStatus, StrategyDomain, AdaptiveStrategyConfig } from './research/adaptive-strategy.js';
+
+// ── Experiment Engine ──────────────────────────────────
+export { ExperimentEngine, runExperimentMigration } from './research/experiment-engine.js';
+export type { Experiment, ExperimentConclusion, ExperimentProposal, ExperimentStatus, ExperimentEngineConfig } from './research/experiment-engine.js';
+
+// ── Cross-Domain Engine ────────────────────────────────
+export { CrossDomainEngine, runCrossDomainMigration } from './research/cross-domain-engine.js';
+export type { CrossDomainCorrelation, CrossDomainEvent, CrossDomainConfig } from './research/cross-domain-engine.js';
+
+// ── Counterfactual Engine ──────────────────────────────
+export { CounterfactualEngine, runCounterfactualMigration } from './research/counterfactual-engine.js';
+export type { CounterfactualQuery, CounterfactualResult, InterventionImpact, CounterfactualConfig } from './research/counterfactual-engine.js';
+
+// ── Knowledge Distiller ────────────────────────────────
+export { KnowledgeDistiller, runKnowledgeDistillerMigration } from './research/knowledge-distiller.js';
+export type { Principle, AntiPattern, Strategy, KnowledgePackage, KnowledgeEvolution, KnowledgeDistillerConfig } from './research/knowledge-distiller.js';
+
+// ── Research Agenda ────────────────────────────────────
+export { ResearchAgendaEngine, runAgendaMigration } from './research/agenda-engine.js';
+export type { ResearchAgendaItem, AgendaItemType, AgendaConfig } from './research/agenda-engine.js';
+
+// ── Anomaly Detective ──────────────────────────────────
+export { AnomalyDetective, runAnomalyDetectiveMigration } from './research/anomaly-detective.js';
+export type { Anomaly, AnomalyType, AnomalySeverity, DriftReport, AnomalyDetectiveConfig } from './research/anomaly-detective.js';
+
+// ── Research Journal ───────────────────────────────────
+export { ResearchJournal, runJournalMigration } from './research/journal.js';
+export type { JournalEntry, JournalEntryType, Significance, JournalSummary, JournalConfig } from './research/journal.js';

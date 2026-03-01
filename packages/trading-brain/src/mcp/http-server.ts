@@ -1,6 +1,8 @@
 import { McpHttpServer as CoreMcpHttpServer } from '@timmeck/brain-core';
 import type { IpcRouter } from '../ipc/router.js';
 import { registerToolsDirect } from './tools.js';
+import { registerResearchToolsDirect } from './research-tools.js';
+import { registerAdvancedResearchToolsDirect } from './advanced-research-tools.js';
 
 export class McpHttpServer {
   private inner: CoreMcpHttpServer;
@@ -9,8 +11,12 @@ export class McpHttpServer {
     this.inner = new CoreMcpHttpServer(
       port,
       router,
-      { name: 'trading-brain', version: '1.1.0' },
-      (server, _r) => registerToolsDirect(server, router),
+      { name: 'trading-brain', version: '2.7.0' },
+      (server, _r) => {
+        registerToolsDirect(server, router);
+        registerResearchToolsDirect(server, router);
+        registerAdvancedResearchToolsDirect(server, router);
+      },
     );
   }
 
