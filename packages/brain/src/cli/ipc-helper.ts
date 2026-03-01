@@ -2,8 +2,8 @@ import { IpcClient } from '@timmeck/brain-core';
 import { getPipeName } from '../utils/paths.js';
 import { c, icons } from './colors.js';
 
-export async function withIpc<T>(fn: (client: IpcClient) => Promise<T>): Promise<T> {
-  const client = new IpcClient(getPipeName(), 5000);
+export async function withIpc<T>(fn: (client: IpcClient) => Promise<T>, timeoutMs = 5000): Promise<T> {
+  const client = new IpcClient(getPipeName(), timeoutMs);
   try {
     await client.connect();
     return await fn(client);

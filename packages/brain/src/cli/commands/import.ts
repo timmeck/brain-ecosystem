@@ -111,6 +111,7 @@ export function importCommand(): Command {
         console.log(`${icons.brain}  ${c.info('Smart Import')} ${c.value(dir)} as ${c.cyan(`"${projectName}"`)}`);
         console.log(divider());
 
+        // Smart import can take a while (git log + build), so use 120s timeout
         await withIpc(async (client) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const result: any = await client.request('scan.project', {
@@ -163,7 +164,7 @@ export function importCommand(): Command {
           console.log(`  ${c.label('Duplicates:')} ${c.dim(t.duplicates)}`);
           console.log(`  ${c.label('Duration:')}   ${c.dim(`${result.duration}ms`)}`);
           console.log(divider());
-        });
+        }, 120_000);
         return;
       }
 

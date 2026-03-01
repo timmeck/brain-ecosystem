@@ -65,6 +65,8 @@ export class DreamEngine {
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastActivityTimestamp = Date.now();
   private cycleCount = 0;
+  private ticksSinceLastDream = 0;
+  private maxTicksWithoutDream = 3; // Force consolidation after 3 timer ticks (~90 min) even if active
   private log = getLogger();
 
   constructor(db: Database.Database, config: DreamEngineConfig) {
@@ -135,6 +137,7 @@ export class DreamEngine {
    */
   consolidate(trigger: DreamTrigger = 'manual'): DreamCycleReport {
     this.cycleCount++;
+    this.ticksSinceLastDream = 0;
     const cycleId = `dream-${this.config.brainName}-${Date.now()}-${this.cycleCount}`;
     const start = Date.now();
     const ts = this.thoughtStream;
@@ -281,17 +284,33 @@ export class DreamEngine {
   // ── Private ─────────────────────────────────────────────
 
   private timerCallback(): void {
+    this.ticksSinceLastDream++;
     const idleMs = Date.now() - this.lastActivityTimestamp;
-    if (idleMs < this.config.idleThresholdMs) {
-      this.log.debug(`[dream] Brain active (idle ${Math.round(idleMs / 1000)}s < ${Math.round(this.config.idleThresholdMs / 1000)}s) — skipping dream`);
+
+    if (idleMs >= this.config.idleThresholdMs) {
+      // Brain is idle — consolidate
+      try {
+        this.consolidate('idle');
+        this.ticksSinceLastDream = 0;
+      } catch (err) {
+        this.log.error(`[dream] Dream cycle error: ${(err as Error).message}`);
+      }
       return;
     }
 
-    try {
-      this.consolidate('idle');
-    } catch (err) {
-      this.log.error(`[dream] Dream cycle error: ${(err as Error).message}`);
+    // Brain is active but hasn't dreamed in too long — force consolidation
+    if (this.ticksSinceLastDream >= this.maxTicksWithoutDream) {
+      this.log.info(`[dream] Brain active but ${this.ticksSinceLastDream} ticks without dream — forcing consolidation`);
+      try {
+        this.consolidate('auto');
+        this.ticksSinceLastDream = 0;
+      } catch (err) {
+        this.log.error(`[dream] Dream cycle error: ${(err as Error).message}`);
+      }
+      return;
     }
+
+    this.log.debug(`[dream] Brain active (idle ${Math.round(idleMs / 1000)}s < ${Math.round(this.config.idleThresholdMs / 1000)}s, ticks: ${this.ticksSinceLastDream}/${this.maxTicksWithoutDream}) — skipping dream`);
   }
 
   private persistCycle(report: DreamCycleReport): void {
