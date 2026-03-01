@@ -65,7 +65,8 @@ import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, CausalGraph, MetaLearningEngine, HypothesisEngine } from '@timmeck/brain-core';
+import type { HyperParameter } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
@@ -190,6 +191,16 @@ export class MarketingCore {
     services.export = new ExportService(this.db!);
     services.backup = new BackupService(this.db!, config.dbPath);
 
+    // 10e. Session 8: Research Engines (Meta-Learning, Causal Inference, Hypothesis)
+    const metaParams: HyperParameter[] = [
+      { name: 'learningRate', value: 0.1, min: 0.01, max: 0.5, step: 0.02 },
+      { name: 'decayRate', value: 0.05, min: 0.01, max: 0.2, step: 0.01 },
+      { name: 'engagementWeight', value: 0.5, min: 0.1, max: 1.0, step: 0.05 },
+    ];
+    services.metaLearning = new MetaLearningEngine(this.db!, metaParams);
+    services.causal = new CausalGraph(this.db!);
+    services.hypothesis = new HypothesisEngine(this.db!);
+
     // 11. IPC Server
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'marketing-brain', 'marketing-brain');
@@ -252,7 +263,7 @@ export class MarketingCore {
     }
 
     // 13. Event listeners (synapse wiring)
-    this.setupEventListeners(synapseManager, services.webhook);
+    this.setupEventListeners(synapseManager, services.webhook, services.causal, services.hypothesis);
 
     // 13b. Cross-Brain Event Subscriptions
     this.setupCrossBrainSubscriptions();
@@ -364,7 +375,7 @@ export class MarketingCore {
     });
   }
 
-  private setupEventListeners(synapseManager: SynapseManager, webhook?: WebhookService): void {
+  private setupEventListeners(synapseManager: SynapseManager, webhook?: WebhookService, causal?: CausalGraph, hypothesis?: HypothesisEngine): void {
     const bus = getEventBus();
     const notifier = this.notifier;
 
@@ -378,12 +389,14 @@ export class MarketingCore {
       }
     });
 
-    // Post published → notify peers (engagement tracking) + feed correlator + webhooks
+    // Post published → notify peers (engagement tracking) + feed correlator + webhooks + causal + hypothesis
     bus.on('post:published', ({ postId, platform }) => {
       getLogger().info(`Post #${postId} published on ${platform}`);
       notifier?.notify('post:published', { postId, platform });
       this.correlator?.recordEvent('marketing-brain', 'post:published', { postId, platform });
       webhook?.fire('post:published', { postId, platform });
+      causal?.recordEvent('marketing-brain', 'post:published', { postId, platform });
+      hypothesis?.observe({ source: 'marketing-brain', type: 'post:published', value: 1, timestamp: Date.now() });
     });
 
     bus.on('strategy:reported', ({ strategyId, postId }) => {
@@ -402,12 +415,16 @@ export class MarketingCore {
 
     bus.on('rule:learned', ({ ruleId, pattern }) => {
       getLogger().info(`New rule #${ruleId} learned: ${pattern}`);
+      causal?.recordEvent('marketing-brain', 'rule:learned', { ruleId, pattern });
+      hypothesis?.observe({ source: 'marketing-brain', type: 'rule:learned', value: 1, timestamp: Date.now() });
     });
 
     bus.on('insight:created', ({ insightId, type }) => {
       getLogger().info(`New insight #${insightId} (${type})`);
       notifier?.notifyPeer('brain', 'insight:created', { insightId, type });
       this.correlator?.recordEvent('marketing-brain', 'insight:created', { insightId, type });
+      causal?.recordEvent('marketing-brain', 'insight:created', { insightId, type });
+      hypothesis?.observe({ source: 'marketing-brain', type: 'insight:created', value: 1, timestamp: Date.now() });
     });
   }
 }

@@ -53,7 +53,8 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, CausalGraph, MetaLearningEngine, HypothesisEngine } from '@timmeck/brain-core';
+import type { HyperParameter } from '@timmeck/brain-core';
 
 export class TradingCore {
   private db: Database.Database | null = null;
@@ -190,6 +191,16 @@ export class TradingCore {
     services.export = new ExportService(this.db!);
     services.backup = new BackupService(this.db!, config.dbPath);
 
+    // 12c. Session 8: Research Engines (Meta-Learning, Causal Inference, Hypothesis)
+    const metaParams: HyperParameter[] = [
+      { name: 'learningRate', value: 0.1, min: 0.01, max: 0.5, step: 0.02 },
+      { name: 'decayRate', value: 0.05, min: 0.01, max: 0.2, step: 0.01 },
+      { name: 'confidenceThreshold', value: 0.3, min: 0.1, max: 0.9, step: 0.05 },
+    ];
+    services.metaLearning = new MetaLearningEngine(this.db!, metaParams);
+    services.causal = new CausalGraph(this.db!);
+    services.hypothesis = new HypothesisEngine(this.db!);
+
     // 13. IPC Server
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'trading-brain', 'trading-brain');
@@ -224,7 +235,7 @@ export class TradingCore {
     }
 
     // 15. Event listeners (synapse wiring)
-    this.setupEventListeners(synapseManager, services.webhook);
+    this.setupEventListeners(synapseManager, services.webhook, services.causal, services.hypothesis);
 
     // 15b. Cross-Brain Event Subscriptions
     this.setupCrossBrainSubscriptions();
@@ -330,16 +341,18 @@ export class TradingCore {
     });
   }
 
-  private setupEventListeners(_synapseManager: SynapseManager, webhook?: WebhookService): void {
+  private setupEventListeners(_synapseManager: SynapseManager, webhook?: WebhookService, causal?: CausalGraph, hypothesis?: HypothesisEngine): void {
     const bus = getEventBus();
     const notifier = this.notifier;
 
-    // Trade recorded → log + notify brain (error correlation) + feed correlator + webhooks
+    // Trade recorded → log + notify brain (error correlation) + feed correlator + webhooks + causal + hypothesis
     bus.on('trade:recorded', ({ tradeId, fingerprint, win }) => {
       getLogger().info(`Trade #${tradeId} recorded: ${fingerprint} (${win ? 'WIN' : 'LOSS'})`);
       notifier?.notifyPeer('brain', 'trade:outcome', { tradeId, fingerprint, win });
       this.correlator?.recordEvent('trading-brain', 'trade:outcome', { tradeId, fingerprint, win });
       webhook?.fire('trade:recorded', { tradeId, fingerprint, win });
+      causal?.recordEvent('trading-brain', 'trade:outcome', { tradeId, fingerprint, win });
+      hypothesis?.observe({ source: 'trading-brain', type: win ? 'trade:win' : 'trade:loss', value: 1, timestamp: Date.now() });
     });
 
     // Synapse updated → log at debug level
@@ -347,25 +360,32 @@ export class TradingCore {
       getLogger().debug(`Synapse updated: ${synapseId}`);
     });
 
-    // Rule learned → log
+    // Rule learned → log + causal
     bus.on('rule:learned', ({ ruleId, pattern }) => {
       getLogger().info(`New rule #${ruleId} learned: ${pattern}`);
+      causal?.recordEvent('trading-brain', 'rule:learned', { ruleId, pattern });
+      hypothesis?.observe({ source: 'trading-brain', type: 'rule:learned', value: 1, timestamp: Date.now() });
     });
 
-    // Chain detected → log
+    // Chain detected → log + causal
     bus.on('chain:detected', ({ pair, type, length }) => {
       getLogger().info(`Chain: ${pair} ${type} streak (${length})`);
+      causal?.recordEvent('trading-brain', 'chain:detected', { pair, type, length });
+      hypothesis?.observe({ source: 'trading-brain', type: 'chain:detected', value: length, timestamp: Date.now() });
     });
 
-    // Insight created → log
+    // Insight created → log + causal
     bus.on('insight:created', ({ insightId, type }) => {
       getLogger().info(`New insight #${insightId} (${type})`);
+      causal?.recordEvent('trading-brain', 'insight:created', { insightId, type });
+      hypothesis?.observe({ source: 'trading-brain', type: 'insight:created', value: 1, timestamp: Date.now() });
     });
 
-    // Calibration updated → log + notify peers (market regime change)
+    // Calibration updated → log + notify peers (market regime change) + causal
     bus.on('calibration:updated', ({ outcomeCount }) => {
       getLogger().info(`Calibration updated (${outcomeCount} outcomes)`);
       notifier?.notify('signal:calibrated', { outcomeCount });
+      causal?.recordEvent('trading-brain', 'calibration:updated', { outcomeCount });
     });
   }
 }

@@ -20,6 +20,9 @@ import type { IpcServer } from '@timmeck/brain-core';
 import type { WebhookService } from '@timmeck/brain-core';
 import type { ExportService } from '@timmeck/brain-core';
 import type { BackupService } from '@timmeck/brain-core';
+import type { MetaLearningEngine } from '@timmeck/brain-core';
+import type { CausalGraph } from '@timmeck/brain-core';
+import type { HypothesisEngine } from '@timmeck/brain-core';
 
 const logger = getLogger();
 
@@ -44,6 +47,9 @@ export interface Services {
   webhook?: WebhookService;
   export?: ExportService;
   backup?: BackupService;
+  metaLearning?: MetaLearningEngine;
+  causal?: CausalGraph;
+  hypothesis?: HypothesisEngine;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -230,6 +236,32 @@ export class IpcRouter {
         return result;
       }],
 
+      // ─── Meta-Learning ────────────────────────────────────
+      ['meta.status',       () => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.getStatus(); }],
+      ['meta.optimize',     () => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.optimize(); }],
+      ['meta.history',      (params) => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.getHistory(p(params)?.limit); }],
+      ['meta.params',       () => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.getParams(); }],
+      ['meta.step',         (params) => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.step(p(params).metrics, p(params).score); }],
+
+      // ─── Causal Inference ──────────────────────────────────
+      ['causal.record',     (params) => { if (!s.causal) throw new Error('Causal engine not available'); s.causal.recordEvent(p(params).source, p(params).type, p(params).data); return { recorded: true }; }],
+      ['causal.analyze',    () => { if (!s.causal) throw new Error('Causal engine not available'); return s.causal.analyze(); }],
+      ['causal.edges',      (params) => { if (!s.causal) throw new Error('Causal engine not available'); return s.causal.getEdges(p(params)?.minStrength); }],
+      ['causal.chains',     (params) => { if (!s.causal) throw new Error('Causal engine not available'); return s.causal.findChains(p(params)?.maxDepth); }],
+      ['causal.causes',     (params) => { if (!s.causal) throw new Error('Causal engine not available'); return s.causal.getCauses(p(params).type); }],
+      ['causal.effects',    (params) => { if (!s.causal) throw new Error('Causal engine not available'); return s.causal.getEffects(p(params).type); }],
+      ['causal.analysis',   () => { if (!s.causal) throw new Error('Causal engine not available'); return s.causal.getAnalysis(); }],
+      ['causal.stats',      () => { if (!s.causal) throw new Error('Causal engine not available'); return s.causal.getEventStats(); }],
+
+      // ─── Hypothesis Engine ─────────────────────────────────
+      ['hypothesis.observe',  (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); s.hypothesis.observe(p(params)); return { observed: true }; }],
+      ['hypothesis.generate', () => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.generate(); }],
+      ['hypothesis.test',     (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.test(p(params).id); }],
+      ['hypothesis.testAll',  () => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.testAll(); }],
+      ['hypothesis.list',     (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.list(p(params)?.status, p(params)?.limit); }],
+      ['hypothesis.summary',  () => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.getSummary(); }],
+      ['hypothesis.propose',  (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.propose(p(params)); }],
+
       // ─── Status (cross-brain) ─────────────────────────────
       // Webhooks
       ['webhook.add',             (params) => s.webhook?.add(p(params))],
@@ -254,7 +286,7 @@ export class IpcRouter {
 
       ['status', () => ({
         name: 'trading-brain',
-        version: '2.3.0',
+        version: '2.5.0',
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

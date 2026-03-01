@@ -63,7 +63,8 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, CausalGraph, MetaLearningEngine, HypothesisEngine } from '@timmeck/brain-core';
+import type { HyperParameter } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -211,6 +212,16 @@ export class BrainCore {
     services.webhook = new WebhookService(this.db!);
     services.export = new ExportService(this.db!);
     services.backup = new BackupService(this.db!, config.dbPath);
+
+    // 11e. Session 8: Research Engines (Meta-Learning, Causal Inference, Hypothesis)
+    const metaParams: HyperParameter[] = [
+      { name: 'learningRate', value: 0.1, min: 0.01, max: 0.5, step: 0.02 },
+      { name: 'decayRate', value: 0.05, min: 0.01, max: 0.2, step: 0.01 },
+      { name: 'pruneThreshold', value: 0.1, min: 0.01, max: 0.5, step: 0.02 },
+    ];
+    services.metaLearning = new MetaLearningEngine(this.db!, metaParams);
+    services.causal = new CausalGraph(this.db!);
+    services.hypothesis = new HypothesisEngine(this.db!);
 
     // 12. IPC Server
     const router = new IpcRouter(services);
@@ -384,8 +395,10 @@ export class BrainCore {
     const bus = getEventBus();
     const notifier = this.notifier;
     const webhook = services.webhook;
+    const causal = services.causal;
+    const hypothesis = services.hypothesis;
 
-    // Error → Project synapse + notify peers + feed correlator + webhooks
+    // Error → Project synapse + notify peers + feed correlator + webhooks + causal + hypothesis
     bus.on('error:reported', ({ errorId, projectId }) => {
       synapseManager.strengthen(
         { type: 'error', id: errorId },
@@ -395,6 +408,8 @@ export class BrainCore {
       notifier?.notify('error:reported', { errorId, projectId });
       this.correlator?.recordEvent('brain', 'error:reported', { errorId, projectId });
       webhook?.fire('error:reported', { errorId, projectId });
+      causal?.recordEvent('brain', 'error:reported', { errorId, projectId });
+      hypothesis?.observe({ source: 'brain', type: 'error:reported', value: 1, timestamp: Date.now() });
     });
 
     // Solution applied → strengthen or weaken
@@ -424,17 +439,21 @@ export class BrainCore {
       );
     });
 
-    // Rule learned → log
+    // Rule learned → log + causal + hypothesis
     bus.on('rule:learned', ({ ruleId, pattern }) => {
       getLogger().info(`New rule #${ruleId} learned: ${pattern}`);
+      causal?.recordEvent('brain', 'rule:learned', { ruleId, pattern });
+      hypothesis?.observe({ source: 'brain', type: 'rule:learned', value: 1, timestamp: Date.now() });
     });
 
-    // Insight created → log + notify marketing (content opportunity) + feed correlator + webhooks
+    // Insight created → log + notify marketing (content opportunity) + feed correlator + webhooks + causal + hypothesis
     bus.on('insight:created', ({ insightId, type }) => {
       getLogger().info(`New insight #${insightId} (${type})`);
       notifier?.notifyPeer('marketing-brain', 'insight:created', { insightId, type });
       this.correlator?.recordEvent('brain', 'insight:created', { insightId, type });
       webhook?.fire('insight:created', { insightId, type });
+      causal?.recordEvent('brain', 'insight:created', { insightId, type });
+      hypothesis?.observe({ source: 'brain', type: 'insight:created', value: 1, timestamp: Date.now() });
     });
 
     // Memory → Project synapse

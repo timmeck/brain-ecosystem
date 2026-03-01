@@ -104,3 +104,15 @@ export type { ExportOptions, ExportResult } from './export/service.js';
 // ── Backup ────────────────────────────────────────────────
 export { BackupService } from './backup/service.js';
 export type { BackupConfig, BackupRecord, RestoreResult } from './backup/service.js';
+
+// ── Meta-Learning ────────────────────────────────────────
+export { MetaLearningEngine, runMetaLearningMigration } from './meta-learning/engine.js';
+export type { HyperParameter, LearningSnapshot, ParameterRecommendation, MetaLearningStatus } from './meta-learning/engine.js';
+
+// ── Causal Inference ─────────────────────────────────────
+export { CausalGraph, runCausalMigration } from './causal/engine.js';
+export type { CausalEvent, CausalEdge, CausalPath, CausalAnalysis } from './causal/engine.js';
+
+// ── Hypothesis Engine ────────────────────────────────────
+export { HypothesisEngine, runHypothesisMigration } from './hypothesis/engine.js';
+export type { Hypothesis, HypothesisStatus, HypothesisCondition, HypothesisTestResult, Observation } from './hypothesis/engine.js';
