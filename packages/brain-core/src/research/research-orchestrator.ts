@@ -1,4 +1,7 @@
 import type Database from 'better-sqlite3';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import { getLogger } from '../utils/logger.js';
 import { SelfObserver, type ObservationCategory } from './self-observer.js';
 import { AdaptiveStrategyEngine } from './adaptive-strategy.js';
@@ -342,9 +345,118 @@ export class ResearchOrchestrator {
       }
     }
 
+    // 10. Self-Improvement: analyze own state and generate improvement suggestions
+    ts?.emit('self_improvement', 'analyzing', 'Analyzing Brain capabilities...');
+    const suggestions = this.generateSelfImprovementSuggestions();
+    if (suggestions.length > 0) {
+      for (const s of suggestions) {
+        ts?.emit('self_improvement', 'discovering', s, 'notable');
+      }
+      this.log.info(`[orchestrator] Self-improvement: ${suggestions.length} suggestions`);
+    } else {
+      ts?.emit('self_improvement', 'analyzing', 'No improvement suggestions this cycle');
+    }
+
     const duration = Date.now() - start;
     ts?.emit('orchestrator', 'reflecting', `Feedback Cycle #${this.cycleCount} complete (${duration}ms)`);
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} complete (${duration}ms) ───`);
+  }
+
+  /** Analyze Brain's own state and generate concrete improvement suggestions. */
+  private generateSelfImprovementSuggestions(): string[] {
+    const suggestions: string[] = [];
+    const summary = this.getSummary();
+
+    // Check prediction engine state
+    const pred = summary.prediction as Record<string, unknown> | null;
+    if (pred) {
+      const total = (pred.total_predictions as number) ?? 0;
+      const accuracy = (pred.by_domain as Record<string, unknown>[]) ?? [];
+      if (total === 0) {
+        suggestions.push('Tell Claude: Brain hat noch keine Predictions — wir brauchen mehr Domain-Events. Importiere Projekte mit "brain import <dir>" damit Errors/Solutions reinkommen und die PredictionEngine lernen kann.');
+      }
+      for (const d of accuracy) {
+        const rate = d.accuracy_rate as number;
+        if (typeof rate === 'number' && rate < 0.3 && (d.total as number) > 5) {
+          suggestions.push(`Tell Claude: Prediction accuracy für "${d.domain}" ist nur ${(rate * 100).toFixed(0)}% — die Smoothing-Parameter (alpha/beta) sollten optimiert werden. Mehr historische Daten oder kürzere Horizonte könnten helfen.`);
+        }
+      }
+    }
+
+    // Check anomaly count
+    const anomalies = summary.anomalies as unknown[];
+    if (anomalies && anomalies.length > 5) {
+      suggestions.push(`Tell Claude: ${anomalies.length} unbehandelte Anomalien — Brain erkennt Probleme, kann aber noch nicht automatisch reagieren. Ein "AutoResponder" der auf Anomalien reagiert wäre der nächste Schritt.`);
+    }
+
+    // Check knowledge distillation
+    const knowledge = summary.knowledge as Record<string, unknown> | null;
+    if (knowledge) {
+      const principles = (knowledge.total_principles as number) ?? 0;
+      const antiPatterns = (knowledge.total_anti_patterns as number) ?? 0;
+      if (principles === 0 && antiPatterns === 0 && this.cycleCount > 5) {
+        suggestions.push('Tell Claude: Kein destilliertes Wissen nach mehreren Cycles — der KnowledgeDistiller braucht mehr Journal-Einträge. Brain sollte mehr Events verarbeiten (Imports, Fehler, Solutions).');
+      }
+    }
+
+    // Check dream engine
+    const dream = summary.dream as Record<string, unknown> | null;
+    if (dream) {
+      const totalDreams = (dream.total_dreams as number) ?? 0;
+      if (totalDreams === 0 && this.cycleCount > 10) {
+        suggestions.push('Tell Claude: Dream Mode hat noch nie konsolidiert — der Idle-Threshold von 5 Minuten wird vielleicht nie erreicht. Einen manuellen Dream-Cycle triggern oder den Threshold verkürzen.');
+      }
+    }
+
+    // Check journal
+    const journal = summary.journal as Record<string, unknown> | null;
+    if (journal) {
+      const entries = (journal.total_entries as number) ?? 0;
+      if (entries < 5 && this.cycleCount > 5) {
+        suggestions.push('Tell Claude: Das Journal ist fast leer — Brain sammelt zu wenig Erfahrungen. Mehr Projekte importieren und Fehler melden damit Brain lernen kann.');
+      }
+    }
+
+    // Check experiments
+    const experiments = summary.experiments as unknown[];
+    if ((!experiments || experiments.length === 0) && this.cycleCount > 3) {
+      suggestions.push('Tell Claude: Keine laufenden Experimente — Brain könnte A/B-Tests auf eigene Parameter machen (z.B. Smoothing-Alpha testen, verschiedene Similarity-Thresholds). Ein "AutoExperiment" Feature wäre wertvoll.');
+    }
+
+    // Self-awareness: suggest next capabilities
+    if (this.cycleCount % 10 === 0 && this.cycleCount > 0) {
+      suggestions.push('Tell Claude: Brain kann beobachten, vorhersagen und konsolidieren — aber noch nicht selbst handeln. Der nächste Schritt wäre ein "ActionEngine" die eigenständig Parameter anpasst, Imports triggert, oder Code-Verbesserungen vorschlägt.');
+    }
+
+    // Limit to max 3 per cycle to avoid spam
+    const result = suggestions.slice(0, 3);
+
+    // Write to file so user can send them to Claude
+    if (result.length > 0) {
+      this.writeSuggestionsToFile(result);
+    }
+
+    return result;
+  }
+
+  /** Append improvement suggestions to ~/.brain/improvement-requests.md */
+  private writeSuggestionsToFile(suggestions: string[]): void {
+    try {
+      const brainDir = path.join(os.homedir(), '.brain');
+      const filePath = path.join(brainDir, 'improvement-requests.md');
+      const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+      const header = `\n## Cycle #${this.cycleCount} — ${timestamp}\n\n`;
+      const body = suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n') + '\n';
+
+      // Create file with header if it doesn't exist
+      if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, `# Brain Improvement Requests\n\nBrain analysiert sich selbst und generiert Vorschläge.\nSchicke diese an Claude um Brain schlauer zu machen.\n\n---\n${header}${body}`, 'utf-8');
+      } else {
+        fs.appendFileSync(filePath, `---\n${header}${body}`, 'utf-8');
+      }
+    } catch {
+      // Don't let file writing break the feedback cycle
+    }
   }
 
   /** Get a comprehensive research summary for dashboards/API. */

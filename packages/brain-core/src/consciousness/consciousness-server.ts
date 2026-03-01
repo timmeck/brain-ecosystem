@@ -11,6 +11,7 @@ export interface ConsciousnessServerOptions {
   thoughtStream: ThoughtStream;
   getNetworkState: () => unknown;
   getEngineStatus: () => unknown;
+  onTriggerFeedback?: () => void;
 }
 
 // ── Server ───────────────────────────────────────────────
@@ -72,6 +73,24 @@ export class ConsciousnessServer {
         };
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(state));
+        return;
+      }
+
+      // Trigger feedback cycle
+      if (url.pathname === '/api/trigger' && req.method === 'POST') {
+        if (this.options.onTriggerFeedback) {
+          try {
+            this.options.onTriggerFeedback();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ triggered: true }));
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: (err as Error).message }));
+          }
+        } else {
+          res.writeHead(501, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Feedback trigger not configured' }));
+        }
         return;
       }
 

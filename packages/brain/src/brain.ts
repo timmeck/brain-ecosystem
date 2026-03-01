@@ -272,6 +272,7 @@ export class BrainCore {
     this.orchestrator.setPredictionEngine(predictionEngine);
     predictionEngine.start();
     services.predictionEngine = predictionEngine;
+    services.orchestrator = this.orchestrator;
 
     // 11j. Consciousness — ThoughtStream + Dashboard
     const thoughtStream = new ThoughtStream();
@@ -283,12 +284,43 @@ export class BrainCore {
       thoughtStream,
       getNetworkState: () => {
         try {
-          const nodes = this.db!.prepare('SELECT id, content AS label, category AS type, importance FROM memories WHERE active = 1 LIMIT 200').all();
-          const edges = this.db!.prepare('SELECT source_id, target_id, weight FROM synapses LIMIT 500').all();
-          return { nodes, edges };
+          const nodes: { id: string; label: string; type: string; importance: number }[] = [];
+          // Projects as hub nodes
+          const projects = this.db!.prepare('SELECT id, name AS label FROM projects LIMIT 20').all() as { id: number; label: string }[];
+          for (const p of projects) nodes.push({ id: `project:${p.id}`, label: p.label, type: 'project', importance: 1.0 });
+          // Errors
+          const errors = this.db!.prepare('SELECT id, message AS label FROM errors LIMIT 50').all() as { id: number; label: string }[];
+          for (const e of errors) nodes.push({ id: `error:${e.id}`, label: e.label.substring(0, 60), type: 'error', importance: 0.8 });
+          // Solutions
+          const solutions = this.db!.prepare('SELECT id, description AS label FROM solutions LIMIT 30').all() as { id: number; label: string }[];
+          for (const s of solutions) nodes.push({ id: `solution:${s.id}`, label: s.label.substring(0, 60), type: 'solution', importance: 0.7 });
+          // Top code modules (by complexity/reusability)
+          const modules = this.db!.prepare('SELECT id, name AS label FROM code_modules ORDER BY reusability_score DESC LIMIT 100').all() as { id: number; label: string }[];
+          for (const m of modules) nodes.push({ id: `code_module:${m.id}`, label: m.label, type: 'code_module', importance: 0.5 });
+          // Top insights
+          const insights = this.db!.prepare('SELECT id, title AS label, type FROM insights WHERE active = 1 ORDER BY priority DESC LIMIT 50').all() as { id: number; label: string; type: string }[];
+          for (const i of insights) nodes.push({ id: `insight:${i.id}`, label: i.label.substring(0, 60), type: 'insight', importance: 0.6 });
+          // Memories (if any)
+          const memories = this.db!.prepare('SELECT id, content AS label, category AS type, importance FROM memories WHERE active = 1 LIMIT 50').all() as { id: number; label: string; type: string; importance: number }[];
+          for (const m of memories) nodes.push({ id: `memory:${m.id}`, label: m.label.substring(0, 60), type: m.type || 'memory', importance: m.importance });
+          // Edges — strongest synapses, mapped to composite IDs
+          const edges = this.db!.prepare('SELECT source_type, source_id, target_type, target_id, weight FROM synapses ORDER BY weight DESC LIMIT 500').all() as { source_type: string; source_id: number; target_type: string; target_id: number; weight: number }[];
+          const mappedEdges = edges.map(e => ({
+            source: `${e.source_type}:${e.source_id}`,
+            target: `${e.target_type}:${e.target_id}`,
+            weight: e.weight,
+          }));
+          return { nodes, edges: mappedEdges };
         } catch { return { nodes: [], edges: [] }; }
       },
       getEngineStatus: () => this.orchestrator!.getSummary(),
+      onTriggerFeedback: () => {
+        try {
+          this.orchestrator!.runFeedbackCycle();
+        } catch (err) {
+          logger.error(`Manual feedback cycle failed: ${(err as Error).message}`);
+        }
+      },
     });
     this.consciousnessServer.start();
     services.consciousnessServer = this.consciousnessServer;

@@ -39,6 +39,7 @@ import type { ResearchJournal } from '@timmeck/brain-core';
 import type { DreamEngine } from '@timmeck/brain-core';
 import type { ThoughtStream, ConsciousnessServer } from '@timmeck/brain-core';
 import type { PredictionEngine } from '@timmeck/brain-core';
+import type { ResearchOrchestrator } from '@timmeck/brain-core';
 
 export interface Services {
   error: ErrorService;
@@ -80,6 +81,7 @@ export interface Services {
   thoughtStream?: ThoughtStream;
   consciousnessServer?: ConsciousnessServer;
   predictionEngine?: PredictionEngine;
+  orchestrator?: ResearchOrchestrator;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -481,6 +483,10 @@ export class IpcRouter {
       ['consciousness.thoughts',  (params) => { if (!s.thoughtStream) throw new Error('ThoughtStream not available'); const pp = p(params); return pp?.engine ? s.thoughtStream.getByEngine(pp.engine, pp?.limit ?? 50) : s.thoughtStream.getRecent(pp?.limit ?? 50); }],
       ['consciousness.engines',   () => { if (!s.thoughtStream) throw new Error('ThoughtStream not available'); return s.thoughtStream.getEngineActivity(); }],
       ['consciousness.clear',     () => { if (!s.thoughtStream) throw new Error('ThoughtStream not available'); s.thoughtStream.clear(); return { cleared: true }; }],
+
+      // ─── Orchestrator ─────────────────────────────────────
+      ['orchestrator.feedback',   () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); s.orchestrator.runFeedbackCycle(); return { triggered: true }; }],
+      ['orchestrator.summary',    () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.getSummary(); }],
 
       // Status (cross-brain)
       ['status',                  () => ({
