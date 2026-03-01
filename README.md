@@ -76,7 +76,7 @@ All brains support MCP over HTTP with SSE transport:
 
 ## Brain — Error Memory & Code Intelligence
 
-The flagship. 81 MCP tools for error tracking, code reuse, persistent context, and autonomous research.
+The flagship. 84 MCP tools for error tracking, code reuse, persistent context, and autonomous research.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
@@ -91,11 +91,12 @@ The flagship. 81 MCP tools for error tracking, code reuse, persistent context, a
 - **Semantic Search** — Local all-MiniLM-L6-v2 embeddings (23MB, no cloud required)
 - **Autonomous Research** — 9 research engines with feedback loops (SelfObserver, AnomalyDetective, HypothesisEngine, CausalGraph, ExperimentEngine, KnowledgeDistiller, CounterfactualEngine, AdaptiveStrategy, ResearchAgenda)
 - **DataMiner** — Bootstraps historical DB data into research engines at startup, mines new data every 5 min
+- **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle periods (new in v3.10)
 - **REST API** — Full HTTP API on port 7777 with 60+ methods
 
 ## Trading Brain — Adaptive Trading Intelligence
 
-75 MCP tools for trade outcome tracking, signal learning, strategy optimization, and autonomous research.
+78 MCP tools for trade outcome tracking, signal learning, strategy optimization, and autonomous research.
 
 - **Trade Outcome Memory** — Record and query trade outcomes with full signal context
 - **Signal Fingerprinting** — RSI, MACD, Trend, and Volatility classification into discrete categories
@@ -107,11 +108,12 @@ The flagship. 81 MCP tools for error tracking, code reuse, persistent context, a
 - **Backtesting** — Run backtests, compare signals, find best signals with Sharpe/PF/MaxDD
 - **Risk Management** — Kelly Criterion position sizing, drawdown tracking, risk metrics
 - **Autonomous Research** — 9 research engines with DataMiner bootstrapping trade history
+- **Dream Mode** — Offline memory consolidation during idle periods (new in v2.10)
 - **Memory & Sessions** — Persistent memory for trading preferences, decisions, and session goals
 
 ## Marketing Brain — Self-Learning Marketing Intelligence
 
-75 MCP tools for content strategy, engagement tracking, campaign management, and autonomous research.
+78 MCP tools for content strategy, engagement tracking, campaign management, and autonomous research.
 
 - **Post Tracking** — Store posts with platform, format, hashtags, URL, and full engagement history
 - **Campaign Management** — Group posts into campaigns, track aggregate performance
@@ -123,6 +125,7 @@ The flagship. 81 MCP tools for error tracking, code reuse, persistent context, a
 - **Content Generation** — Draft posts from patterns, rules, and templates
 - **Cross-Platform** — Optimize content for X, LinkedIn, Reddit, Bluesky, Mastodon, Threads
 - **Autonomous Research** — 9 research engines with DataMiner bootstrapping post/engagement history
+- **Dream Mode** — Offline memory consolidation during idle periods (new in v1.11)
 - **Interactive Dashboard** — Neural canvas background, force-directed synapse graph, live SSE updates
 - **Memory & Sessions** — Persistent memory for marketing decisions, strategies, and session goals
 
@@ -174,6 +177,7 @@ Every brain is built on the same infrastructure:
 | **Research Engine** | Automated trend analysis, gap detection, synergy mapping |
 | **9 Research Engines** | SelfObserver, AnomalyDetective, HypothesisEngine, CausalGraph, ExperimentEngine, KnowledgeDistiller, CounterfactualEngine, AdaptiveStrategy, ResearchAgenda |
 | **DataMiner** | Bootstraps historical DB data into research engines, incremental mining every 5 min |
+| **Dream Engine** | Offline memory consolidation — replay, prune, compress, decay during idle periods |
 | **Research Orchestrator** | Feedback loops between all 9 research engines |
 | **Memory System** | Persistent memory with categories, importance, FTS5 search |
 | **Cross-Brain Client** | Discover and query peer brains at runtime |
@@ -266,7 +270,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installs all workspace dependencies
 npm run build        # builds all packages (brain-core first)
-npm test             # runs all 1790 tests
+npm test             # runs all 1826 tests
 ```
 
 ### Workspace Commands
@@ -303,7 +307,7 @@ Build `brain-core` first when making changes to shared infrastructure.
 - **Commander** — CLI framework
 - **Chalk** — Colored terminal output
 - **Winston** — Structured logging with file rotation
-- **Vitest** — Testing (1790 tests across ecosystem)
+- **Vitest** — Testing (1826 tests across ecosystem)
 
 Visit the [Brain Hub](https://timmeck.github.io/brain-hub/) for the full ecosystem overview.
 
