@@ -19,6 +19,7 @@ import { InsightRepository } from './db/repositories/insight.repository.js';
 import { CalibrationRepository } from './db/repositories/calibration.repository.js';
 import { MemoryRepository } from './db/repositories/memory.repository.js';
 import { SessionRepository } from './db/repositories/session.repository.js';
+import { AlertRepository } from './db/repositories/alert.repository.js';
 
 // Graph
 import { WeightedGraph } from './graph/weighted-graph.js';
@@ -34,6 +35,10 @@ import { SynapseService } from './services/synapse.service.js';
 import { AnalyticsService } from './services/analytics.service.js';
 import { InsightService } from './services/insight.service.js';
 import { MemoryService } from './services/memory.service.js';
+import { BacktestService } from './services/backtest.service.js';
+import { RiskService } from './services/risk.service.js';
+import { AlertService } from './services/alert.service.js';
+import { ImportService } from './services/import.service.js';
 
 // Engines
 import { LearningEngine } from './learning/learning-engine.js';
@@ -99,6 +104,7 @@ export class TradingCore {
     const calibrationRepo = new CalibrationRepository(this.db);
     const memoryRepo = new MemoryRepository(this.db);
     const sessionRepo = new SessionRepository(this.db);
+    const alertRepo = new AlertRepository(this.db);
 
     // 6. Synapse Manager
     const synapseManager = new SynapseManager(synapseRepo, config.calibration);
@@ -121,14 +127,20 @@ export class TradingCore {
 
     // 9. Services
     const memoryService = new MemoryService(memoryRepo, sessionRepo);
+    const tradeService = new TradeService(tradeRepo, signalRepo, chainRepo, synapseManager, graph, cal, config.learning);
+    const signalService = new SignalService(synapseManager, graph, cal, tradeCount, ruleRepo, tradeRepo);
     const services: Services = {
-      trade: new TradeService(tradeRepo, signalRepo, chainRepo, synapseManager, graph, cal, config.learning),
-      signal: new SignalService(synapseManager, graph, cal, tradeCount, ruleRepo, tradeRepo),
+      trade: tradeService,
+      signal: signalService,
       strategy: new StrategyService(synapseManager, graph, cal, tradeCount),
       synapse: new SynapseService(synapseManager, graph),
       analytics: new AnalyticsService(tradeRepo, ruleRepo, chainRepo, insightRepo, synapseManager, graph, memoryRepo, sessionRepo),
       insight: new InsightService(insightRepo),
       memory: memoryService,
+      backtest: new BacktestService(tradeRepo, signalService, synapseManager),
+      risk: new RiskService(tradeRepo, signalService, synapseManager),
+      alert: new AlertService(alertRepo, signalService),
+      import: new ImportService(tradeService),
       ruleRepo,
       chainRepo,
       calRepo: calibrationRepo,

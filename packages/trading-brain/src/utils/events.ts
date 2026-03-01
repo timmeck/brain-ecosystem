@@ -14,6 +14,7 @@ export type TradingBrainEvents = {
   'memory:superseded': { oldId: number; newId: number };
   'session:started': { sessionId: number };
   'session:ended': { sessionId: number; summary: string };
+  'alert:triggered': { alertId: number; name: string; conditionType: string };
 };
 
 export type TradingBrainEventName = keyof TradingBrainEvents;

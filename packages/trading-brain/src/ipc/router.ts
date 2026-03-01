@@ -6,6 +6,10 @@ import type { SynapseService } from '../services/synapse.service.js';
 import type { AnalyticsService } from '../services/analytics.service.js';
 import type { InsightService } from '../services/insight.service.js';
 import type { MemoryService } from '../services/memory.service.js';
+import type { BacktestService } from '../services/backtest.service.js';
+import type { RiskService } from '../services/risk.service.js';
+import type { AlertService } from '../services/alert.service.js';
+import type { ImportService } from '../services/import.service.js';
 import type { LearningEngine } from '../learning/learning-engine.js';
 import type { ResearchEngine } from '../research/research-engine.js';
 import type { RuleRepository } from '../db/repositories/rule.repository.js';
@@ -24,6 +28,10 @@ export interface Services {
   analytics: AnalyticsService;
   insight: InsightService;
   memory: MemoryService;
+  backtest: BacktestService;
+  risk: RiskService;
+  alert: AlertService;
+  import: ImportService;
   ruleRepo: RuleRepository;
   chainRepo: ChainRepository;
   calRepo: CalibrationRepository;
@@ -153,6 +161,36 @@ export class IpcRouter {
       // ─── Analytics ──────────────────────────────────────
       ['analytics.summary', () => s.analytics.getSummary()],
 
+      // ─── Backtest ─────────────────────────────────────
+      ['backtest.run', (params) => {
+        const result = s.backtest.runBacktest(p(params));
+        // Convert Maps to plain objects for JSON serialization
+        return {
+          ...result,
+          tradesByPair: Object.fromEntries(result.tradesByPair),
+          tradesByRegime: Object.fromEntries(result.tradesByRegime),
+        };
+      }],
+      ['backtest.compare', (params) => s.backtest.compareSignals(p(params).fingerprint1, p(params).fingerprint2)],
+      ['backtest.bestSignals', (params) => s.backtest.findBestSignals(p(params))],
+
+      // ─── Risk ─────────────────────────────────────────
+      ['risk.kelly', (params) => s.risk.getKellyFraction(p(params).pair, p(params).regime)],
+      ['risk.positionSize', (params) => s.risk.getPositionSize(p(params).capitalPct, p(params).signals, p(params).regime)],
+      ['risk.metrics', (params) => s.risk.getRiskMetrics(p(params).pair)],
+
+      // ─── Alerts ───────────────────────────────────────
+      ['alert.create', (params) => s.alert.createAlert(p(params))],
+      ['alert.list', () => s.alert.getAlerts()],
+      ['alert.listAll', () => s.alert.getAllAlerts()],
+      ['alert.delete', (params) => s.alert.deleteAlert(p(params).id)],
+      ['alert.check', (params) => s.alert.checkAlerts(p(params).trade, p(params).context)],
+      ['alert.history', (params) => s.alert.getAlertHistory(p(params).alertId, p(params).limit)],
+
+      // ─── Import ───────────────────────────────────────
+      ['import.trades', (params) => s.import.importTrades(p(params).trades)],
+      ['import.json', (params) => s.import.importFromJson(p(params).json)],
+
       // ─── Learning ───────────────────────────────────────
       ['learning.run', () => s.learning?.runManual()],
 
@@ -189,7 +227,7 @@ export class IpcRouter {
       // ─── Status (cross-brain) ─────────────────────────────
       ['status', () => ({
         name: 'trading-brain',
-        version: '1.3.0',
+        version: '2.1.0',
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

@@ -332,6 +332,308 @@ function registerToolsWithCaller(server: McpServer, call: BrainCall): void {
     },
   );
 
+  // === Backtesting Tools ===
+
+  server.tool(
+    'trading_backtest',
+    'Run a backtest on historical trades. Computes win rate, profit factor, Sharpe ratio, max drawdown, equity curve, and per-pair/regime breakdowns.',
+    {
+      pair: z.string().optional().describe('Filter by trading pair'),
+      regime: z.string().optional().describe('Filter by market regime'),
+      timeframe: z.string().optional().describe('Filter by timeframe'),
+      bot_type: z.string().optional().describe('Filter by bot type'),
+      from_date: z.string().optional().describe('Start date (ISO format)'),
+      to_date: z.string().optional().describe('End date (ISO format)'),
+      signal_filter: z.string().optional().describe('Filter by signal fingerprint similarity'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('backtest.run', {
+        pair: params.pair,
+        regime: params.regime,
+        timeframe: params.timeframe,
+        botType: params.bot_type,
+        fromDate: params.from_date,
+        toDate: params.to_date,
+        signalFilter: params.signal_filter,
+      });
+
+      if (result.totalTrades === 0) return textResult('No trades match the given filters.');
+
+      const lines: string[] = [
+        '── Backtest Results ──',
+        `  Total trades:    ${result.totalTrades}`,
+        `  Win rate:        ${(result.winRate * 100).toFixed(1)}% (${result.wins}W / ${result.losses}L)`,
+        `  Total profit:    ${result.totalProfitPct.toFixed(2)}%`,
+        `  Avg profit:      ${result.avgProfitPct.toFixed(2)}%`,
+        `  Avg win:         ${result.avgWinPct.toFixed(2)}%`,
+        `  Avg loss:        ${result.avgLossPct.toFixed(2)}%`,
+        `  Best trade:      ${result.bestTrade.toFixed(2)}%`,
+        `  Worst trade:     ${result.worstTrade.toFixed(2)}%`,
+        `  Max drawdown:    ${result.maxDrawdownPct.toFixed(2)}%`,
+        `  Profit factor:   ${result.profitFactor === Infinity ? '∞' : result.profitFactor.toFixed(2)}`,
+        `  Sharpe ratio:    ${result.sharpeRatio.toFixed(2)}`,
+      ];
+
+      if (result.tradesByPair && Object.keys(result.tradesByPair).length > 0) {
+        lines.push('', '── By Pair ──');
+        for (const [pair, stats] of Object.entries(result.tradesByPair)) {
+          const s = stats as AnyResult;
+          lines.push(`  ${pair}: ${s.wins}W/${s.losses}L, profit: ${s.profitPct.toFixed(2)}%`);
+        }
+      }
+
+      if (result.tradesByRegime && Object.keys(result.tradesByRegime).length > 0) {
+        lines.push('', '── By Regime ──');
+        for (const [regime, stats] of Object.entries(result.tradesByRegime)) {
+          const s = stats as AnyResult;
+          lines.push(`  ${regime}: ${s.wins}W/${s.losses}L, profit: ${s.profitPct.toFixed(2)}%`);
+        }
+      }
+
+      return textResult(lines.join('\n'));
+    },
+  );
+
+  server.tool(
+    'trading_compare_signals',
+    'Compare two signal fingerprint patterns head-to-head. Shows win rate, avg profit, sample size, and similarity.',
+    {
+      fingerprint1: z.string().describe('First signal fingerprint'),
+      fingerprint2: z.string().describe('Second signal fingerprint'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('backtest.compare', params);
+
+      const lines: string[] = [
+        '── Signal Comparison ──',
+        '',
+        `Signal 1: ${result.fingerprint1}`,
+        `  Win rate:    ${(result.stats1.winRate * 100).toFixed(1)}% (${result.stats1.wins}W / ${result.stats1.losses}L)`,
+        `  Avg profit:  ${result.stats1.avgProfitPct.toFixed(2)}%`,
+        `  Sample size: ${result.stats1.sampleSize}`,
+        '',
+        `Signal 2: ${result.fingerprint2}`,
+        `  Win rate:    ${(result.stats2.winRate * 100).toFixed(1)}% (${result.stats2.wins}W / ${result.stats2.losses}L)`,
+        `  Avg profit:  ${result.stats2.avgProfitPct.toFixed(2)}%`,
+        `  Sample size: ${result.stats2.sampleSize}`,
+        '',
+        `Similarity: ${(result.similarity * 100).toFixed(0)}%`,
+        `Verdict:    ${result.verdict}`,
+      ];
+
+      return textResult(lines.join('\n'));
+    },
+  );
+
+  server.tool(
+    'trading_best_signals',
+    'Find the top-performing signal patterns ranked by win rate. Requires a minimum sample size for statistical validity.',
+    {
+      min_sample_size: z.number().optional().describe('Minimum trades per signal (default 5)'),
+      top_n: z.number().optional().describe('Number of top signals to return (default 20)'),
+      pair: z.string().optional().describe('Filter by trading pair'),
+      regime: z.string().optional().describe('Filter by market regime'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('backtest.bestSignals', {
+        minSampleSize: params.min_sample_size,
+        topN: params.top_n,
+        pair: params.pair,
+        regime: params.regime,
+      });
+
+      if (!Array.isArray(result) || result.length === 0) {
+        return textResult('No signals found with enough data. Try lowering min_sample_size.');
+      }
+
+      const lines: string[] = ['── Top Signals ──'];
+      for (let i = 0; i < result.length; i++) {
+        const s = result[i] as AnyResult;
+        lines.push(
+          `  ${i + 1}. ${s.fingerprint}`,
+          `     WR: ${(s.winRate * 100).toFixed(1)}% | Avg: ${s.avgProfitPct.toFixed(2)}% | ` +
+          `${s.wins}W/${s.losses}L (n=${s.sampleSize}) | ` +
+          `synapse: ${s.synapseWeight !== null ? s.synapseWeight.toFixed(3) : 'none'}`,
+        );
+      }
+
+      return textResult(lines.join('\n'));
+    },
+  );
+
+  // === Risk Management Tools ===
+
+  server.tool(
+    'trading_kelly',
+    'Calculate Kelly Criterion fraction for position sizing. Returns raw Kelly, half-Kelly, and brain-adjusted values.',
+    {
+      pair: z.string().optional().describe('Filter by trading pair'),
+      regime: z.string().optional().describe('Filter by market regime'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('risk.kelly', params);
+
+      const lines: string[] = [
+        '── Kelly Criterion ──',
+        `  Kelly fraction:  ${result.kellyFraction.toFixed(3)} (${(result.kellyFraction * 100).toFixed(1)}%)`,
+        `  Half-Kelly:      ${result.halfKelly.toFixed(3)} (${(result.halfKelly * 100).toFixed(1)}%)`,
+        `  Brain-adjusted:  ${result.brainAdjusted.toFixed(3)} (${(result.brainAdjusted * 100).toFixed(1)}%)`,
+        '',
+        `  Win rate:        ${(result.winRate * 100).toFixed(1)}%`,
+        `  Avg win:         ${result.avgWin.toFixed(2)}%`,
+        `  Avg loss:        ${result.avgLoss.toFixed(2)}%`,
+        `  Sample size:     ${result.sampleSize}`,
+        '',
+        `  Recommendation:  ${result.recommendation}`,
+      ];
+
+      return textResult(lines.join('\n'));
+    },
+  );
+
+  server.tool(
+    'trading_position_size',
+    'Get a recommended position size based on Kelly Criterion and signal confidence. Capped at 25% of capital.',
+    {
+      capital_pct: z.number().describe('Fraction of total capital available (0-1)'),
+      fingerprint: z.string().describe('Signal fingerprint for confidence lookup'),
+      confidence: z.number().optional().describe('Override confidence (0-1)'),
+      regime: z.string().optional().describe('Market regime'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('risk.positionSize', {
+        capitalPct: params.capital_pct,
+        signals: { fingerprint: params.fingerprint, confidence: params.confidence },
+        regime: params.regime,
+      });
+
+      const lines: string[] = [
+        '── Position Size ──',
+        `  Size:       ${result.sizePct.toFixed(1)}%`,
+        `  Kelly raw:  ${result.kellyRaw.toFixed(3)}`,
+        `  Confidence: ${(result.confidence * 100).toFixed(1)}%`,
+        `  Reason:     ${result.reason}`,
+      ];
+
+      return textResult(lines.join('\n'));
+    },
+  );
+
+  server.tool(
+    'trading_risk_metrics',
+    'Get risk metrics: max/current drawdown, consecutive losses, risk-reward ratio, and expectancy.',
+    {
+      pair: z.string().optional().describe('Filter by trading pair'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('risk.metrics', params);
+
+      const lines: string[] = [
+        '── Risk Metrics ──',
+        `  Max drawdown:       ${result.maxDrawdownPct.toFixed(2)}%`,
+        `  Current drawdown:   ${result.currentDrawdownPct.toFixed(2)}%`,
+        `  Consecutive losses: ${result.consecutiveLosses} (max ever: ${result.maxConsecutiveLosses})`,
+        `  Risk/Reward ratio:  ${result.riskRewardRatio === Infinity ? '∞' : result.riskRewardRatio.toFixed(2)}`,
+        `  Expectancy:         ${result.expectancy.toFixed(3)}%`,
+      ];
+
+      return textResult(lines.join('\n'));
+    },
+  );
+
+  // === Alert Tools ===
+
+  server.tool(
+    'trading_alert_create',
+    'Create a trading alert. Triggers when conditions are met (confidence thresholds, win/loss streaks, drawdown).',
+    {
+      name: z.string().describe('Alert name'),
+      condition_type: z.enum(['confidence_above', 'confidence_below', 'win_streak', 'loss_streak', 'drawdown']).describe('Condition type'),
+      condition: z.record(z.string(), z.unknown()).describe('Condition parameters (e.g. { threshold: 0.8 } or { minStreak: 3 })'),
+      webhook_url: z.string().optional().describe('Webhook URL to POST when triggered'),
+      cooldown_minutes: z.number().optional().describe('Cooldown between triggers in minutes (default 60)'),
+    },
+    async (params) => {
+      const result = await call('alert.create', {
+        name: params.name,
+        conditionType: params.condition_type,
+        conditionJson: params.condition,
+        webhookUrl: params.webhook_url,
+        cooldownMinutes: params.cooldown_minutes,
+      });
+      return textResult(`Alert #${result} created: "${params.name}" (${params.condition_type})`);
+    },
+  );
+
+  server.tool(
+    'trading_alert_list',
+    'List all active trading alerts.',
+    {},
+    async () => {
+      const alerts: AnyResult = await call('alert.list', {});
+      if (!Array.isArray(alerts) || alerts.length === 0) return textResult('No active alerts.');
+      const lines = alerts.map((a: AnyResult) =>
+        `#${a.id} "${a.name}" (${a.condition_type}) — triggered ${a.trigger_count}x${a.webhook_url ? ' [webhook]' : ''}`
+      );
+      return textResult(`Active alerts:\n${lines.join('\n')}`);
+    },
+  );
+
+  server.tool(
+    'trading_alert_delete',
+    'Delete a trading alert by ID.',
+    {
+      id: z.number().describe('Alert ID to delete'),
+    },
+    async (params) => {
+      await call('alert.delete', { id: params.id });
+      return textResult(`Alert #${params.id} deleted.`);
+    },
+  );
+
+  server.tool(
+    'trading_alert_history',
+    'Get trigger history for an alert.',
+    {
+      alert_id: z.number().describe('Alert ID'),
+      limit: z.number().optional().describe('Max results (default 50)'),
+    },
+    async (params) => {
+      const history: AnyResult = await call('alert.history', { alertId: params.alert_id, limit: params.limit });
+      if (!Array.isArray(history) || history.length === 0) return textResult('No trigger history for this alert.');
+      const lines = history.map((h: AnyResult) =>
+        `[${h.created_at}] ${h.message}`
+      );
+      return textResult(`Alert #${params.alert_id} history:\n${lines.join('\n')}`);
+    },
+  );
+
+  // === Import Tools ===
+
+  server.tool(
+    'trading_import',
+    'Import trades from a JSON array. Each trade needs: pair, botType, profitPct, win, signals (with rsi14/macd/trendScore/volatility).',
+    {
+      trades_json: z.string().describe('JSON array of trade objects'),
+    },
+    async (params) => {
+      const result: AnyResult = await call('import.json', { json: params.trades_json });
+
+      const lines: string[] = [
+        `Import complete: ${result.imported} imported, ${result.failed} failed`,
+      ];
+      if (result.errors.length > 0) {
+        lines.push('Errors:');
+        for (const e of result.errors.slice(0, 10)) {
+          lines.push(`  - ${e}`);
+        }
+        if (result.errors.length > 10) lines.push(`  ... and ${result.errors.length - 10} more`);
+      }
+
+      return textResult(lines.join('\n'));
+    },
+  );
+
   // 14. trading_learn
   server.tool(
     'trading_learn',
