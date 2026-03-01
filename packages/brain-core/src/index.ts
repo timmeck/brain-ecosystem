@@ -170,7 +170,7 @@ export type { ResearchOrchestratorConfig } from './research/research-orchestrato
 // ── DataMiner ────────────────────────────────────────
 export { DataMiner, runDataMinerMigration } from './research/data-miner.js';
 export type { DataMinerAdapter, DataMinerEngines, DataMinerState, MineResult, MinedObservation, MinedCausalEvent, MinedMetric, MinedHypothesisObservation, MinedCrossDomainEvent } from './research/data-miner.js';
-export { BrainDataMinerAdapter, TradingDataMinerAdapter, MarketingDataMinerAdapter } from './research/adapters/index.js';
+export { BrainDataMinerAdapter, TradingDataMinerAdapter, MarketingDataMinerAdapter, ScannerDataMinerAdapter } from './research/adapters/index.js';
 
 // ── Dream Mode ──────────────────────────────────────
 export { DreamEngine, runDreamMigration } from './dream/index.js';
@@ -186,6 +186,19 @@ export { PredictionEngine, runPredictionMigration } from './prediction/index.js'
 export { PredictionTracker } from './prediction/index.js';
 export { holtWintersForecast, ewmaForecast, calibrateConfidence } from './prediction/index.js';
 export type { PredictionDomain, PredictionStatus, PredictionEngineConfig, Prediction, PredictionAccuracy, PredictionSummary, ForecastResult, PredictionInput, MetricDataPoint, CalibrationBucket } from './prediction/index.js';
+
+// ── CodeGen ──────────────────────────────────────────────
+export { CodeMiner, runCodeMinerMigration } from './codegen/index.js';
+export { PatternExtractor, runPatternExtractorMigration } from './codegen/index.js';
+export { ContextBuilder } from './codegen/index.js';
+export { CodeGenerator, runCodeGeneratorMigration } from './codegen/index.js';
+export type {
+  CodeMinerConfig, RepoContent, CodeMinerSummary,
+  ExtractedPattern, DependencyPattern, TechStack, ProjectStructure, ReadmePattern,
+  ContextBuilderConfig, BuiltContext,
+  CodeGeneratorConfig, GenerationTrigger, GenerationStatus,
+  GenerationRequest, GenerationResult, GenerationRecord, CodeGeneratorSummary,
+} from './codegen/index.js';
 
 // ── Scanner ──────────────────────────────────────────────
 export { SignalScanner, runScannerMigration } from './scanner/index.js';

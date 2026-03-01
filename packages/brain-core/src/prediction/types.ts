@@ -1,6 +1,6 @@
 // ── Prediction Engine Types ─────────────────────────────────
 
-export type PredictionDomain = 'error' | 'trade' | 'engagement' | 'metric' | 'custom' | 'scanner';
+export type PredictionDomain = 'error' | 'trade' | 'engagement' | 'metric' | 'custom' | 'scanner' | 'codegen';
 
 export type PredictionStatus = 'pending' | 'correct' | 'wrong' | 'expired' | 'partial';
 

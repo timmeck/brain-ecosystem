@@ -41,6 +41,9 @@ import type { ThoughtStream, ConsciousnessServer } from '@timmeck/brain-core';
 import type { PredictionEngine } from '@timmeck/brain-core';
 import type { ResearchOrchestrator } from '@timmeck/brain-core';
 import type { SignalScanner } from '@timmeck/brain-core';
+import type { CodeGenerator } from '@timmeck/brain-core';
+import type { CodeMiner } from '@timmeck/brain-core';
+import type { PatternExtractor } from '@timmeck/brain-core';
 import type { ProjectScanner } from '../services/project-scanner.js';
 import type { ReposignalImporter } from '../services/reposignal-importer.js';
 
@@ -86,6 +89,9 @@ export interface Services {
   predictionEngine?: PredictionEngine;
   orchestrator?: ResearchOrchestrator;
   signalScanner?: SignalScanner;
+  codeGenerator?: CodeGenerator;
+  codeMiner?: CodeMiner;
+  patternExtractor?: PatternExtractor;
   projectScanner?: ProjectScanner;
   reposignalImporter?: ReposignalImporter;
 }
@@ -527,10 +533,22 @@ export class IpcRouter {
       ['import.reposignal.status', () => { if (!s.reposignalImporter) throw new Error('Reposignal importer not available'); return s.reposignalImporter.getLastResult(); }],
       ['import.reposignal.stats', () => { if (!s.reposignalImporter) throw new Error('Reposignal importer not available'); return s.reposignalImporter.getStats(); }],
 
+      // ─── CodeGenerator ──────────────────────────────────────
+      ['codegen.generate',        async (params) => { if (!s.codeGenerator) throw new Error('CodeGenerator not available (set ANTHROPIC_API_KEY)'); return s.codeGenerator.generate(p(params)); }],
+      ['codegen.get',             (params) => { if (!s.codeGenerator) throw new Error('CodeGenerator not available'); return s.codeGenerator.get(p(params).id); }],
+      ['codegen.list',            (params) => { if (!s.codeGenerator) throw new Error('CodeGenerator not available'); return s.codeGenerator.list(p(params)?.status, p(params)?.limit); }],
+      ['codegen.approve',         (params) => { if (!s.codeGenerator) throw new Error('CodeGenerator not available'); return s.codeGenerator.approve(p(params).id, p(params)?.notes); }],
+      ['codegen.reject',          (params) => { if (!s.codeGenerator) throw new Error('CodeGenerator not available'); return s.codeGenerator.reject(p(params).id, p(params)?.notes); }],
+      ['codegen.summary',         () => { if (!s.codeGenerator) throw new Error('CodeGenerator not available'); return s.codeGenerator.getSummary(); }],
+
+      // ─── CodeMiner ──────────────────────────────────────────
+      ['codeminer.status',        () => { if (!s.codeMiner) throw new Error('CodeMiner not available'); return s.codeMiner.getSummary(); }],
+      ['codeminer.patterns',      (params) => { if (!s.patternExtractor) throw new Error('PatternExtractor not available'); return p(params)?.extract ? s.patternExtractor.extractAll() : s.patternExtractor.getPatterns(p(params)?.type, p(params)?.limit); }],
+
       // Status (cross-brain)
       ['status',                  () => ({
         name: 'brain',
-        version: '3.16.0',
+        version: '3.18.0',
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

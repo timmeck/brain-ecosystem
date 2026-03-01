@@ -20,6 +20,8 @@ import type { DreamEngine } from '../dream/dream-engine.js';
 import type { ThoughtStream } from '../consciousness/thought-stream.js';
 import type { PredictionEngine } from '../prediction/prediction-engine.js';
 import type { SignalScanner } from '../scanner/signal-scanner.js';
+import type { CodeGenerator } from '../codegen/code-generator.js';
+import type { CodeMiner } from '../codegen/code-miner.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -56,6 +58,8 @@ export class ResearchOrchestrator {
   private thoughtStream: ThoughtStream | null = null;
   private predictionEngine: PredictionEngine | null = null;
   private signalScanner: SignalScanner | null = null;
+  private codeGenerator: CodeGenerator | null = null;
+  private codeMiner: CodeMiner | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -114,6 +118,18 @@ export class ResearchOrchestrator {
     this.signalScanner = scanner;
   }
 
+  /** Set the CodeGenerator — autonomous code generation from brain knowledge. */
+  setCodeGenerator(generator: CodeGenerator): void {
+    this.codeGenerator = generator;
+    generator.setJournal(this.journal);
+    generator.setKnowledgeDistiller(this.knowledgeDistiller);
+  }
+
+  /** Set the CodeMiner — mines repo contents from GitHub for pattern analysis. */
+  setCodeMiner(miner: CodeMiner): void {
+    this.codeMiner = miner;
+  }
+
   /** Set the PredictionEngine — wires journal into it. */
   setPredictionEngine(engine: PredictionEngine): void {
     this.predictionEngine = engine;
@@ -124,7 +140,7 @@ export class ResearchOrchestrator {
   start(intervalMs = 300_000): void {
     if (this.feedbackTimer) return;
     this.feedbackTimer = setInterval(() => {
-      try { this.runFeedbackCycle(); }
+      try { void this.runFeedbackCycle(); }
       catch (err) { this.log.error('[orchestrator] Feedback cycle error', { error: (err as Error).message }); }
     }, intervalMs);
     this.log.info(`[orchestrator] Research orchestrator started (feedback every ${intervalMs}ms)`);
@@ -204,7 +220,7 @@ export class ResearchOrchestrator {
    * Run one autonomous feedback cycle.
    * This is where the engines talk to each other.
    */
-  runFeedbackCycle(): void {
+  async runFeedbackCycle(): Promise<void> {
     this.cycleCount++;
     const start = Date.now();
     const ts = this.thoughtStream;
@@ -513,6 +529,32 @@ export class ResearchOrchestrator {
         }
       } catch (err) {
         this.log.error(`[orchestrator] Scanner integration error: ${(err as Error).message}`);
+      }
+    }
+
+    // 15. CodeMiner: mine new repo contents (every 10 cycles)
+    if (this.codeMiner && this.cycleCount % 10 === 0) {
+      ts?.emit('code_miner', 'perceiving', 'Mining new repo contents...');
+      try {
+        const mineResult = await this.codeMiner.mine();
+        if (mineResult.mined > 0) {
+          ts?.emit('code_miner', 'discovering', `Mined ${mineResult.mined} new repos`, 'notable');
+        }
+      } catch (err) {
+        this.log.error(`[orchestrator] CodeMiner error: ${(err as Error).message}`);
+      }
+    }
+
+    // 16. CodeGenerator: feed generation metrics into HypothesisEngine
+    if (this.codeGenerator) {
+      const codegenSummary = this.codeGenerator.getSummary();
+      if (codegenSummary.total_generations > 0) {
+        this.hypothesisEngine.observe({ source: this.brainName, type: 'codegen_total', value: codegenSummary.total_generations, timestamp: now });
+        this.hypothesisEngine.observe({ source: this.brainName, type: 'codegen_approval_rate', value: codegenSummary.approval_rate, timestamp: now });
+        if (this.predictionEngine) {
+          this.predictionEngine.recordMetric('codegen_generations', codegenSummary.total_generations, 'codegen');
+          this.predictionEngine.recordMetric('codegen_tokens', codegenSummary.total_tokens_used, 'codegen');
+        }
       }
     }
 
@@ -830,6 +872,8 @@ export class ResearchOrchestrator {
       autoResponder: this.autoResponder.getStatus(),
       hypotheses: this.hypothesisEngine.getSummary(),
       scanner: this.signalScanner?.getStatus() ?? null,
+      codeGenerator: this.codeGenerator?.getSummary() ?? null,
+      codeMiner: this.codeMiner?.getSummary() ?? null,
     };
   }
 }

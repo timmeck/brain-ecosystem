@@ -65,7 +65,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -263,6 +263,7 @@ export class BrainCore {
       causalGraph: researchScheduler.causalGraph,
       hypothesisEngine: researchScheduler.hypothesisEngine,
     });
+    dataMiner.addAdapter(new ScannerDataMinerAdapter());
     this.orchestrator.setDataMiner(dataMiner);
     dataMiner.bootstrap();
 
@@ -342,6 +343,28 @@ export class BrainCore {
       signalScanner.start();
       services.signalScanner = signalScanner;
       logger.info(`Signal scanner started (interval: ${config.scanner.scanIntervalMs}ms, token: ${config.scanner.githubToken ? 'yes' : 'NO — set GITHUB_TOKEN'})`);
+    }
+
+    // 11l. CodeGenerator + CodeMiner — autonomous code generation
+    if (process.env.ANTHROPIC_API_KEY) {
+      const codeMiner = new CodeMiner(this.db!, { githubToken: config.scanner.githubToken });
+      const patternExtractor = new PatternExtractor(this.db!);
+      const codeGenerator = new CodeGenerator(this.db!, { brainName: 'brain', apiKey: process.env.ANTHROPIC_API_KEY });
+      const contextBuilder = new ContextBuilder(
+        this.orchestrator.knowledgeDistiller,
+        this.orchestrator.journal,
+        patternExtractor,
+        services.signalScanner ?? null,
+      );
+      codeGenerator.setContextBuilder(contextBuilder);
+      codeGenerator.setThoughtStream(thoughtStream);
+      this.orchestrator.setCodeGenerator(codeGenerator);
+      this.orchestrator.setCodeMiner(codeMiner);
+      services.codeGenerator = codeGenerator;
+      services.codeMiner = codeMiner;
+      services.patternExtractor = patternExtractor;
+      void codeMiner.bootstrap(); // Async, runs in background
+      logger.info('CodeGenerator + CodeMiner activated (ANTHROPIC_API_KEY set)');
     }
 
     // 12. IPC Server

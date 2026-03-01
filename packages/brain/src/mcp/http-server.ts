@@ -10,6 +10,7 @@ import { registerResponderToolsDirect } from './responder-tools.js';
 import { registerScanToolsDirect } from './scan-tools.js';
 import { registerReposignalToolsDirect } from './reposignal-tools.js';
 import { registerScannerToolsDirect } from './scanner-tools.js';
+import { registerCodegenToolsDirect } from './codegen-tools.js';
 import { registerPromptsDirect } from './prompts.js';
 
 export class McpHttpServer {
@@ -19,7 +20,7 @@ export class McpHttpServer {
     this.inner = new CoreMcpHttpServer(
       port,
       router,
-      { name: 'brain', version: '3.16.0' },
+      { name: 'brain', version: '3.18.0' },
       (server, _r) => {
         registerToolsDirect(server, router);
         registerResearchToolsDirect(server, router);
@@ -31,6 +32,7 @@ export class McpHttpServer {
         registerScanToolsDirect(server, router);
         registerReposignalToolsDirect(server, router);
         registerScannerToolsDirect(server, router);
+        registerCodegenToolsDirect(server, router);
         registerPromptsDirect(server, router);
       },
     );

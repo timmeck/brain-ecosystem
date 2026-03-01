@@ -10,12 +10,13 @@ import { registerResponderTools } from './responder-tools.js';
 import { registerScanTools } from './scan-tools.js';
 import { registerReposignalTools } from './reposignal-tools.js';
 import { registerScannerTools } from './scanner-tools.js';
+import { registerCodegenTools } from './codegen-tools.js';
 import { registerPrompts } from './prompts.js';
 
 export async function startMcpServer(): Promise<void> {
   await coreStartMcpServer({
     name: 'brain',
-    version: '3.16.0',
+    version: '3.18.0',
     entryPoint: path.resolve(import.meta.dirname, '../index.ts'),
     registerTools: (server, ipc) => {
       registerTools(server, ipc);
@@ -28,6 +29,7 @@ export async function startMcpServer(): Promise<void> {
       registerScanTools(server, ipc);
       registerReposignalTools(server, ipc);
       registerScannerTools(server, ipc);
+      registerCodegenTools(server, ipc);
     },
     registerPrompts,
   });
