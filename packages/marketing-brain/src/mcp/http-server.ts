@@ -5,6 +5,7 @@ import { registerResearchToolsDirect } from './research-tools.js';
 import { registerAdvancedResearchToolsDirect } from './advanced-research-tools.js';
 import { registerDreamToolsDirect } from './dream-tools.js';
 import { registerConsciousnessToolsDirect } from './consciousness-tools.js';
+import { registerPredictionToolsDirect } from './prediction-tools.js';
 
 export class McpHttpServer {
   private inner: CoreMcpHttpServer;
@@ -13,13 +14,14 @@ export class McpHttpServer {
     this.inner = new CoreMcpHttpServer(
       port,
       router,
-      { name: 'marketing-brain', version: '1.12.0' },
+      { name: 'marketing-brain', version: '1.13.0' },
       (server, _r) => {
         registerToolsDirect(server, router);
         registerResearchToolsDirect(server, router);
         registerAdvancedResearchToolsDirect(server, router);
         registerDreamToolsDirect(server, router);
         registerConsciousnessToolsDirect(server, router);
+        registerPredictionToolsDirect(server, router);
       },
     );
   }

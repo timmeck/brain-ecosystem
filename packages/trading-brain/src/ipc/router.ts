@@ -35,6 +35,7 @@ import type { AnomalyDetective } from '@timmeck/brain-core';
 import type { ResearchJournal } from '@timmeck/brain-core';
 import type { DreamEngine } from '@timmeck/brain-core';
 import type { ThoughtStream, ConsciousnessServer } from '@timmeck/brain-core';
+import type { PredictionEngine } from '@timmeck/brain-core';
 
 const logger = getLogger();
 
@@ -75,6 +76,7 @@ export interface Services {
   dreamEngine?: DreamEngine;
   thoughtStream?: ThoughtStream;
   consciousnessServer?: ConsciousnessServer;
+  predictionEngine?: PredictionEngine;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -390,6 +392,14 @@ export class IpcRouter {
       ['dream.history',            (params) => { if (!s.dreamEngine) throw new Error('Dream engine not available'); return s.dreamEngine.getHistory(p(params)?.limit); }],
       ['dream.journal',            (params) => { if (!s.journal) throw new Error('Research journal not available'); return s.journal.search('dream', p(params)?.limit ?? 10); }],
 
+      // ─── Prediction Engine ───────────────────────────────────
+      ['predict.make',           (params) => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return s.predictionEngine.predict(p(params)); }],
+      ['predict.list',           (params) => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return s.predictionEngine.list(p(params)?.domain, p(params)?.status, p(params)?.limit); }],
+      ['predict.accuracy',       (params) => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return s.predictionEngine.getAccuracy(p(params)?.domain); }],
+      ['predict.summary',        () => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return s.predictionEngine.getSummary(); }],
+      ['predict.resolve',        () => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return { resolved: s.predictionEngine.resolveExpired() }; }],
+      ['predict.record',         (params) => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); s.predictionEngine.recordMetric(p(params).metric, p(params).value, p(params)?.domain); return { recorded: true }; }],
+
       // ─── Consciousness ──────────────────────────────────────
       ['consciousness.status',    () => { if (!s.thoughtStream) throw new Error('ThoughtStream not available'); return { ...s.thoughtStream.getStats(), engines: s.thoughtStream.getEngineActivity(), clients: s.consciousnessServer?.getClientCount() ?? 0 }; }],
       ['consciousness.thoughts',  (params) => { if (!s.thoughtStream) throw new Error('ThoughtStream not available'); const pp = p(params); return pp?.engine ? s.thoughtStream.getByEngine(pp.engine, pp?.limit ?? 50) : s.thoughtStream.getRecent(pp?.limit ?? 50); }],
@@ -398,7 +408,7 @@ export class IpcRouter {
 
       ['status', () => ({
         name: 'trading-brain',
-        version: '2.11.0',
+        version: '2.12.0',
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

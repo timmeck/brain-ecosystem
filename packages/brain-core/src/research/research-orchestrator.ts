@@ -14,6 +14,7 @@ import type { ResearchCycleReport } from './autonomous-scheduler.js';
 import type { DataMiner } from './data-miner.js';
 import type { DreamEngine } from '../dream/dream-engine.js';
 import type { ThoughtStream } from '../consciousness/thought-stream.js';
+import type { PredictionEngine } from '../prediction/prediction-engine.js';
 
 // ── Types ───────────────────────────────────────────────
 
@@ -45,6 +46,7 @@ export class ResearchOrchestrator {
   private dataMiner: DataMiner | null = null;
   private dreamEngine: DreamEngine | null = null;
   private thoughtStream: ThoughtStream | null = null;
+  private predictionEngine: PredictionEngine | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -86,6 +88,12 @@ export class ResearchOrchestrator {
   /** Set the ThoughtStream for consciousness — emits thoughts at each step. */
   setThoughtStream(stream: ThoughtStream): void {
     this.thoughtStream = stream;
+  }
+
+  /** Set the PredictionEngine — wires journal into it. */
+  setPredictionEngine(engine: PredictionEngine): void {
+    this.predictionEngine = engine;
+    engine.setJournal(this.journal);
   }
 
   /** Start the autonomous feedback loop timer. */
@@ -318,6 +326,22 @@ export class ResearchOrchestrator {
       ts?.emit('journal', 'reflecting', 'Reflection complete', 'notable');
     }
 
+    // 9. Prediction Engine: resolve pending + auto-predict
+    if (this.predictionEngine) {
+      ts?.emit('prediction', 'predicting', 'Resolving pending predictions...');
+      const resolved = this.predictionEngine.resolveExpired();
+      if (resolved > 0) {
+        this.log.info(`[orchestrator] Predictions resolved: ${resolved}`);
+        ts?.emit('prediction', 'predicting', `Resolved ${resolved} prediction${resolved > 1 ? 's' : ''}`);
+      }
+      ts?.emit('prediction', 'predicting', 'Generating new predictions...');
+      const newPredictions = this.predictionEngine.autoPredictAll();
+      if (newPredictions.length > 0) {
+        this.log.info(`[orchestrator] New predictions: ${newPredictions.length}`);
+        ts?.emit('prediction', 'predicting', `Generated ${newPredictions.length} prediction${newPredictions.length > 1 ? 's' : ''}`, newPredictions.some(p => p.confidence > 0.7) ? 'notable' : 'routine');
+      }
+    }
+
     const duration = Date.now() - start;
     ts?.emit('orchestrator', 'reflecting', `Feedback Cycle #${this.cycleCount} complete (${duration}ms)`);
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} complete (${duration}ms) ───`);
@@ -338,6 +362,7 @@ export class ResearchOrchestrator {
       correlations: this.crossDomain.getCorrelations(10),
       strategy: this.adaptiveStrategy.getStatus(),
       dream: this.dreamEngine?.getStatus() ?? null,
+      prediction: this.predictionEngine?.getSummary() ?? null,
     };
   }
 }

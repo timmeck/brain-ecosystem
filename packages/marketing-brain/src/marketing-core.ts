@@ -65,7 +65,7 @@ import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
@@ -244,10 +244,20 @@ export class MarketingCore {
     dreamEngine.start();
     services.dreamEngine = dreamEngine;
 
-    // 10i. Consciousness — ThoughtStream + Dashboard
+    // 10i. Prediction Engine — Proactive Forecasting (4h horizon for engagement)
+    const predictionEngine = new PredictionEngine(this.db!, {
+      brainName: 'marketing-brain',
+      defaultHorizonMs: 14_400_000,
+    });
+    this.orchestrator.setPredictionEngine(predictionEngine);
+    predictionEngine.start();
+    services.predictionEngine = predictionEngine;
+
+    // 10j. Consciousness — ThoughtStream + Dashboard
     const thoughtStream = new ThoughtStream();
     this.orchestrator.setThoughtStream(thoughtStream);
     dreamEngine.setThoughtStream(thoughtStream);
+    predictionEngine.setThoughtStream(thoughtStream);
     this.consciousnessServer = new ConsciousnessServer({
       port: 7786,
       thoughtStream,
@@ -263,7 +273,7 @@ export class MarketingCore {
     this.consciousnessServer.start();
     services.consciousnessServer = this.consciousnessServer;
     services.thoughtStream = thoughtStream;
-    logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Consciousness on :7786)');
+    logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active, Consciousness on :7786)');
 
     // 11. IPC Server
     const router = new IpcRouter(services);
@@ -327,7 +337,7 @@ export class MarketingCore {
     }
 
     // 13. Event listeners (synapse wiring)
-    this.setupEventListeners(synapseManager, services.webhook, researchScheduler);
+    this.setupEventListeners(synapseManager, services.webhook, researchScheduler, predictionEngine);
 
     // 13b. Cross-Brain Event Subscriptions
     this.setupCrossBrainSubscriptions();
@@ -446,7 +456,7 @@ export class MarketingCore {
     });
   }
 
-  private setupEventListeners(synapseManager: SynapseManager, webhook?: WebhookService, researchScheduler?: AutonomousResearchScheduler): void {
+  private setupEventListeners(synapseManager: SynapseManager, webhook?: WebhookService, researchScheduler?: AutonomousResearchScheduler, predictionEngine?: PredictionEngine): void {
     const causal = researchScheduler?.causalGraph;
     const hypothesis = researchScheduler?.hypothesisEngine;
     const bus = getEventBus();
@@ -463,7 +473,7 @@ export class MarketingCore {
       }
     });
 
-    // Post published → notify peers (engagement tracking) + feed correlator + webhooks + causal + hypothesis
+    // Post published → notify peers (engagement tracking) + feed correlator + webhooks + causal + hypothesis + prediction
     bus.on('post:published', ({ postId, platform }) => {
       getLogger().info(`Post #${postId} published on ${platform}`);
       notifier?.notify('post:published', { postId, platform });
@@ -472,6 +482,7 @@ export class MarketingCore {
       causal?.recordEvent('marketing-brain', 'post:published', { postId, platform });
       hypothesis?.observe({ source: 'marketing-brain', type: 'post:published', value: 1, timestamp: Date.now() });
       orch?.onEvent('post:published', { postId, platform });
+      predictionEngine?.recordMetric('post_count', 1, 'engagement');
     });
 
     bus.on('strategy:reported', ({ strategyId, postId }) => {

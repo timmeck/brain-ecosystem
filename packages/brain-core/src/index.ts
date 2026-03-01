@@ -176,3 +176,9 @@ export type { DreamEngineConfig, DreamCycleReport, DreamStatus, DreamHistoryEntr
 // ── Consciousness ───────────────────────────────────
 export { ThoughtStream, ConsciousnessServer } from './consciousness/index.js';
 export type { ConsciousnessServerOptions, Thought, ThoughtType, ThoughtSignificance, ConsciousnessConfig, ConsciousnessStatus, EngineActivity } from './consciousness/index.js';
+
+// ── Prediction Engine ──────────────────────────────
+export { PredictionEngine, runPredictionMigration } from './prediction/index.js';
+export { PredictionTracker } from './prediction/index.js';
+export { holtWintersForecast, ewmaForecast, calibrateConfidence } from './prediction/index.js';
+export type { PredictionDomain, PredictionStatus, PredictionEngineConfig, Prediction, PredictionAccuracy, PredictionSummary, ForecastResult, PredictionInput, MetricDataPoint, CalibrationBucket } from './prediction/index.js';

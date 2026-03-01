@@ -63,7 +63,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -267,10 +267,17 @@ export class BrainCore {
     dreamEngine.start();
     services.dreamEngine = dreamEngine;
 
-    // 11i. Consciousness — ThoughtStream + Dashboard
+    // 11i. Prediction Engine — Proactive Forecasting
+    const predictionEngine = new PredictionEngine(this.db!, { brainName: 'brain' });
+    this.orchestrator.setPredictionEngine(predictionEngine);
+    predictionEngine.start();
+    services.predictionEngine = predictionEngine;
+
+    // 11j. Consciousness — ThoughtStream + Dashboard
     const thoughtStream = new ThoughtStream();
     this.orchestrator.setThoughtStream(thoughtStream);
     dreamEngine.setThoughtStream(thoughtStream);
+    predictionEngine.setThoughtStream(thoughtStream);
     this.consciousnessServer = new ConsciousnessServer({
       port: 7784,
       thoughtStream,
@@ -286,7 +293,7 @@ export class BrainCore {
     this.consciousnessServer.start();
     services.consciousnessServer = this.consciousnessServer;
     services.thoughtStream = thoughtStream;
-    logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Consciousness on :7784)');
+    logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active, Consciousness on :7784)');
 
     // 12. IPC Server
     const router = new IpcRouter(services);
@@ -474,7 +481,7 @@ export class BrainCore {
     const hypothesis = services.hypothesis;
     const orch = this.orchestrator;
 
-    // Error → Project synapse + notify peers + feed correlator + webhooks + causal + hypothesis + orchestrator
+    // Error → Project synapse + notify peers + feed correlator + webhooks + causal + hypothesis + orchestrator + prediction
     bus.on('error:reported', ({ errorId, projectId }) => {
       synapseManager.strengthen(
         { type: 'error', id: errorId },
@@ -487,6 +494,7 @@ export class BrainCore {
       causal?.recordEvent('brain', 'error:reported', { errorId, projectId });
       hypothesis?.observe({ source: 'brain', type: 'error:reported', value: 1, timestamp: Date.now() });
       orch?.onEvent('error:reported', { errorId, projectId });
+      services.predictionEngine?.recordMetric('error_count', 1, 'error');
     });
 
     // Solution applied → strengthen or weaken
@@ -535,9 +543,10 @@ export class BrainCore {
       orch?.onEvent('insight:created', { insightId, type });
     });
 
-    // Solution applied → orchestrator
+    // Solution applied → orchestrator + prediction
     bus.on('solution:applied', ({ errorId, solutionId, success }) => {
       orch?.onEvent('solution:applied', { errorId, solutionId, success: success ? 1 : 0 });
+      services.predictionEngine?.recordMetric('resolution_success', success ? 1 : 0, 'error');
     });
 
     // Memory → Project synapse

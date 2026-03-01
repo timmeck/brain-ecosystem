@@ -8,7 +8,8 @@ export type ThoughtType =
   | 'experimenting'
   | 'dreaming'
   | 'reflecting'
-  | 'correlating';
+  | 'correlating'
+  | 'predicting';
 
 export type ThoughtSignificance = 'routine' | 'notable' | 'breakthrough';
 

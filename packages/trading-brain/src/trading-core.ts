@@ -53,7 +53,7 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine } from '@timmeck/brain-core';
 
 export class TradingCore {
   private db: Database.Database | null = null;
@@ -244,10 +244,20 @@ export class TradingCore {
     dreamEngine.start();
     services.dreamEngine = dreamEngine;
 
-    // 12g. Consciousness — ThoughtStream + Dashboard
+    // 12g. Prediction Engine — Proactive Forecasting (2h horizon for trades)
+    const predictionEngine = new PredictionEngine(this.db!, {
+      brainName: 'trading-brain',
+      defaultHorizonMs: 7_200_000,
+    });
+    this.orchestrator.setPredictionEngine(predictionEngine);
+    predictionEngine.start();
+    services.predictionEngine = predictionEngine;
+
+    // 12h. Consciousness — ThoughtStream + Dashboard
     const thoughtStream = new ThoughtStream();
     this.orchestrator.setThoughtStream(thoughtStream);
     dreamEngine.setThoughtStream(thoughtStream);
+    predictionEngine.setThoughtStream(thoughtStream);
     this.consciousnessServer = new ConsciousnessServer({
       port: 7785,
       thoughtStream,
@@ -263,7 +273,7 @@ export class TradingCore {
     this.consciousnessServer.start();
     services.consciousnessServer = this.consciousnessServer;
     services.thoughtStream = thoughtStream;
-    logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Consciousness on :7785)');
+    logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active, Consciousness on :7785)');
 
     // 13. IPC Server
     const router = new IpcRouter(services);
@@ -299,7 +309,7 @@ export class TradingCore {
     }
 
     // 15. Event listeners (synapse wiring)
-    this.setupEventListeners(synapseManager, services.webhook, researchScheduler);
+    this.setupEventListeners(synapseManager, services.webhook, researchScheduler, predictionEngine);
 
     // 15b. Cross-Brain Event Subscriptions
     this.setupCrossBrainSubscriptions();
@@ -411,14 +421,14 @@ export class TradingCore {
     });
   }
 
-  private setupEventListeners(_synapseManager: SynapseManager, webhook?: WebhookService, researchScheduler?: AutonomousResearchScheduler): void {
+  private setupEventListeners(_synapseManager: SynapseManager, webhook?: WebhookService, researchScheduler?: AutonomousResearchScheduler, predictionEngine?: PredictionEngine): void {
     const causal = researchScheduler?.causalGraph;
     const hypothesis = researchScheduler?.hypothesisEngine;
     const bus = getEventBus();
     const notifier = this.notifier;
     const orch = this.orchestrator;
 
-    // Trade recorded → log + notify brain (error correlation) + feed correlator + webhooks + causal + hypothesis
+    // Trade recorded → log + notify brain (error correlation) + feed correlator + webhooks + causal + hypothesis + prediction
     bus.on('trade:recorded', ({ tradeId, fingerprint, win }) => {
       getLogger().info(`Trade #${tradeId} recorded: ${fingerprint} (${win ? 'WIN' : 'LOSS'})`);
       notifier?.notifyPeer('brain', 'trade:outcome', { tradeId, fingerprint, win });
@@ -427,6 +437,7 @@ export class TradingCore {
       causal?.recordEvent('trading-brain', 'trade:outcome', { tradeId, fingerprint, win });
       hypothesis?.observe({ source: 'trading-brain', type: win ? 'trade:win' : 'trade:loss', value: 1, timestamp: Date.now() });
       orch?.onEvent('trade:recorded', { tradeId, win: win ? 1 : 0 });
+      predictionEngine?.recordMetric('trade_win_rate', win ? 1 : 0, 'trade');
     });
 
     // Synapse updated → log at debug level
