@@ -1,6 +1,6 @@
 {
   "name": "@timmeck/trading-brain",
-  "version": "2.13.0",
+  "version": "2.13.1",
   "description": "Adaptive trading intelligence system with Hebbian synapses, spreading activation, Wilson Score confidence, and adaptive calibration",
   "type": "module",
   "main": "dist/index.js",

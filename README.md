@@ -6,40 +6,18 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Self-learning MCP servers that give Claude Code persistent memory.**
+**An autonomous AI research system that observes itself, learns, and improves — built as MCP servers for Claude Code.**
 
-Brain gives Claude Code a persistent, self-learning memory — it remembers your errors, learns from your patterns, and gets smarter with every session. Works with Claude Code, Cursor, Windsurf, Cline, and Continue.
-
-## What Brain Does
-
-### Before Brain: Every session starts from zero
-
-```
-You: Fix this TypeError
-Claude: *investigates from scratch, tries 3 approaches, 15 minutes later finds the fix*
-
-Next day, same error in another project:
-Claude: *investigates from scratch again*
-```
-
-### After Brain: Errors get solved faster every time
-
-```
-You: Fix this TypeError
-Claude: *Brain found 3 similar errors. Solution with 94% confidence:
-         "Add null check before accessing .length — this pattern occurs
-          in array-processing modules across 4 of your projects."*
-Fixed in 30 seconds.
-```
+Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. Nine research engines run autonomously in the background — they observe, detect anomalies, form hypotheses, test them statistically, and distill confirmed knowledge into principles. It even has a Dream Mode that consolidates memories like biological sleep, and a CodeGenerator that writes code using its own accumulated knowledge.
 
 ## Packages
 
 | Package | Version | Description | Ports |
 |---------|---------|-------------|-------|
-| [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Error memory, code intelligence & persistent context | 7777 / 7778 |
-| [@timmeck/trading-brain](packages/trading-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/trading-brain)](https://www.npmjs.com/package/@timmeck/trading-brain) | Adaptive trading intelligence with memory & sessions | 7779 / 7780 |
-| [@timmeck/marketing-brain](packages/marketing-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/marketing-brain)](https://www.npmjs.com/package/@timmeck/marketing-brain) | Content strategy & engagement with memory & sessions | 7781 / 7782 / 7783 |
-| [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory) | — |
+| [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Error memory, code intelligence, autonomous research & code generation | 7777 / 7778 / 7784 / 7787 |
+| [@timmeck/trading-brain](packages/trading-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/trading-brain)](https://www.npmjs.com/package/@timmeck/trading-brain) | Adaptive trading intelligence with signal learning & backtesting | 7779 / 7780 / 7785 |
+| [@timmeck/marketing-brain](packages/marketing-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/marketing-brain)](https://www.npmjs.com/package/@timmeck/marketing-brain) | Content strategy, engagement & cross-platform optimization | 7781 / 7782 / 7783 / 7786 |
+| [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure — 9 research engines, synapses, IPC, MCP, dream, consciousness, prediction, codegen | — |
 
 ## Quick Start
 
@@ -60,8 +38,6 @@ npm install -g @timmeck/marketing-brain
 marketing setup
 ```
 
-Each brain runs as a background daemon and registers itself as an MCP server.
-
 ### Setup with Cursor / Windsurf / Cline / Continue
 
 All brains support MCP over HTTP with SSE transport:
@@ -74,60 +50,61 @@ All brains support MCP over HTTP with SSE transport:
 }
 ```
 
-## Brain — Error Memory & Code Intelligence
+## What It Does
 
-The flagship. 84 MCP tools for error tracking, code reuse, persistent context, and autonomous research.
+### Brain — Error Memory, Code Intelligence & Autonomous Research
+
+69 MCP tools. Remembers errors, learns solutions, tracks code modules, and runs autonomous research.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
 - **Persistent Memory** — Remember preferences, decisions, context, facts, goals, and lessons across sessions
-- **Session Tracking** — Auto-tracks conversation sessions with goals, summaries, and outcomes
-- **Decision History** — Record architecture/design decisions with alternatives and rationale
-- **Semantic Changelog** — Track what changed, why, and how it connects to errors and decisions
-- **Task/Goal Tracking** — Manage tasks with priorities, subtasks, and full context aggregation
-- **Auto Error Detection** — PostToolUse hook catches errors in real-time, no manual reporting needed
-- **Cross-Project Learning** — Solutions from project A help solve errors in project B
-- **Proactive Prevention** — Warns before errors occur when code matches known antipatterns
+- **Autonomous Research** — 9 research engines with feedback loops running every 5 minutes
+- **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle
+- **Consciousness Dashboard** — Live neural graph at http://localhost:7784 with thought stream
+- **Prediction Engine** — Holt-Winters forecasting, auto-calibration, predictions resolved against reality
+- **AutoResponder** — Reacts to anomalies: parameter adjustment, escalation, resolution
+- **Self-Improvement Loop** — Generates "Tell Claude:" suggestions in `~/.brain/improvement-requests.md`
+- **Auto-Experiments** — Tests its own parameters (Z-Threshold, Decay Rate, etc.) every 5 cycles
+- **Hypothesis Engine** — Forms and tests hypotheses autonomously from observed patterns
+- **Knowledge Distillation** — Extracts principles from confirmed hypotheses (17+ principles distilled)
+- **CodeGenerator** — Claude API integration using brain knowledge as context (principles, anti-patterns, strategies)
+- **CodeMiner** — Mines GitHub repos (README, package.json, directory structures) for pattern extraction
+- **CodeGen Dashboard** — Review generated code at http://localhost:7787 with approve/reject workflow
+- **Signal Scanner** — Tracks GitHub trending repos, Hacker News, crypto signals
 - **Semantic Search** — Local all-MiniLM-L6-v2 embeddings (23MB, no cloud required)
-- **Autonomous Research** — 9 research engines with feedback loops (SelfObserver, AnomalyDetective, HypothesisEngine, CausalGraph, ExperimentEngine, KnowledgeDistiller, CounterfactualEngine, AdaptiveStrategy, ResearchAgenda)
-- **DataMiner** — Bootstraps historical DB data into research engines at startup, mines new data every 5 min
-- **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle periods (new in v3.10)
-- **REST API** — Full HTTP API on port 7777 with 60+ methods
+- **Cross-Project Learning** — Solutions from project A help solve errors in project B
+- **Auto Error Detection** — PostToolUse hook catches errors in real-time
+- **197 MCP Tools** across the ecosystem (69 brain + 64 trading + 64 marketing)
 
-## Trading Brain — Adaptive Trading Intelligence
+### Trading Brain — Adaptive Trading Intelligence
 
-78 MCP tools for trade outcome tracking, signal learning, strategy optimization, and autonomous research.
+64 MCP tools. Learns from every trade outcome through Hebbian synapses.
 
-- **Trade Outcome Memory** — Record and query trade outcomes with full signal context
-- **Signal Fingerprinting** — RSI, MACD, Trend, and Volatility classification into discrete categories
-- **Wilson Score Confidence** — Statistical confidence intervals with adaptive z-scores
-- **DCA Multiplier** — Brain-recommended position sizes based on regime and historical performance
-- **Grid Parameters** — Volatility-aware grid spacing with automatic tuning
-- **Chain Detection** — Identifies winning and losing streaks per pair
-- **Adaptive Calibration** — Learning rate, Wilson z-score, and decay half-life auto-calibrate across 4 stages
-- **Backtesting** — Run backtests, compare signals, find best signals with Sharpe/PF/MaxDD
-- **Risk Management** — Kelly Criterion position sizing, drawdown tracking, risk metrics
+- **Trade Outcome Memory** — Record and query trades with full signal context
+- **Signal Fingerprinting** — RSI, MACD, Trend, Volatility classification
+- **Backtesting Engine** — Run backtests, compare signals, Sharpe/PF/MaxDD/Equity Curve
+- **Risk Management** — Kelly Criterion position sizing, drawdown tracking
+- **Alert System** — 5 condition types, cooldown, webhooks, history
+- **Multi-Timeframe** — Timeframe-aware trade analysis
 - **Autonomous Research** — 9 research engines with DataMiner bootstrapping trade history
-- **Dream Mode** — Offline memory consolidation during idle periods (new in v2.10)
-- **Memory & Sessions** — Persistent memory for trading preferences, decisions, and session goals
+- **Dream Mode** — Offline consolidation during idle periods
+- **Consciousness Dashboard** — Live neural graph at http://localhost:7785
+- **Prediction Engine** — Holt-Winters forecasting for win rates and PnL
 
-## Marketing Brain — Self-Learning Marketing Intelligence
+### Marketing Brain — Self-Learning Marketing Intelligence
 
-78 MCP tools for content strategy, engagement tracking, campaign management, and autonomous research.
+64 MCP tools. Learns what content works across platforms.
 
-- **Post Tracking** — Store posts with platform, format, hashtags, URL, and full engagement history
-- **Campaign Management** — Group posts into campaigns, track aggregate performance
-- **Draft Checking** — Check posts against learned rules before publishing
-- **Template Library** — High-performing post structures become reusable templates
-- **Timing Patterns** — Discovers best/worst posting hours from engagement data
-- **Gap Analysis** — Spots blind spots: "You never post on LinkedIn — potential?"
+- **Post Tracking** — Store posts with platform, format, hashtags, engagement history
 - **Competitor Analysis** — Track and benchmark competitor engagement
-- **Content Generation** — Draft posts from patterns, rules, and templates
-- **Cross-Platform** — Optimize content for X, LinkedIn, Reddit, Bluesky, Mastodon, Threads
-- **Autonomous Research** — 9 research engines with DataMiner bootstrapping post/engagement history
-- **Dream Mode** — Offline memory consolidation during idle periods (new in v1.11)
-- **Interactive Dashboard** — Neural canvas background, force-directed synapse graph, live SSE updates
-- **Memory & Sessions** — Persistent memory for marketing decisions, strategies, and session goals
+- **Content Generation** — Draft posts from learned patterns, rules, and templates
+- **Scheduling Engine** — Post queue with optimal auto-timing
+- **Cross-Platform** — Optimize for X, LinkedIn, Reddit, Bluesky, Mastodon, Threads
+- **Autonomous Research** — 9 research engines with DataMiner bootstrapping post history
+- **Dream Mode** — Offline consolidation during idle periods
+- **Consciousness Dashboard** — Live neural graph at http://localhost:7786
+- **Prediction Engine** — Holt-Winters forecasting for engagement rates
 
 ## Architecture
 
@@ -141,7 +118,7 @@ The flagship. 84 MCP tools for error tracking, code reuse, persistent context, a
                     |
          +----------+-----------+
          |     Brain Core       |
-         |  IPC · MCP · REST    |
+         |  IPC . MCP . REST    |
          +----------+-----------+
                     |
     +---------------+---------------+
@@ -151,52 +128,69 @@ The flagship. 84 MCP tools for error tracking, code reuse, persistent context, a
 |  Brain |    |  Trading   |   |  Marketing   |
 | :7777  |<-->|  Brain     |<->|  Brain       |
 | :7778  |    |  :7779     |   |  :7781       |
-+---+----+    |  :7780     |   |  :7782       |
-    |         +-----+------+   |  :7783       |
+| :7784  |    |  :7780     |   |  :7782       |
+| :7787  |    |  :7785     |   |  :7783       |
++---+----+    +-----+------+   |  :7786       |
     |               |          +---+----------+
+    |               |               |
     v               v               v
-+---+----+    +-----+------+   +---+----------+
++--------+    +------------+   +--------------+
 | SQLite |    |   SQLite   |   |   SQLite     |
 +--------+    +------------+   +--------------+
 
 Cross-brain peering via IPC named pipes
 ```
 
-### Shared Architecture (Brain Core)
+### Autonomous Research Layer
 
-Every brain is built on the same infrastructure:
+Every brain runs the same 9 research engines in feedback loops:
+
+```
+                        ResearchOrchestrator
+                               |
+        +------+------+-------+-------+------+------+
+        |      |      |       |       |      |      |
+        v      v      v       v       v      v      v
+    Self    Anomaly  Cross  Adaptive Exper. Knowl. Research
+   Observer Detect.  Domain Strategy Engine Distill Agenda
+        |      |      |       |       |      |      |
+        +------+------+-------+-------+------+------+
+                               |
+                    +----------+----------+
+                    |          |          |
+                    v          v          v
+                 Dream     Prediction  AutoResponder
+                 Engine    Engine      (anomaly → action)
+                    |          |          |
+                    v          v          v
+                 Hypothesis  CodeGen    CodeMiner
+                 Engine      (Claude)   (GitHub)
+```
+
+### Shared Infrastructure (Brain Core)
 
 | Component | Description |
 |-----------|-------------|
-| **IPC Protocol** | Length-prefixed JSON frames over named pipes (Windows) / Unix sockets |
+| **IPC Protocol** | Length-prefixed JSON frames over named pipes / Unix sockets |
 | **MCP Server** | Stdio transport for Claude Code with auto-daemon-start |
 | **MCP HTTP Server** | SSE transport for Cursor, Windsurf, Cline, Continue |
 | **REST API** | HTTP server with CORS, auth, SSE events, batch RPC |
 | **Hebbian Synapse Network** | Weighted graph — "neurons that fire together wire together" |
-| **Learning Engine** | Extracts patterns, generates rules with adaptive thresholds |
-| **Research Engine** | Automated trend analysis, gap detection, synergy mapping |
 | **9 Research Engines** | SelfObserver, AnomalyDetective, HypothesisEngine, CausalGraph, ExperimentEngine, KnowledgeDistiller, CounterfactualEngine, AdaptiveStrategy, ResearchAgenda |
-| **DataMiner** | Bootstraps historical DB data into research engines, incremental mining every 5 min |
-| **Dream Engine** | Offline memory consolidation — replay, prune, compress, decay during idle periods |
-| **Research Orchestrator** | Feedback loops between all 9 research engines |
+| **ResearchOrchestrator** | Feedback loops between all engines, runs every 5 minutes |
+| **DataMiner** | Bootstraps historical DB data into research engines, incremental mining |
+| **Dream Engine** | Offline consolidation — memory replay, synapse pruning, compression, decay |
+| **ThoughtStream + Consciousness** | Real-time thought capture + live neural dashboard with SSE |
+| **Prediction Engine** | Holt-Winters + EWMA forecasting with auto-calibration |
+| **AutoResponder** | Anomaly → automatic parameter adjustment, escalation, resolution |
+| **CodeGenerator** | Claude API with brain knowledge as context (principles, patterns) |
+| **CodeMiner + PatternExtractor** | GitHub repo mining → dependency, tech stack, structure patterns |
+| **CodegenServer** | HTTP + SSE dashboard for code review (approve/reject) |
+| **Signal Scanner** | GitHub trending, Hacker News, crypto signal tracking |
+| **Webhook Service** | HMAC-SHA256 signed webhooks with retry |
+| **Export / Backup** | JSON/CSV export, timestamped SQLite backups with integrity check |
 | **Memory System** | Persistent memory with categories, importance, FTS5 search |
-| **Cross-Brain Client** | Discover and query peer brains at runtime |
-| **Cross-Brain Notifier** | Push event notifications to peers |
-| **Wilson Score** | Statistical confidence intervals for win rates / rule confidence |
-| **Time Decay** | Exponential half-life decay for freshness |
-| **SQLite** | better-sqlite3 with WAL mode, foreign keys, caching |
-
-### Cross-Brain Communication
-
-Brains discover and query each other at runtime via IPC named pipes. When one brain learns something, peers are notified automatically. Use `brain peers`, `trading peers`, or `marketing peers` to see online peers.
-
-```bash
-# From Claude Code:
-brain_ecosystem_status     # status of all brains
-brain_query_peer           # query another brain
-trading_error_context      # correlate trades with Brain errors
-marketing_cross_promote    # pull Brain insights as content ideas
-```
+| **Cross-Brain** | Peer discovery, event notifications, cross-brain correlation |
 
 ## Port Map
 
@@ -209,6 +203,10 @@ marketing_cross_promote    # pull Brain insights as content ideas
 | Marketing Brain REST | 7781 | HTTP |
 | Marketing Brain MCP | 7782 | SSE |
 | Marketing Dashboard | 7783 | SSE |
+| Brain Consciousness | 7784 | HTTP + SSE |
+| Trading Consciousness | 7785 | HTTP + SSE |
+| Marketing Consciousness | 7786 | HTTP + SSE |
+| Brain CodeGen Dashboard | 7787 | HTTP + SSE |
 
 ## CLI Commands
 
@@ -232,9 +230,7 @@ marketing insights / rules / suggest <topic> / query <search>
 marketing dashboard / network / export / peers
 ```
 
-## Configuration
-
-Each brain is configured via environment variables or config files:
+## Environment Variables
 
 | Brain | Data Dir | Config |
 |-------|----------|--------|
@@ -242,25 +238,15 @@ Each brain is configured via environment variables or config files:
 | Trading Brain | `TRADING_BRAIN_DATA_DIR` (default: `~/.trading-brain`) | `~/.trading-brain/config.json` |
 | Marketing Brain | `MARKETING_BRAIN_DATA_DIR` (default: `~/.marketing-brain`) | `~/.marketing-brain/config.json` |
 
+Additional keys: `ANTHROPIC_API_KEY` (enables CodeGenerator), `GITHUB_TOKEN` (enables CodeMiner + Signal Scanner).
+
 ## Docker
 
-Run the entire ecosystem with Docker Compose:
-
 ```bash
-docker-compose up -d
-```
-
-This starts all three brains with:
-- Persistent database volumes
-- Shared IPC socket volume for cross-brain communication
-- Health checks for automatic restart
-- Exposed REST API and MCP HTTP ports
-
-Individual services:
-```bash
-docker-compose up brain          # Just the main brain
-docker-compose logs trading-brain # View trading brain logs
-docker-compose down               # Stop everything
+docker-compose up -d          # Start all three brains
+docker-compose up brain       # Just the main brain
+docker-compose logs trading-brain
+docker-compose down
 ```
 
 ## Development
@@ -270,19 +256,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installs all workspace dependencies
 npm run build        # builds all packages (brain-core first)
-npm test             # runs all 1826 tests
-```
-
-### Workspace Commands
-
-```bash
-npm run build                    # build all packages
-npm test                         # test all packages
-npm run lint                     # lint all packages
-npm run build:core               # build brain-core only
-npm run build:brain              # build brain only
-npm run build:trading            # build trading-brain only
-npm run build:marketing          # build marketing-brain only
+npm test             # runs all 2075 tests
 ```
 
 ### Package Dependencies
@@ -296,24 +270,20 @@ brain-core          (no internal deps)
    +-- marketing-brain (depends on brain-core)
 ```
 
-Build `brain-core` first when making changes to shared infrastructure.
-
 ## Tech Stack
 
 - **TypeScript** — Full type safety, ES2022 target, ESM modules
 - **better-sqlite3** — Fast, embedded, synchronous database with WAL mode
 - **MCP SDK** — Model Context Protocol (stdio + HTTP/SSE transports)
-- **@huggingface/transformers** — Local ONNX sentence embeddings (Brain only)
+- **@huggingface/transformers** — Local ONNX sentence embeddings (23MB, no cloud)
+- **Claude API** — Code generation with brain knowledge context
 - **Commander** — CLI framework
-- **Chalk** — Colored terminal output
 - **Winston** — Structured logging with file rotation
-- **Vitest** — Testing (1826 tests across ecosystem)
-
-Visit the [Brain Hub](https://timmeck.github.io/brain-hub/) for the full ecosystem overview.
+- **Vitest** — 2075 tests across the ecosystem
 
 ## Support
 
-If Brain helps you, consider giving it a star — it helps others discover the project and keeps development going.
+If Brain helps you, consider giving it a star.
 
 [![Star this repo](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 [![Sponsor](https://img.shields.io/badge/Sponsor-Support%20Development-ea4aaa)](https://github.com/sponsors/timmeck)

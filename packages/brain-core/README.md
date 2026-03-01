@@ -5,51 +5,111 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Shared infrastructure for the Brain ecosystem — IPC, MCP, CLI, DB, math, synapses, and utilities.**
+**Shared infrastructure for the Brain Ecosystem — 9 research engines, synapses, IPC, MCP, dream mode, consciousness, prediction, code generation, and more.**
 
-Brain Core extracts the common infrastructure used across all Brain MCP servers ([Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain), [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain), [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain)) into a single, reusable package. All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo.
+Brain Core is the nervous system that powers all three Brain MCP servers ([Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain), [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain), [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain)). All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo.
 
 ## What's Included
 
+### Communication & API
+
 | Module | Description |
 |--------|-------------|
-| **IPC Protocol** | Length-prefixed JSON frames over named pipes (Windows) / Unix sockets |
+| **IPC Protocol** | Length-prefixed JSON frames over named pipes / Unix sockets |
 | **IPC Server** | Named pipe server with auto-recovery of stale pipes |
-| **IPC Client** | Client with request/response, timeouts, and notification support |
+| **IPC Client** | Request/response with timeouts and notification support |
 | **MCP Server** | Stdio transport for Claude Code with auto-daemon-start |
 | **MCP HTTP Server** | SSE transport for Cursor, Windsurf, Cline, Continue |
-| **REST API Server** | Base HTTP server with CORS, auth, SSE events, batch RPC |
+| **REST API Server** | HTTP server with CORS, auth, SSE events, batch RPC |
+| **IPC Validation** | Parameter validation (string 10KB, array 1000, depth 10) |
+| **IPC Errors** | Structured errors: IpcError, ValidationError, NotFoundError, TimeoutError |
+| **Security Middleware** | RateLimiter (token bucket), body size limits, security headers |
+
+### Synapse Network & Learning
+
+| Module | Description |
+|--------|-------------|
+| **Hebbian Learning** | Weighted graph — "neurons that fire together wire together" |
+| **Synapse Decay** | Exponential half-life decay for freshness |
+| **Spreading Activation** | BFS-based energy propagation through the graph |
+| **A* Pathfinding** | Find shortest paths between nodes |
+| **BaseSynapseManager** | Abstract manager with strengthen/weaken/activate/findPath/decay |
+| **BaseLearningEngine** | Abstract timer-managed learning engine |
+| **BaseResearchEngine** | Abstract timer-managed research engine |
+| **BaseMemoryEngine** | Abstract memory engine for expiry/consolidation/decay |
+| **Wilson Score** | Statistical confidence intervals for win rates |
+| **Time Decay** | Exponential half-life decay for rule freshness |
+
+### 9 Autonomous Research Engines
+
+| Engine | Description |
+|--------|-------------|
+| **SelfObserver** | Brain observes its own performance metrics and generates insights |
+| **AnomalyDetective** | Detects statistical outliers using Z-scores and drift analysis |
+| **CrossDomainEngine** | Finds correlations between events across different brains |
+| **AdaptiveStrategy** | Adjusts strategies based on outcomes, reverts if performance drops |
+| **ExperimentEngine** | Designs and runs A/B tests on brain parameters |
+| **KnowledgeDistiller** | Extracts principles from confirmed hypotheses |
+| **ResearchAgenda** | Prioritizes what should be researched next |
+| **CounterfactualEngine** | "What if" analysis — estimates impact of hypothetical interventions |
+| **ResearchJournal** | Logs all discoveries, experiments, and breakthroughs |
+
+### Orchestration & Autonomy
+
+| Module | Description |
+|--------|-------------|
+| **ResearchOrchestrator** | Feedback loops between all 9 engines, runs every 5 minutes |
+| **DataMiner** | Bootstraps historical DB data into engines with adapter pattern |
+| **AutonomousResearchScheduler** | Self-directed research cycle execution |
+| **MetaLearningEngine** | Hyper-parameter optimization with Bayesian exploration |
+| **CausalGraph** | Granger causality analysis for event relationships |
+| **HypothesisEngine** | Forms and tests hypotheses (temporal, correlation, threshold, frequency) |
+| **AutoResponder** | Anomaly → automatic parameter adjustment, escalation, resolution |
+| **PredictionEngine** | Holt-Winters + EWMA forecasting with auto-calibration |
+
+### Dream Mode & Consciousness
+
+| Module | Description |
+|--------|-------------|
+| **DreamEngine** | Offline memory consolidation — replay, prune, compress, decay |
+| **DreamConsolidator** | 4 phases: Memory Replay, Synapse Pruning, Compression, Importance Decay |
+| **ThoughtStream** | Circular buffer capturing every engine's thoughts in real-time |
+| **ConsciousnessServer** | HTTP + SSE server with live neural dashboard (force-directed graph) |
+
+### Code Generation & Mining
+
+| Module | Description |
+|--------|-------------|
+| **CodeGenerator** | Claude API integration — generates code using brain knowledge as context |
+| **ContextBuilder** | Builds system prompts from principles, anti-patterns, strategies, patterns |
+| **CodeMiner** | Mines GitHub repos: README, package.json, directory structures |
+| **PatternExtractor** | Extracts dependency, tech stack, structure, and README patterns |
+| **CodegenServer** | HTTP + SSE dashboard for code review with approve/reject workflow |
+| **SignalScanner** | GitHub trending repos, Hacker News, crypto signal tracking |
+
+### Cross-Brain & Services
+
+| Module | Description |
+|--------|-------------|
+| **CrossBrainClient** | Discover and query peer brains over IPC |
+| **CrossBrainNotifier** | Push event notifications to peers |
+| **CrossBrainCorrelator** | Correlate events across brains (error-trade-loss, publish-during-errors) |
+| **EcosystemService** | Aggregated status, health score 0–100, analytics |
+| **WebhookService** | HMAC-SHA256 signed webhooks with exponential retry |
+| **ExportService** | JSON/CSV export with date range and column filters |
+| **BackupService** | Timestamped SQLite backups with integrity verification |
+
+### Utilities
+
+| Module | Description |
+|--------|-------------|
 | **DB Connection** | SQLite (better-sqlite3) with WAL mode, foreign keys, caching |
-| **CLI Colors** | Shared color palette, formatting helpers (header, table, badges) |
 | **Logger** | Winston-based structured logging with file rotation |
 | **Event Bus** | Generic typed event emitter |
-| **Cross-Brain Client** | Discover and query peer brains over IPC named pipes |
-| **Cross-Brain Notifier** | Push event notifications to peer brains |
-| **Cross-Brain Subscriptions** | Persistent event subscriptions between brains |
-| **Embedding Engine** | Local vector embeddings with optional @huggingface/transformers |
-| **Dashboard Server** | Generic SSE dashboard server with live stats |
-| **Research Orchestrator** | Feedback loops between 9 research engines |
-| **9 Research Engines** | SelfObserver, AnomalyDetective, HypothesisEngine, CausalGraph, Experiment, KnowledgeDistiller, Counterfactual, AdaptiveStrategy, ResearchAgenda |
-| **DataMiner** | Bootstraps historical DB data into research engines with adapter pattern (new in v2.8) |
-| **Dream Engine** | Offline memory consolidation — replay, prune, compress, decay (new in v2.9) |
-| **Consciousness** | ThoughtStream + ConsciousnessServer — live neural dashboard with SSE (new in v2.10) |
-| **Prediction Engine** | Holt-Winters forecasting with auto-calibration and self-resolution (new in v2.11) |
-| **AutoResponder** | Automatic anomaly response with configurable rules and parameter adjustment (new in v2.12) |
-| **Meta-Learning** | Hyper-parameter optimization with Bayesian exploration |
-| **Autonomous Scheduler** | Self-directed research cycle execution |
-| **Webhook Service** | Configurable webhooks with HMAC signing and retry |
-| **Export Service** | JSON/CSV export with date range and column filters |
-| **Backup Service** | Timestamped SQLite backups with integrity verification |
-| **Math — Wilson Score** | Statistical confidence intervals for win rates / rule confidence |
-| **Math — Time Decay** | Exponential half-life decay for synapse and rule freshness |
+| **CLI Colors** | Shared color palette, formatting helpers (header, table, badges) |
 | **Config Loader** | `deepMerge()` + `loadConfigFile()` for layered config |
-| **Synapse Algorithms** | Hebbian learning, decay, spreading activation, A* pathfinding |
-| **BaseSynapseManager** | Abstract synapse manager with strengthen/weaken/activate/findPath/decay |
-| **BaseLearningEngine** | Abstract timer-managed learning engine with error handling |
-| **BaseResearchEngine** | Abstract timer-managed research engine with optional initial delay |
-| **BaseMemoryEngine** | Abstract timer-managed memory engine for expiry/consolidation/decay (new in v1.6) |
-| **Memory Types** | Shared types for Memory, Session, Remember/Recall/Session interfaces (new in v1.6) |
-| **Utils** | Path normalization, data dir resolution, SHA-256 hashing |
+| **Embedding Engine** | Local vector embeddings with @huggingface/transformers |
+| **Memory Types** | Shared types for Memory, Session, Remember/Recall interfaces |
 
 ## Installation
 
@@ -63,182 +123,79 @@ npm install @timmeck/brain-core
 
 ```typescript
 import {
-  createLogger,
-  getDataDir,
-  getPipeName,
-  createConnection,
-  IpcServer,
-  IpcClient,
-  startMcpServer,
-  McpHttpServer,
-  BaseApiServer,
-  TypedEventBus,
-  c, header, keyValue,
+  createConnection, IpcServer, startMcpServer,
+  ResearchOrchestrator, DreamEngine, ThoughtStream,
+  ConsciousnessServer, PredictionEngine,
 } from '@timmeck/brain-core';
 
-// 1. Configure for your brain
-const dataDir = getDataDir('MY_BRAIN_DATA_DIR', '.my-brain');
-createLogger({ envVar: 'MY_BRAIN_LOG_LEVEL', dataDir, defaultFilename: 'my-brain.log' });
+// 1. Database
+const db = createConnection('~/.my-brain/my-brain.db');
 
-// 2. Database
-const db = createConnection(`${dataDir}/my-brain.db`);
+// 2. Research Orchestrator (all 9 engines)
+const orchestrator = new ResearchOrchestrator(db, { brainName: 'my-brain' });
+orchestrator.start();
 
-// 3. Typed events
-interface MyBrainEvents {
-  'item:created': { itemId: number };
-  'item:updated': { itemId: number };
-}
-const bus = new TypedEventBus<MyBrainEvents>();
-bus.on('item:created', ({ itemId }) => console.log(`Item ${itemId} created`));
+// 3. Dream Mode
+const dreamEngine = new DreamEngine(db, { brainName: 'my-brain' });
+orchestrator.setDreamEngine(dreamEngine);
+dreamEngine.start();
 
-// 4. IPC Server
-const router = new MyRouter(services); // implements IpcRouter interface
-const ipcServer = new IpcServer(router, getPipeName('my-brain'), 'my-brain');
-ipcServer.start();
+// 4. Consciousness
+const thoughtStream = new ThoughtStream();
+orchestrator.setThoughtStream(thoughtStream);
+const consciousness = new ConsciousnessServer({ port: 7790, thoughtStream, ... });
+consciousness.start();
 
-// 5. REST API (extend BaseApiServer for custom routes)
-class MyApiServer extends BaseApiServer {
-  protected buildRoutes() {
-    return [
-      { method: 'GET', pattern: /^\/api\/v1\/items$/, ipcMethod: 'item.list',
-        extractParams: () => ({}) },
-    ];
-  }
-}
-
-// 6. MCP Server (stdio)
-await startMcpServer({
-  name: 'my-brain',
-  version: '1.0.0',
-  entryPoint: import.meta.filename,
-  registerTools: (server, ipc) => { /* register MCP tools */ },
-});
-
-// 7. CLI output
-console.log(header('My Brain Status'));
-console.log(keyValue('Items', 42));
-console.log(c.success('All systems operational'));
-```
-
-### IPC Router Interface
-
-Your brain must implement the `IpcRouter` interface:
-
-```typescript
-import type { IpcRouter } from '@timmeck/brain-core';
-
-class MyRouter implements IpcRouter {
-  handle(method: string, params: unknown): unknown {
-    switch (method) {
-      case 'item.list': return this.itemService.list();
-      case 'item.get': return this.itemService.get(params);
-      default: throw new Error(`Unknown method: ${method}`);
-    }
-  }
-
-  listMethods(): string[] {
-    return ['item.list', 'item.get'];
-  }
-}
+// 5. Predictions
+const prediction = new PredictionEngine(db, { brainName: 'my-brain' });
+orchestrator.setPredictionEngine(prediction);
+prediction.start();
 ```
 
 ## Architecture
 
 ```
 @timmeck/brain-core
-├── Types ──────── IpcMessage, SynapseRecord, NodeRef, NetworkStats
-├── Utils ──────── hash, logger, paths, events
-├── DB ─────────── SQLite connection (WAL mode)
-├── IPC ────────── protocol, server, client
+├── IPC ────────── protocol, server, client, validation, errors
 ├── MCP ────────── stdio server, HTTP/SSE server
-├── CLI ────────── colors, formatting helpers
-├── API ────────── BaseApiServer (CORS, auth, RPC, SSE)
-├── Math ───────── Wilson Score, Time Decay
-├── Config ─────── deepMerge, loadConfigFile
+├── API ────────── BaseApiServer, RateLimiter, security middleware
 ├── Synapses ───── Hebbian, Decay, Activation, Pathfinder, BaseSynapseManager
-├── Learning ───── BaseLearningEngine (abstract, timer-managed)
-├── Research ───── BaseResearchEngine, ResearchOrchestrator, DataMiner
+├── Research ───── ResearchOrchestrator, DataMiner, 9 Engines
 │   ├── Engines ── SelfObserver, AnomalyDetective, Experiment, Adaptive, Agenda
 │   ├── Engines ── KnowledgeDistiller, Counterfactual, CrossDomain, Journal
-│   ├── AutoResp ─ AutoResponder (anomaly → parameter adjustment, escalation)
-│   └── Adapters ─ BrainAdapter, TradingAdapter, MarketingAdapter
-├── Dream ──────── DreamEngine, DreamConsolidator (offline consolidation)
-├── Consciousness ─ ThoughtStream, ConsciousnessServer (live SSE dashboard)
-├── Prediction ─── PredictionEngine, Forecaster (Holt-Winters, EWMA)
-├── Memory ────── BaseMemoryEngine, MemoryRecord, SessionRecord, shared interfaces
-├── Cross-Brain ── CrossBrainClient, CrossBrainNotifier, Correlator
-├── Autonomous ── AutonomousResearchScheduler, MetaLearningEngine
-├── Causal ────── CausalGraph (Granger causality)
-├── Hypothesis ── HypothesisEngine (temporal, correlation, threshold, frequency)
-├── Webhooks ──── WebhookService (HMAC signing, retry, history)
-├── Export ────── ExportService (JSON/CSV, date range, columns)
-└── Backup ────── BackupService (timestamped, integrity check, restore)
+│   └── AutoResp ─ AutoResponder (anomaly → action)
+├── Dream ──────── DreamEngine, DreamConsolidator
+├── Consciousness  ThoughtStream, ConsciousnessServer
+├── Prediction ─── PredictionEngine, Holt-Winters, EWMA, Calibration
+├── CodeGen ────── CodeGenerator, CodeMiner, PatternExtractor, ContextBuilder, CodegenServer
+├── Scanner ────── SignalScanner, GitHubCollector, HnCollector, CryptoCollector
+├── Autonomous ─── AutonomousResearchScheduler, MetaLearningEngine
+├── Causal ─────── CausalGraph (Granger causality)
+├── Hypothesis ─── HypothesisEngine
+├── Cross-Brain ── Client, Notifier, Correlator, Subscriptions
+├── Ecosystem ──── EcosystemService, health scoring
+├── Webhooks ───── WebhookService (HMAC, retry, history)
+├── Export ─────── ExportService (JSON/CSV)
+├── Backup ─────── BackupService (timestamped, integrity check)
+├── Memory ─────── BaseMemoryEngine, types, interfaces
+├── Math ──────── Wilson Score, Time Decay
+├── Config ─────── deepMerge, loadConfigFile
+├── Dashboard ──── DashboardServer, Hub, Research dashboard
+├── CLI ────────── colors, formatting
+├── DB ─────────── SQLite connection (WAL mode)
+└── Utils ─────── hash, logger, paths, events
 ```
 
 ## Brain Ecosystem
 
 | Brain | Version | Purpose | Ports |
 |-------|---------|---------|-------|
-| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) | v3.13.0 | Error memory, code intelligence & persistent context | 7777/7778/7784 |
-| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) | v2.13.0 | Adaptive trading intelligence with memory & sessions | 7779/7780/7785 |
-| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) | v1.14.0 | Content strategy & engagement with memory & sessions | 7781/7782/7783/7786 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) | v2.12.0 | Shared infrastructure (this package) | — |
-
-All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. Brain Core provides shared infrastructure that eliminates ~2,800 lines of duplicated code across the ecosystem.
-
-## Cross-Brain Communication
-
-`CrossBrainClient` lets brains discover and query each other over IPC named pipes. Each brain exposes a `status` IPC method returning its name, version, uptime, pid, and method count — enabling automatic peer discovery without central coordination.
-
-```typescript
-import { CrossBrainClient, CrossBrainNotifier } from '@timmeck/brain-core';
-
-// Query peers
-const cross = new CrossBrainClient('brain');
-const peers = await cross.getAvailablePeers();
-// → [{ name: 'trading-brain', version: '1.3.2', uptime: 3600, pid: 12345, methods: 22 }, ...]
-
-// Push event notifications to peers (v1.5+)
-const notifier = new CrossBrainNotifier(cross, 'brain');
-notifier.notify('error:reported', { errorId: 42, fingerprint: 'ENOENT' });
-notifier.notifyPeer('trading-brain', 'insight:created', { insightId: 7 });
-```
-
-### Base Engines
-
-Abstract base classes eliminate timer boilerplate from learning and research engines:
-
-```typescript
-import { BaseLearningEngine, BaseResearchEngine, BaseMemoryEngine } from '@timmeck/brain-core';
-
-class MyLearningEngine extends BaseLearningEngine {
-  runCycle() { /* your learning logic */ }
-}
-
-class MyResearchEngine extends BaseResearchEngine {
-  runCycle() { /* your research logic */ }
-}
-
-class MyMemoryEngine extends BaseMemoryEngine {
-  runCycle() { /* expiry checks, consolidation, importance decay */ }
-}
-```
-
-### Consciousness & Self-Improvement
-
-Brain Core includes a full consciousness layer that makes Brain's internal processes visible:
-
-- **ThoughtStream** — Circular buffer capturing every engine's activity in real-time
-- **ConsciousnessServer** — HTTP + SSE server with live neural dashboard (force-directed graph, thought stream, engine status)
-- **PredictionEngine** — Holt-Winters Double Exponential Smoothing with EWMA fallback, auto-calibration via confidence buckets
-- **AutoResponder** — Reacts to detected anomalies automatically: adjusts parameters, escalates critical issues, logs everything
-- **Self-Improvement Loop** — Brain analyzes its own state and generates improvement suggestions in `~/.brain/improvement-requests.md`
-
-Visit the [Brain Hub](https://timmeck.github.io/brain-hub/) for the full ecosystem overview.
+| [Brain](../brain) | v3.19.0 | Error memory, code intelligence, autonomous research & code generation | 7777/7778/7784/7787 |
+| [Trading Brain](../trading-brain) | v2.13.0 | Adaptive trading intelligence with signal learning & backtesting | 7779/7780/7785 |
+| [Marketing Brain](../marketing-brain) | v1.14.0 | Content strategy, engagement & cross-platform optimization | 7781/7782/7783/7786 |
+| **Brain Core** | v2.18.0 | Shared infrastructure (this package) | — |
 
 ## Support
-
-If Brain Core helps you, consider giving it a star — it helps others discover the project and keeps development going.
 
 [![Star this repo](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 [![Sponsor](https://img.shields.io/badge/Sponsor-Support%20Development-ea4aaa)](https://github.com/sponsors/timmeck)

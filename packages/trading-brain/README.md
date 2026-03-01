@@ -7,287 +7,104 @@
 
 **Adaptive Trading Intelligence & Signal Learning System for Claude Code**
 
-Trading Brain is an MCP server that gives Claude Code a persistent trading memory. It learns from every trade outcome — strengthening connections between signals, strategies, and results through a Hebbian synapse network. Over time, it develops confidence in signal combinations, adapts calibration parameters, and surfaces research insights about your trading patterns.
-
-## Why Trading Brain?
-
-Without Trading Brain, every trading decision starts from zero. With Trading Brain:
-
-- **Signals are weighted by experience** — Brain tracks which signal combinations actually lead to winning trades, not just theory
-- **Confidence is statistical** — Wilson Score intervals provide conservative confidence bounds, not just raw win rates
-- **DCA multipliers adapt** — Brain-recommended position sizes adjust based on regime awareness and historical performance
-- **Grid parameters tune themselves** — Volatility-aware grid spacing multipliers based on actual outcomes
-- **Patterns emerge automatically** — The learning engine extracts rules from signal fingerprint groupings
-- **Streaks are detected** — Chain detection identifies winning and losing streaks per pair
-- **Knowledge compounds** — Every trade outcome makes Brain smarter through Hebbian learning
-- **Research runs continuously** — Trend analysis, gap detection, synergy mapping, and regime shift detection
-
-## Features
-
-### Core Intelligence
-- **Trade Outcome Memory** — Record and query trade outcomes with full signal context
-- **Signal Fingerprinting** — RSI, MACD, Trend, and Volatility classification into discrete categories
-- **Wilson Score Confidence** — Statistical confidence intervals with adaptive z-scores based on data volume
-- **Hebbian Synapse Network** — Weighted graph connecting signals, combos, outcomes, pairs, and regimes
-- **Spreading Activation** — Explore related knowledge by activating nodes in the synapse network
-- **Adaptive Calibration** — Learning rate, Wilson z-score, and decay half-life auto-calibrate across 4 stages
-
-### Learning Engine
-- **Pattern Extraction** — Fingerprint grouping with similarity threshold → rules when confidence exceeds gate
-- **Chain Detection** — Identifies 3+ consecutive same-result trades on the same pair
-- **Temporal Decay** — Exponential half-life decay keeps recent trades more relevant
-- **Recalibration** — Auto-recalibrates every 25 trades based on data volume and synapse density
-
-### Dream Mode (new in v2.10)
-- **Offline Consolidation** — Memory replay, synapse pruning, memory compression, importance decay during idle periods
-- **Idle Detection** — Automatically triggers when brain is idle for 5+ minutes
-- **Manual Trigger** — Force a dream cycle via MCP tool or IPC
-- **Consciousness Dashboard** — Live neural graph at http://localhost:7785 showing real-time thought stream and engine status (new in v2.11)
-- **Prediction Engine** — Holt-Winters forecasting for trade win rates and PnL with 2-hour horizon and auto-calibration (new in v2.12)
-- **AutoResponder** — Automatically adjusts trading parameters when anomalies are detected (new in v2.13)
-- **Self-Improvement Loop** — Brain generates improvement suggestions to ~/.brain/improvement-requests.md (new in v2.13)
-
-### Research Engine
-- **Trend Detection** — Identifies pairs with consistently improving or declining win rates
-- **Gap Detection** — Finds signal combinations with few data points that need more testing
-- **Synergy Detection** — Discovers which signal pairs frequently co-occur in winning trades
-- **Performance Analysis** — Ranks pairs and strategies by statistical confidence
-- **Regime Shift Detection** — Alerts when a pair's recent performance deviates from its baseline
-
-### Never Forget — Memory & Sessions
-- **Persistent Memory** — Store preferences, decisions, context, facts, goals, and lessons learned
-- **Key-Based Upsert** — Update existing memories by unique key, auto-superseding old values
-- **Full-Text Search** — Natural language recall with FTS5-powered search
-- **Session Tracking** — Track conversation goals, summaries, and outcomes
-- **Importance Scoring** — 1–10 importance scale with category-based organization
-- **Soft Deletes** — Deactivate memories without losing history
-
-### Strategy Recommendations
-- **DCA Multiplier** — Brain-recommended multiplier (0.3x–2.5x) based on regime and RSI context
-- **Grid Parameters** — Volatility-aware grid spacing with historical performance adjustment
-
-### Universal Access
-- **MCP Server** — Stdio transport for Claude Code integration
-- **MCP HTTP/SSE** — Standard MCP protocol over HTTP for Cursor, Windsurf, Cline, Continue
-- **REST API** — Full HTTP API on port 7779 with RPC endpoint
+Trading Brain is an MCP server that gives Claude Code a persistent trading memory. It learns from every trade outcome — strengthening connections between signals, strategies, and results through a Hebbian synapse network. Over time, it develops statistical confidence in signal combinations, adapts calibration parameters, and runs 9 autonomous research engines to discover patterns in your trading data.
 
 ## Quick Start
-
-### Installation
 
 ```bash
 npm install -g @timmeck/trading-brain
 trading setup
 ```
 
-That's it. One command configures MCP and starts the daemon.
+## Features
 
-Or install globally and configure manually:
+### Core Intelligence
+- **Trade Outcome Memory** — Record and query trade outcomes with full signal context
+- **Signal Fingerprinting** — RSI, MACD, Trend, Volatility classification into discrete categories
+- **Wilson Score Confidence** — Statistical confidence intervals with adaptive z-scores
+- **Hebbian Synapse Network** — Weighted graph: "signals that win together wire together"
+- **Adaptive Calibration** — Learning rate, Wilson z, decay half-life auto-calibrate across 4 stages
+- **DCA Multiplier** — Brain-recommended position sizes based on regime and performance
+- **Grid Parameters** — Volatility-aware grid spacing with automatic tuning
 
-```bash
-npm install -g @timmeck/trading-brain
-```
+### Backtesting & Risk
+- **Backtesting Engine** — Run backtests, compare signals, find best signals with Sharpe/PF/MaxDD/Equity Curve
+- **Risk Management** — Kelly Criterion (half-Kelly + brain-adjusted), max 25% position size
+- **Multi-Timeframe** — Timeframe-aware trade analysis
+- **Chain Detection** — Winning and losing streak identification per pair
 
-### Setup with Claude Code
+### Alert System
+- **5 Condition Types** — Price, signal, streak, drawdown, custom
+- **Cooldown** — Prevents alert storms
+- **Webhooks** — Push alerts to external systems
+- **History** — Full alert delivery log
 
-Add Trading Brain's MCP server to your Claude Code configuration (`~/.claude/settings.json`):
+### Autonomous Research (9 Engines)
+Same engine architecture as Brain, fed with trade history via DataMiner:
+- SelfObserver, AnomalyDetective, CrossDomain, AdaptiveStrategy, ExperimentEngine, KnowledgeDistiller, ResearchAgenda, CounterfactualEngine, Journal
+- **Feedback loops** running every 5 minutes
+- **DataMiner** bootstraps all historical trades into engines at startup
 
-```json
-{
-  "mcpServers": {
-    "trading-brain": {
-      "command": "trading",
-      "args": ["mcp-server"]
-    }
-  }
-}
-```
+### Dream Mode & Consciousness
+- **Dream Engine** — Offline consolidation: memory replay, synapse pruning, compression, importance decay
+- **Consciousness Dashboard** — Live neural graph at http://localhost:7785 with thought stream and engine status
+- **Prediction Engine** — Holt-Winters forecasting for win rates and PnL with auto-calibration
+- **AutoResponder** — Automatically adjusts trading parameters when anomalies detected
+- **Self-Improvement Loop** — Generates improvement suggestions
 
-### Setup with Cursor / Windsurf / Cline / Continue
+### Memory & Sessions
+- **Persistent Memory** — Preferences, decisions, context, facts, goals, lessons
+- **Session Tracking** — Conversation goals, summaries, outcomes
+- **Key-Based Upsert** — Update memories by key, auto-supersede old values
 
-Trading Brain supports MCP over HTTP with SSE transport:
+### Universal Access
+- **MCP Server** — Stdio transport for Claude Code
+- **MCP HTTP/SSE** — For Cursor, Windsurf, Cline, Continue (port 7780)
+- **REST API** — Full HTTP API on port 7779
 
-```json
-{
-  "trading-brain": {
-    "url": "http://localhost:7780/sse"
-  }
-}
-```
+## MCP Tools (64 tools)
 
-Make sure the daemon is running (`trading start`).
+**Trading Core**: trading_record_outcome, trading_signal_weights, trading_signal_confidence, trading_explain_signal, trading_dca_multiplier, trading_grid_params, trading_calibration, trading_calibration_history, trading_rules, trading_chains, trading_query, trading_learn, trading_reset
 
-### Start the Daemon
+**Backtesting & Risk**: trading_run_backtest, trading_compare_signals, trading_find_best_signals, trading_risk_metrics, trading_kelly_sizing
 
-```bash
-trading start
-trading status
-trading doctor    # verify everything is configured correctly
-```
+**Alerts**: trading_alert_create, trading_alert_list, trading_alert_check, trading_alert_history
 
-The daemon runs background tasks: learning cycles, research analysis, synapse decay, and recalibration.
+**Import**: trading_bulk_import
 
-## Architecture
+**Research Engines** (5 tools each): self_observer, anomaly_detective, cross_domain, adaptive_strategy, experiment, knowledge_distiller, research_agenda, counterfactual, journal
 
-```
-+------------------+     +------------------+     +------------------+
-|   Claude Code    |     |  Cursor/Windsurf |     |  Browser/CI/CD   |
-|   (MCP stdio)    |     |  (MCP HTTP/SSE)  |     |  (REST API)      |
-+--------+---------+     +--------+---------+     +--------+---------+
-         |                        |                        |
-         v                        v                        v
-+--------+---------+     +--------+---------+     +--------+---------+
-|   MCP Server     |     |   MCP HTTP/SSE   |     |    REST API      |
-|   (stdio)        |     |   (port 7780)    |     |   (port 7779)    |
-+--------+---------+     +--------+---------+     +--------+---------+
-         |                        |                        |
-         +----------+-------------+------------------------+
-                    |
-                    v
-         +----------+------------+
-         |     TradingCore       |
-         |  (Daemon / Services)  |
-         +----------+------------+
-                    |
-    +-------+-------+--------+--------+
-    |       |       |        |        |
-    v       v       v        v        v
-+---+--+ +--+---+ +-+-----+ +-+----+ +-+--------+
-|Trade | |Signal| |Synapse | |Strat | |Research  |
-|Memory| |Brain | |Network | |Brain | |Engine    |
-+---+--+ +--+---+ +-+-----+ +-+----+ +-+--------+
-    |       |       |        |        |
-    v       v       v        v        v
-+---+--+ +--+---+ +-+-----+ +-+----+ +-+--------+
-|Learn | |Wilson| |Hebbian | |DCA/  | |Trend/Gap |
-|Engine| |Score | |Learn   | |Grid  | |Synergy   |
-+------+ +------+ +-------+ +------+ +----------+
-                    |
-                    v
-         +----------+-----------+
-         |     SQLite (DB)      |
-         |  better-sqlite3      |
-         +----------------------+
-```
+**Dream**: trading_dream_status, trading_dream_consolidate, trading_dream_history
 
-### Core Components
+**Consciousness**: trading_consciousness_status, trading_consciousness_thoughts
 
-| Component | Purpose |
-|-----------|---------|
-| **Trade Memory** | Stores trade outcomes with signal fingerprints, pairs, bot types, and results |
-| **Signal Brain** | Computes weighted signal strengths via direct synapses + spreading activation + similar combo boost |
-| **Synapse Network** | Weighted graph connecting signals, combos, outcomes, pairs. Hebbian: "signals that win together wire together" |
-| **Strategy Brain** | DCA multiplier and grid parameter recommendations based on regime and volatility awareness |
-| **Learning Engine** | Pattern extraction, chain detection, temporal decay, adaptive recalibration |
-| **Research Engine** | Automated analysis: trends, gaps, synergies, performance rankings, regime shifts |
-| **Calibrator** | 4-stage adaptive calibration: learningRate, wilsonZ, decayHalfLife based on trade count |
-| **REST API** | HTTP API exposing all Trading Brain methods as RPC endpoints |
-| **MCP HTTP Server** | SSE transport enabling non-Claude MCP clients |
+**Prediction**: trading_predict, trading_prediction_accuracy, trading_predictions_list
+
+**AutoResponder**: trading_responder_status, trading_responder_history, trading_responder_rules
+
+**Memory**: trading_remember, trading_recall, trading_session_start, trading_session_end, trading_session_history
+
+**Ecosystem**: trading_status, trading_explore, trading_connections, trading_insights, trading_ecosystem_status, trading_query_peer, trading_error_context
 
 ## CLI Commands
 
 ```
 trading setup              One-command setup: MCP + daemon
-trading start              Start the Trading Brain daemon
-trading stop               Stop the daemon
-trading status             Show stats (trades, rules, chains, insights, synapses)
-trading doctor             Health check: daemon, DB, IPC, ports
-trading query <text>       Search trades by fingerprint, pair, or bot type
-trading insights           Show research insights with severity
-trading rules              Show learned rules with confidence and win rate
-trading network            Explore the synapse network
-trading dashboard           Open interactive HTML dashboard in browser
-trading peers              Show status of peer brains in the ecosystem
-trading config             View and manage configuration
-trading export             Export all data as JSON
-trading import <file>      Import trades from JSON array
-```
-
-## MCP Tools
-
-These tools are available to Claude Code (and other MCP clients) when Trading Brain is configured:
-
-| Tool | Description |
-|------|-------------|
-| `trading_record_outcome` | Record a trade outcome (main entry point for learning loop) |
-| `trading_signal_weights` | Get Brain-weighted signal strengths for a signal combination |
-| `trading_signal_confidence` | Wilson Score confidence interval for a signal pattern |
-| `trading_explain_signal` | Full confidence breakdown with Wilson Score details, similar signals (new in v2.0) |
-| `trading_calibration_history` | Calibration parameter changes over time (new in v2.0) |
-| `trading_dca_multiplier` | Brain-recommended DCA position size multiplier |
-| `trading_grid_params` | Brain-recommended grid trading parameters |
-| `trading_explore` | Spreading Activation network exploration from a query node |
-| `trading_connections` | Find the shortest path between two nodes in the graph |
-| `trading_rules` | Get all learned trading rules |
-| `trading_insights` | Get research insights (trends, gaps, synergies) |
-| `trading_chains` | Get detected winning/losing streaks |
-| `trading_query` | Search trades by fingerprint, pair, or bot type |
-| `trading_status` | Current Trading Brain stats |
-| `trading_calibration` | Current adaptive calibration parameters |
-| `trading_learn` | Manually trigger a learning cycle |
-| `trading_reset` | Reset all data (use with caution) |
-| `trading_ecosystem_status` | Get status of all brains in the ecosystem |
-| `trading_query_peer` | Query another brain in the ecosystem (method + params) |
-| `trading_remember` | Store a memory (preference, decision, context, fact, goal, lesson) |
-| `trading_recall` | Search memories by natural language query |
-| `trading_session_start` | Start a session with optional goals |
-| `trading_session_end` | End a session with summary and outcome |
-| `trading_session_history` | List past sessions with summaries |
-| `trading_error_context` | Query Brain for errors that correlate with trade failures |
-| `trading_dream_status` | Dream engine status and lifetime consolidation stats |
-| `trading_dream_consolidate` | Manually trigger a dream consolidation cycle |
-| `trading_dream_history` | View past dream consolidation cycles |
-| **Consciousness** (new in v2.11) | |
-| `trading_consciousness_status` | Live consciousness stats: thoughts, engines, breakthroughs |
-| `trading_consciousness_thoughts` | Recent thoughts from all engines |
-| **Prediction Engine** (new in v2.12) | |
-| `trading_predict` | Predict trade metrics (win rate, PnL) using Holt-Winters forecasting |
-| `trading_prediction_accuracy` | Prediction accuracy with calibration score |
-| `trading_predictions_list` | List predictions with outcomes |
-| **AutoResponder** (new in v2.13) | |
-| `trading_responder_status` | AutoResponder status and success rate |
-| `trading_responder_history` | History of automatic anomaly responses |
-| `trading_responder_rules` | Active response rules |
-
-## REST API
-
-Trading Brain includes a REST API on port 7779 (default).
-
-### Generic RPC Endpoint
-
-```bash
-# Call any Trading Brain method
-curl -X POST http://localhost:7779/api/v1/rpc \
-  -H "Content-Type: application/json" \
-  -d '{"method": "analytics.summary", "params": {}}'
-
-# Batch multiple calls
-curl -X POST http://localhost:7779/api/v1/rpc \
-  -H "Content-Type: application/json" \
-  -d '[
-    {"id": 1, "method": "analytics.summary", "params": {}},
-    {"id": 2, "method": "synapse.stats", "params": {}}
-  ]'
-```
-
-### Authentication
-
-Set an API key via environment variable:
-
-```bash
-TRADING_BRAIN_API_KEY=your-secret-key trading start
-```
-
-Then include it in requests:
-
-```bash
-curl -H "X-API-Key: your-secret-key" http://localhost:7779/api/v1/rpc \
-  -d '{"method": "analytics.summary", "params": {}}'
+trading start / stop       Daemon management
+trading status             Stats: trades, rules, chains, insights, synapses
+trading doctor             Health check
+trading query <text>       Search trades
+trading insights           Research insights
+trading rules              Learned rules with confidence
+trading network            Synapse network
+trading dashboard          Interactive HTML dashboard
+trading peers              Peer brain status
+trading config             Configuration management
+trading export             Export all data
+trading import <file>      Import trades from JSON
 ```
 
 ## Configuration
-
-Trading Brain is configured via `config.json` in the data directory or environment variables:
 
 | Env Variable | Default | Description |
 |---|---|---|
@@ -296,85 +113,30 @@ Trading Brain is configured via `config.json` in the data directory or environme
 | `TRADING_BRAIN_API_PORT` | `7779` | REST API port |
 | `TRADING_BRAIN_API_KEY` | — | API authentication key |
 | `TRADING_BRAIN_MCP_HTTP_PORT` | `7780` | MCP HTTP/SSE port |
-| `TRADING_BRAIN_API_ENABLED` | `true` | Enable REST API |
-| `TRADING_BRAIN_MCP_HTTP_ENABLED` | `true` | Enable MCP HTTP |
 
 ## How It Learns
 
-1. **Trade Outcome Recorded** — A bot completes a trade and reports the result via `trading_record_outcome`
-2. **Signal Fingerprinted** — RSI, MACD, Trend, and Volatility are classified into discrete categories
-3. **Synapses Form** — Hebbian connections link signal → combo → outcome → pair. Winners strengthen, losers weaken
-4. **Graph Updated** — Nodes and edges are created/strengthened in the weighted graph
-5. **Chain Checked** — If 3+ consecutive same-result trades on a pair, a chain is recorded
-6. **Confidence Computed** — Wilson Score provides statistical lower bound on true win rate
-7. **Patterns Extracted** — Similar fingerprints are grouped; rules generated when confidence exceeds threshold
-8. **Calibration Adapts** — Every 25 trades, learning rate, Wilson z, and decay half-life recalibrate
-9. **Research Runs** — Background analysis finds trends, gaps, synergies, and regime shifts
-10. **Next Trade** — Signal weights, DCA multiplier, and grid params incorporate all learned knowledge
-
-## Algorithms
-
-### Wilson Score Confidence
-Conservative statistical confidence interval for win rates. Adaptive z-score: starts at 1.0 (few trades) → reaches 1.96 (500+ trades).
-
-### Hebbian Learning
-"Signals that win together wire together." Asymmetric updates:
-- **Strengthen** (win): `weight += (1 - weight) * learningRate` (asymptotic approach to 1.0)
-- **Weaken** (loss): `weight *= penalty` (multiplicative decay)
-
-### Spreading Activation
-BFS-based energy propagation through the weighted graph. Decay factor 0.6, threshold 0.05, max depth 4. Used for signal weight bonuses and network exploration.
-
-### Adaptive Calibration
-4 stages based on trade count:
-| Stage | Trades | Learning Rate | Wilson Z | Decay Half-Life |
-|-------|--------|--------------|----------|-----------------|
-| 1 | <20 | 0.3 | 1.0 | 60 days |
-| 2 | 20–100 | 0.15 | 1.44 | 45 days |
-| 3 | 100–500 | 0.08 | 1.65 | 30 days |
-| 4 | >500 | 0.05 | 1.96 | 21 days |
-
-### Signal Fingerprinting
-Each signal dimension is classified:
-- **RSI**: oversold (<30), neutral (30–70), overbought (>70)
-- **MACD**: strong_bull (>0.5), bull (>0), bear (<0), strong_bear (<-0.5)
-- **Trend**: strong_up (>0.5), up (>0), down (<0), strong_down (<-0.5)
-- **Volatility**: low (<0.3), medium (0.3–0.7), high (>0.7)
-
-## Tech Stack
-
-- **TypeScript** — Full type safety, ES2022 target, ESM modules
-- **better-sqlite3** — Fast, embedded, synchronous database with WAL mode
-- **MCP SDK** — Model Context Protocol integration (stdio + HTTP/SSE transports)
-- **Commander** — CLI framework
-- **Chalk** — Colored terminal output
-- **Winston** — Structured logging
+1. **Trade Recorded** — Bot reports result via `trading_record_outcome`
+2. **Signal Fingerprinted** — RSI/MACD/Trend/Volatility classified
+3. **Synapses Form** — Hebbian connections: signal → combo → outcome → pair
+4. **Chains Checked** — 3+ consecutive same-result → chain recorded
+5. **Confidence Computed** — Wilson Score lower bound on true win rate
+6. **Patterns Extracted** — Similar fingerprints grouped, rules generated
+7. **Calibration Adapts** — Every 25 trades, parameters recalibrate
+8. **Research Runs** — Trends, gaps, synergies, regime shifts detected
+9. **Predictions Form** — Holt-Winters forecasts win rates
+10. **Auto-Response** — Anomalies trigger parameter adjustments
 
 ## Brain Ecosystem
 
-Trading Brain is part of the **[Brain Ecosystem](https://github.com/timmeck/brain-ecosystem)** — a monorepo of MCP servers that give Claude Code persistent, self-learning memory.
-
-| Brain | Purpose | Ports |
-|-------|---------|-------|
-| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v3.13.0 | Error memory, code intelligence, persistent context & autonomous research | 7777 / 7778 |
-| **Trading Brain** v2.13.0 | Adaptive trading intelligence with memory, sessions & autonomous research | **7779** / 7780 / 7785 |
-| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) v1.14.0 | Content strategy, engagement, campaigns & autonomous research | 7781 / 7782 / 7783 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.12.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory, research) | — |
-| [Brain Hub](https://timmeck.github.io/brain-hub/) | Ecosystem landing page | — |
-
-All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. [Brain Core](https://www.npmjs.com/package/@timmeck/brain-core) provides shared infrastructure (IPC, MCP, REST API, CLI, math, synapse algorithms) used by all brains, eliminating ~2,800 lines of duplicated code.
-
-### Cross-Brain Communication
-
-Brains discover and query each other at runtime via IPC named pipes. Use `trading peers` to see online peers, or the `trading_query_peer` / `trading_ecosystem_status` MCP tools to access peer data from Claude Code. Brains push event notifications to peers — when Trading Brain records a trade outcome or calibrates signals, Brain and Marketing Brain are notified automatically.
-
-### Ecosystem Dashboard
-
-The interactive HTML dashboard (`trading dashboard`) includes an Ecosystem Peers section showing the live status of all connected brains.
+| Brain | Version | Purpose | Ports |
+|-------|---------|---------|-------|
+| [Brain](../brain) | v3.19.0 | Error memory, code intelligence, autonomous research & code generation | 7777 / 7778 / 7784 / 7787 |
+| **Trading Brain** | v2.13.0 | Adaptive trading intelligence with signal learning & backtesting | **7779** / 7780 / 7785 |
+| [Marketing Brain](../marketing-brain) | v1.14.0 | Content strategy, engagement & cross-platform optimization | 7781 / 7782 / 7783 / 7786 |
+| [Brain Core](../brain-core) | v2.18.0 | Shared infrastructure | — |
 
 ## Support
-
-If Trading Brain helps you, consider giving it a star — it helps others discover the project and keeps development going.
 
 [![Star this repo](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 [![Sponsor](https://img.shields.io/badge/Sponsor-Support%20Development-ea4aaa)](https://github.com/sponsors/timmeck)
