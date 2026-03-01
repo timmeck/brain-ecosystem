@@ -76,7 +76,7 @@ All brains support MCP over HTTP with SSE transport:
 
 ## Brain — Error Memory & Code Intelligence
 
-The flagship. 28 MCP tools for error tracking, code reuse, and persistent context.
+The flagship. 81 MCP tools for error tracking, code reuse, persistent context, and autonomous research.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
@@ -89,11 +89,13 @@ The flagship. 28 MCP tools for error tracking, code reuse, and persistent contex
 - **Cross-Project Learning** — Solutions from project A help solve errors in project B
 - **Proactive Prevention** — Warns before errors occur when code matches known antipatterns
 - **Semantic Search** — Local all-MiniLM-L6-v2 embeddings (23MB, no cloud required)
+- **Autonomous Research** — 9 research engines with feedback loops (SelfObserver, AnomalyDetective, HypothesisEngine, CausalGraph, ExperimentEngine, KnowledgeDistiller, CounterfactualEngine, AdaptiveStrategy, ResearchAgenda)
+- **DataMiner** — Bootstraps historical DB data into research engines at startup, mines new data every 5 min
 - **REST API** — Full HTTP API on port 7777 with 60+ methods
 
 ## Trading Brain — Adaptive Trading Intelligence
 
-22 MCP tools for trade outcome tracking, signal learning, and strategy optimization.
+75 MCP tools for trade outcome tracking, signal learning, strategy optimization, and autonomous research.
 
 - **Trade Outcome Memory** — Record and query trade outcomes with full signal context
 - **Signal Fingerprinting** — RSI, MACD, Trend, and Volatility classification into discrete categories
@@ -102,11 +104,14 @@ The flagship. 28 MCP tools for error tracking, code reuse, and persistent contex
 - **Grid Parameters** — Volatility-aware grid spacing with automatic tuning
 - **Chain Detection** — Identifies winning and losing streaks per pair
 - **Adaptive Calibration** — Learning rate, Wilson z-score, and decay half-life auto-calibrate across 4 stages
+- **Backtesting** — Run backtests, compare signals, find best signals with Sharpe/PF/MaxDD
+- **Risk Management** — Kelly Criterion position sizing, drawdown tracking, risk metrics
+- **Autonomous Research** — 9 research engines with DataMiner bootstrapping trade history
 - **Memory & Sessions** — Persistent memory for trading preferences, decisions, and session goals
 
 ## Marketing Brain — Self-Learning Marketing Intelligence
 
-22 MCP tools for content strategy, engagement tracking, and campaign management.
+75 MCP tools for content strategy, engagement tracking, campaign management, and autonomous research.
 
 - **Post Tracking** — Store posts with platform, format, hashtags, URL, and full engagement history
 - **Campaign Management** — Group posts into campaigns, track aggregate performance
@@ -114,6 +119,10 @@ The flagship. 28 MCP tools for error tracking, code reuse, and persistent contex
 - **Template Library** — High-performing post structures become reusable templates
 - **Timing Patterns** — Discovers best/worst posting hours from engagement data
 - **Gap Analysis** — Spots blind spots: "You never post on LinkedIn — potential?"
+- **Competitor Analysis** — Track and benchmark competitor engagement
+- **Content Generation** — Draft posts from patterns, rules, and templates
+- **Cross-Platform** — Optimize content for X, LinkedIn, Reddit, Bluesky, Mastodon, Threads
+- **Autonomous Research** — 9 research engines with DataMiner bootstrapping post/engagement history
 - **Interactive Dashboard** — Neural canvas background, force-directed synapse graph, live SSE updates
 - **Memory & Sessions** — Persistent memory for marketing decisions, strategies, and session goals
 
@@ -163,6 +172,9 @@ Every brain is built on the same infrastructure:
 | **Hebbian Synapse Network** | Weighted graph — "neurons that fire together wire together" |
 | **Learning Engine** | Extracts patterns, generates rules with adaptive thresholds |
 | **Research Engine** | Automated trend analysis, gap detection, synergy mapping |
+| **9 Research Engines** | SelfObserver, AnomalyDetective, HypothesisEngine, CausalGraph, ExperimentEngine, KnowledgeDistiller, CounterfactualEngine, AdaptiveStrategy, ResearchAgenda |
+| **DataMiner** | Bootstraps historical DB data into research engines, incremental mining every 5 min |
+| **Research Orchestrator** | Feedback loops between all 9 research engines |
 | **Memory System** | Persistent memory with categories, importance, FTS5 search |
 | **Cross-Brain Client** | Discover and query peer brains at runtime |
 | **Cross-Brain Notifier** | Push event notifications to peers |
@@ -254,7 +266,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installs all workspace dependencies
 npm run build        # builds all packages (brain-core first)
-npm test             # runs all 538 tests
+npm test             # runs all 1790 tests
 ```
 
 ### Workspace Commands
@@ -291,7 +303,7 @@ Build `brain-core` first when making changes to shared infrastructure.
 - **Commander** — CLI framework
 - **Chalk** — Colored terminal output
 - **Winston** — Structured logging with file rotation
-- **Vitest** — Testing (538 tests across ecosystem)
+- **Vitest** — Testing (1790 tests across ecosystem)
 
 Visit the [Brain Hub](https://timmeck.github.io/brain-hub/) for the full ecosystem overview.
 

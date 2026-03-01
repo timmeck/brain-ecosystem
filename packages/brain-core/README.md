@@ -25,9 +25,17 @@ Brain Core extracts the common infrastructure used across all Brain MCP servers 
 | **Event Bus** | Generic typed event emitter |
 | **Cross-Brain Client** | Discover and query peer brains over IPC named pipes |
 | **Cross-Brain Notifier** | Push event notifications to peer brains |
-| **Cross-Brain Subscriptions** | Persistent event subscriptions between brains (new in v2.0) |
-| **Embedding Engine** | Local vector embeddings with optional @huggingface/transformers (new in v2.0) |
-| **Dashboard Server** | Generic SSE dashboard server with live stats (new in v2.0) |
+| **Cross-Brain Subscriptions** | Persistent event subscriptions between brains |
+| **Embedding Engine** | Local vector embeddings with optional @huggingface/transformers |
+| **Dashboard Server** | Generic SSE dashboard server with live stats |
+| **Research Orchestrator** | Feedback loops between 9 research engines |
+| **9 Research Engines** | SelfObserver, AnomalyDetective, HypothesisEngine, CausalGraph, Experiment, KnowledgeDistiller, Counterfactual, AdaptiveStrategy, ResearchAgenda |
+| **DataMiner** | Bootstraps historical DB data into research engines with adapter pattern (new in v2.8) |
+| **Meta-Learning** | Hyper-parameter optimization with Bayesian exploration |
+| **Autonomous Scheduler** | Self-directed research cycle execution |
+| **Webhook Service** | Configurable webhooks with HMAC signing and retry |
+| **Export Service** | JSON/CSV export with date range and column filters |
+| **Backup Service** | Timestamped SQLite backups with integrity verification |
 | **Math — Wilson Score** | Statistical confidence intervals for win rates / rule confidence |
 | **Math — Time Decay** | Exponential half-life decay for synapse and rule freshness |
 | **Config Loader** | `deepMerge()` + `loadConfigFile()` for layered config |
@@ -145,19 +153,28 @@ class MyRouter implements IpcRouter {
 ├── Config ─────── deepMerge, loadConfigFile
 ├── Synapses ───── Hebbian, Decay, Activation, Pathfinder, BaseSynapseManager
 ├── Learning ───── BaseLearningEngine (abstract, timer-managed)
-├── Research ───── BaseResearchEngine (abstract, timer-managed)
+├── Research ───── BaseResearchEngine, ResearchOrchestrator, DataMiner
+│   ├── Engines ── SelfObserver, AnomalyDetective, Experiment, Adaptive, Agenda
+│   ├── Engines ── KnowledgeDistiller, Counterfactual, CrossDomain, Journal
+│   └── Adapters ─ BrainAdapter, TradingAdapter, MarketingAdapter
 ├── Memory ────── BaseMemoryEngine, MemoryRecord, SessionRecord, shared interfaces
-└── Cross-Brain ── CrossBrainClient, CrossBrainNotifier
+├── Cross-Brain ── CrossBrainClient, CrossBrainNotifier, Correlator
+├── Autonomous ── AutonomousResearchScheduler, MetaLearningEngine
+├── Causal ────── CausalGraph (Granger causality)
+├── Hypothesis ── HypothesisEngine (temporal, correlation, threshold, frequency)
+├── Webhooks ──── WebhookService (HMAC signing, retry, history)
+├── Export ────── ExportService (JSON/CSV, date range, columns)
+└── Backup ────── BackupService (timestamped, integrity check, restore)
 ```
 
 ## Brain Ecosystem
 
 | Brain | Version | Purpose | Ports |
 |-------|---------|---------|-------|
-| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) | v3.0.0 | Error memory, code intelligence & persistent context | 7777/7778 |
-| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) | v2.0.0 | Adaptive trading intelligence with memory & sessions | 7779/7780 |
-| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) | v1.1.0 | Content strategy & engagement with memory & sessions | 7781/7782/7783 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) | v2.0.0 | Shared infrastructure (this package) | — |
+| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) | v3.9.0 | Error memory, code intelligence & persistent context | 7777/7778 |
+| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) | v2.9.0 | Adaptive trading intelligence with memory & sessions | 7779/7780 |
+| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) | v1.10.0 | Content strategy & engagement with memory & sessions | 7781/7782/7783 |
+| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) | v2.8.0 | Shared infrastructure (this package) | — |
 
 All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. Brain Core provides shared infrastructure that eliminates ~2,800 lines of duplicated code across the ecosystem.
 

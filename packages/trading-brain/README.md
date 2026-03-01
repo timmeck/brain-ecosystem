@@ -333,10 +333,10 @@ Trading Brain is part of the **[Brain Ecosystem](https://github.com/timmeck/brai
 
 | Brain | Purpose | Ports |
 |-------|---------|-------|
-| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v3.0.0 | Error memory, code intelligence & persistent context | 7777 / 7778 |
-| **Trading Brain** v2.0.0 | Adaptive trading intelligence with memory & sessions | **7779** / 7780 |
-| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) v1.1.0 | Content strategy & engagement with memory & sessions | 7781 / 7782 / 7783 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.0.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory) | — |
+| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v3.9.0 | Error memory, code intelligence, persistent context & autonomous research | 7777 / 7778 |
+| **Trading Brain** v2.9.0 | Adaptive trading intelligence with memory, sessions & autonomous research | **7779** / 7780 |
+| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) v1.10.0 | Content strategy, engagement, campaigns & autonomous research | 7781 / 7782 / 7783 |
+| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.8.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory, research) | — |
 | [Brain Hub](https://timmeck.github.io/brain-hub/) | Ecosystem landing page | — |
 
 All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. [Brain Core](https://www.npmjs.com/package/@timmeck/brain-core) provides shared infrastructure (IPC, MCP, REST API, CLI, math, synapse algorithms) used by all brains, eliminating ~2,800 lines of duplicated code.
