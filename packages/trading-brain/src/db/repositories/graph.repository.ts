@@ -44,7 +44,7 @@ export class GraphRepository {
       getEdgesFor: db.prepare('SELECT * FROM graph_edges WHERE source = ? OR target = ?'),
       nodeCount: db.prepare('SELECT COUNT(*) as count FROM graph_nodes'),
       edgeCount: db.prepare('SELECT COUNT(*) as count FROM graph_edges'),
-      updateEdgeWeight: db.prepare('UPDATE graph_edges SET weight = ?, activations = activations + 1, last_activated = datetime("now") WHERE id = ?'),
+      updateEdgeWeight: db.prepare(`UPDATE graph_edges SET weight = ?, activations = activations + 1, last_activated = datetime('now') WHERE id = ?`),
       deleteAllNodes: db.prepare('DELETE FROM graph_nodes'),
       deleteAllEdges: db.prepare('DELETE FROM graph_edges'),
     };

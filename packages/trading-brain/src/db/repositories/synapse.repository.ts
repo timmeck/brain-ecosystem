@@ -29,7 +29,7 @@ export class SynapseRepository {
       getById: db.prepare('SELECT * FROM synapses WHERE id = ?'),
       getAll: db.prepare('SELECT * FROM synapses ORDER BY weight DESC'),
       count: db.prepare('SELECT COUNT(*) as count FROM synapses'),
-      updateWeight: db.prepare('UPDATE synapses SET weight = ?, last_activated = datetime("now") WHERE id = ?'),
+      updateWeight: db.prepare(`UPDATE synapses SET weight = ?, last_activated = datetime('now') WHERE id = ?`),
       deleteById: db.prepare('DELETE FROM synapses WHERE id = ?'),
       getByMinWeight: db.prepare('SELECT * FROM synapses WHERE weight >= ? ORDER BY weight DESC'),
       getStrongest: db.prepare('SELECT * FROM synapses ORDER BY weight DESC LIMIT ?'),
