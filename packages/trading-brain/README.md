@@ -42,6 +42,10 @@ Without Trading Brain, every trading decision starts from zero. With Trading Bra
 - **Offline Consolidation** — Memory replay, synapse pruning, memory compression, importance decay during idle periods
 - **Idle Detection** — Automatically triggers when brain is idle for 5+ minutes
 - **Manual Trigger** — Force a dream cycle via MCP tool or IPC
+- **Consciousness Dashboard** — Live neural graph at http://localhost:7785 showing real-time thought stream and engine status (new in v2.11)
+- **Prediction Engine** — Holt-Winters forecasting for trade win rates and PnL with 2-hour horizon and auto-calibration (new in v2.12)
+- **AutoResponder** — Automatically adjusts trading parameters when anomalies are detected (new in v2.13)
+- **Self-Improvement Loop** — Brain generates improvement suggestions to ~/.brain/improvement-requests.md (new in v2.13)
 
 ### Research Engine
 - **Trend Detection** — Identifies pairs with consistently improving or declining win rates
@@ -233,6 +237,17 @@ These tools are available to Claude Code (and other MCP clients) when Trading Br
 | `trading_dream_status` | Dream engine status and lifetime consolidation stats |
 | `trading_dream_consolidate` | Manually trigger a dream consolidation cycle |
 | `trading_dream_history` | View past dream consolidation cycles |
+| **Consciousness** (new in v2.11) | |
+| `trading_consciousness_status` | Live consciousness stats: thoughts, engines, breakthroughs |
+| `trading_consciousness_thoughts` | Recent thoughts from all engines |
+| **Prediction Engine** (new in v2.12) | |
+| `trading_predict` | Predict trade metrics (win rate, PnL) using Holt-Winters forecasting |
+| `trading_prediction_accuracy` | Prediction accuracy with calibration score |
+| `trading_predictions_list` | List predictions with outcomes |
+| **AutoResponder** (new in v2.13) | |
+| `trading_responder_status` | AutoResponder status and success rate |
+| `trading_responder_history` | History of automatic anomaly responses |
+| `trading_responder_rules` | Active response rules |
 
 ## REST API
 
@@ -341,10 +356,10 @@ Trading Brain is part of the **[Brain Ecosystem](https://github.com/timmeck/brai
 
 | Brain | Purpose | Ports |
 |-------|---------|-------|
-| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v3.10.0 | Error memory, code intelligence, persistent context & autonomous research | 7777 / 7778 |
-| **Trading Brain** v2.10.0 | Adaptive trading intelligence with memory, sessions & autonomous research | **7779** / 7780 |
-| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) v1.11.0 | Content strategy, engagement, campaigns & autonomous research | 7781 / 7782 / 7783 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.9.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory, research) | — |
+| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v3.13.0 | Error memory, code intelligence, persistent context & autonomous research | 7777 / 7778 |
+| **Trading Brain** v2.13.0 | Adaptive trading intelligence with memory, sessions & autonomous research | **7779** / 7780 / 7785 |
+| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) v1.14.0 | Content strategy, engagement, campaigns & autonomous research | 7781 / 7782 / 7783 |
+| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.12.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory, research) | — |
 | [Brain Hub](https://timmeck.github.io/brain-hub/) | Ecosystem landing page | — |
 
 All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. [Brain Core](https://www.npmjs.com/package/@timmeck/brain-core) provides shared infrastructure (IPC, MCP, REST API, CLI, math, synapse algorithms) used by all brains, eliminating ~2,800 lines of duplicated code.

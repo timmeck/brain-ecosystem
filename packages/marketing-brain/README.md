@@ -66,6 +66,10 @@ Without Marketing Brain, your marketing knowledge lives in your head. With it:
 - **Offline Consolidation** — Memory replay, synapse pruning, memory compression, importance decay during idle periods
 - **Idle Detection** — Automatically triggers when brain is idle for 5+ minutes
 - **Manual Trigger** — Force a dream cycle via MCP tool or IPC
+- **Consciousness Dashboard** — Live neural graph at http://localhost:7786 showing real-time thought stream and engine status (new in v1.12)
+- **Prediction Engine** — Holt-Winters forecasting for engagement rates and post performance with 4-hour horizon (new in v1.13)
+- **AutoResponder** — Automatically adjusts marketing parameters when anomalies are detected (new in v1.14)
+- **Self-Improvement Loop** — Brain generates improvement suggestions to ~/.brain/improvement-requests.md (new in v1.14)
 
 ### MCP Tools (25 tools for Claude Code)
 - **Draft Checking** — Check a post against learned rules before publishing
@@ -246,6 +250,17 @@ These tools are available to Claude Code when Marketing Brain is configured:
 | `marketing_dream_status` | Dream engine status and lifetime consolidation stats |
 | `marketing_dream_consolidate` | Manually trigger a dream consolidation cycle |
 | `marketing_dream_history` | View past dream consolidation cycles |
+| **Consciousness** (new in v1.12) | |
+| `marketing_consciousness_status` | Live consciousness stats: thoughts, engines, breakthroughs |
+| `marketing_consciousness_thoughts` | Recent thoughts from all engines |
+| **Prediction Engine** (new in v1.13) | |
+| `marketing_predict` | Predict marketing metrics (engagement, reach) using Holt-Winters forecasting |
+| `marketing_prediction_accuracy` | Prediction accuracy with calibration score |
+| `marketing_predictions_list` | List predictions with outcomes |
+| **AutoResponder** (new in v1.14) | |
+| `marketing_responder_status` | AutoResponder status and success rate |
+| `marketing_responder_history` | History of automatic anomaly responses |
+| `marketing_responder_rules` | Active response rules |
 
 ## REST API
 
@@ -400,10 +415,10 @@ Marketing Brain is part of the **[Brain Ecosystem](https://github.com/timmeck/br
 
 | Brain | Purpose | Ports |
 |-------|---------|-------|
-| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v3.10.0 | Error memory, code intelligence, persistent context & autonomous research | 7777 / 7778 |
-| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) v2.10.0 | Adaptive trading intelligence with memory, sessions & autonomous research | 7779 / 7780 |
-| **Marketing Brain** v1.11.0 | Content strategy, engagement, campaigns & autonomous research | **7781** / 7782 / 7783 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.9.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory, research) | — |
+| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) v3.13.0 | Error memory, code intelligence, persistent context & autonomous research | 7777 / 7778 |
+| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) v2.13.0 | Adaptive trading intelligence with memory, sessions & autonomous research | 7779 / 7780 |
+| **Marketing Brain** v1.14.0 | Content strategy, engagement, campaigns & autonomous research | **7781** / 7782 / 7783 / 7786 |
+| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.12.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory, research) | — |
 | [Brain Hub](https://timmeck.github.io/brain-hub/) | Ecosystem landing page | — |
 
 All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. [Brain Core](https://www.npmjs.com/package/@timmeck/brain-core) provides shared infrastructure (IPC, MCP, REST API, CLI, math, synapse algorithms) used by all brains, eliminating ~2,800 lines of duplicated code.

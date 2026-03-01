@@ -90,6 +90,10 @@ Brain: "⚠ Warning: This code matches antipattern #7 — missing connection
 - **Learning Engine** — Extracts patterns, generates rules, detects antipatterns with adaptive thresholds
 - **Research Engine** — Automated trend analysis, gap detection, cross-project synergy mapping
 - **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle periods (new in v3.10)
+- **Consciousness Dashboard** — Live neural graph visualization at http://localhost:7784 with real-time thought stream, engine status, and Brain Insights panel (new in v3.11)
+- **Prediction Engine** — Holt-Winters forecasting that predicts outcomes, measures against reality, and auto-calibrates confidence over time (new in v3.12)
+- **AutoResponder** — Automatically reacts to detected anomalies by adjusting parameters, escalating critical issues, and logging all actions (new in v3.13)
+- **Self-Improvement Loop** — Brain analyzes its own state and generates concrete improvement suggestions — writes "Tell Claude:" commands to ~/.brain/improvement-requests.md (new in v3.13)
 - **Git Integration** — Links errors to commits, tracks which changes introduced or fixed bugs
 - **Universal Access** — MCP (stdio + HTTP/SSE), REST API, works with Claude Code, Cursor, Windsurf, Cline
 
@@ -127,6 +131,12 @@ Brain: "⚠ Warning: This code matches antipattern #7 — missing connection
 +---+--+ +--+---+ +-+-----+ +-+----+ +-+----+ +-+--------+
 |Learn | |Module| |Hebbian| |Commit| |Tasks | |Vector    |
 |Engine| |Score | |Learn  | |Track | |Docs  | |Search    |
++------+ +------+ +-------+ +------+ +------+ +----------+
+    |       |       |        |        |        |
+    v       v       v        v        v        v
++---+--+ +--+---+ +-+-----+ +-+----+ +-+----+ +-+--------+
+|Dream | |Pred. | |Auto   | |Think | |Consc.| |Self-     |
+|Mode  | |Engine| |Respond| |Stream| |Dash  | |Improve   |
 +------+ +------+ +-------+ +------+ +------+ +----------+
                     |
                     v
@@ -207,6 +217,17 @@ These tools are available to Claude Code (and other MCP clients) when Brain is c
 | `brain_dream_status` | Dream engine status and lifetime consolidation stats |
 | `brain_dream_consolidate` | Manually trigger a dream consolidation cycle |
 | `brain_dream_history` | View past dream consolidation cycles |
+| **Consciousness** (new in v3.11) | |
+| `brain_consciousness_status` | Live consciousness stats: thoughts, engines, breakthroughs |
+| `brain_consciousness_thoughts` | Recent thoughts from all engines with significance levels |
+| **Prediction Engine** (new in v3.12) | |
+| `brain_predict` | Generate a prediction for a metric using Holt-Winters/EWMA forecasting |
+| `brain_prediction_accuracy` | Prediction accuracy stats per domain with calibration score |
+| `brain_predictions_list` | List pending/resolved predictions with outcomes |
+| **AutoResponder** (new in v3.13) | |
+| `brain_responder_status` | AutoResponder status: actions taken, success rate, rules |
+| `brain_responder_history` | History of automatic responses to anomalies |
+| `brain_responder_rules` | Active response rules that Brain uses to react to anomalies |
 | **Status & Ecosystem** | |
 | `brain_status` | Current Brain stats (now includes memory and session counts) |
 | `brain_notifications` | Get pending notifications |
@@ -329,6 +350,7 @@ Make sure the Brain daemon is running (`brain start`).
 | `BRAIN_MCP_HTTP_ENABLED` | `true` | Enable MCP HTTP |
 | `BRAIN_EMBEDDINGS_ENABLED` | `true` | Enable local embeddings |
 | `BRAIN_EMBEDDINGS_MODEL` | `Xenova/all-MiniLM-L6-v2` | Embedding model |
+| `BRAIN_CONSCIOUSNESS_PORT` | `7784` | Consciousness dashboard port |
 
 ## How It Learns
 
@@ -342,6 +364,9 @@ Make sure the Brain daemon is running (`brain start`).
 8. **Research Runs** — Background analysis finds trends, gaps, and cross-project synergies
 9. **Embeddings Computed** — Background sweep generates vector embeddings for semantic search
 10. **Next Time** — When a similar error appears, Brain instantly suggests the proven solution — even from other projects
+11. **Predictions Form** — Prediction Engine forecasts future error rates with Holt-Winters smoothing
+12. **Auto-Response** — AutoResponder detects anomalies and adjusts Brain parameters automatically
+13. **Self-Improvement** — Brain analyzes its own weaknesses and generates improvement suggestions
 
 ## How It Remembers (v2.2)
 
@@ -362,10 +387,10 @@ Brain is part of the **[Brain Ecosystem](https://github.com/timmeck/brain-ecosys
 
 | Brain | Purpose | Ports |
 |-------|---------|-------|
-| **Brain** v3.10.0 | Error memory, code intelligence, persistent context & autonomous research | **7777** / 7778 |
-| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) v2.10.0 | Adaptive trading intelligence with memory, sessions & autonomous research | 7779 / 7780 |
-| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) v1.11.0 | Content strategy, engagement, campaigns & autonomous research | 7781 / 7782 / 7783 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.9.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory, research) | — |
+| **Brain** v3.13.0 | Error memory, code intelligence, persistent context & autonomous research | **7777** / 7778 / 7784 |
+| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) v2.13.0 | Adaptive trading intelligence with memory, sessions & autonomous research | 7779 / 7780 |
+| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) v1.14.0 | Content strategy, engagement, campaigns & autonomous research | 7781 / 7782 / 7783 |
+| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) v2.12.0 | Shared infrastructure (IPC, MCP, REST, CLI, math, synapses, memory, research) | — |
 | [Brain Hub](https://timmeck.github.io/brain-hub/) | Ecosystem landing page | — |
 
 All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. [Brain Core](https://www.npmjs.com/package/@timmeck/brain-core) provides shared infrastructure (IPC, MCP, REST API, CLI, math, synapse algorithms, memory types) used by all brains, eliminating ~2,800 lines of duplicated code.

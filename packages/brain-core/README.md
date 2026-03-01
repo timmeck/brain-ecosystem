@@ -32,6 +32,9 @@ Brain Core extracts the common infrastructure used across all Brain MCP servers 
 | **9 Research Engines** | SelfObserver, AnomalyDetective, HypothesisEngine, CausalGraph, Experiment, KnowledgeDistiller, Counterfactual, AdaptiveStrategy, ResearchAgenda |
 | **DataMiner** | Bootstraps historical DB data into research engines with adapter pattern (new in v2.8) |
 | **Dream Engine** | Offline memory consolidation — replay, prune, compress, decay (new in v2.9) |
+| **Consciousness** | ThoughtStream + ConsciousnessServer — live neural dashboard with SSE (new in v2.10) |
+| **Prediction Engine** | Holt-Winters forecasting with auto-calibration and self-resolution (new in v2.11) |
+| **AutoResponder** | Automatic anomaly response with configurable rules and parameter adjustment (new in v2.12) |
 | **Meta-Learning** | Hyper-parameter optimization with Bayesian exploration |
 | **Autonomous Scheduler** | Self-directed research cycle execution |
 | **Webhook Service** | Configurable webhooks with HMAC signing and retry |
@@ -157,8 +160,11 @@ class MyRouter implements IpcRouter {
 ├── Research ───── BaseResearchEngine, ResearchOrchestrator, DataMiner
 │   ├── Engines ── SelfObserver, AnomalyDetective, Experiment, Adaptive, Agenda
 │   ├── Engines ── KnowledgeDistiller, Counterfactual, CrossDomain, Journal
+│   ├── AutoResp ─ AutoResponder (anomaly → parameter adjustment, escalation)
 │   └── Adapters ─ BrainAdapter, TradingAdapter, MarketingAdapter
 ├── Dream ──────── DreamEngine, DreamConsolidator (offline consolidation)
+├── Consciousness ─ ThoughtStream, ConsciousnessServer (live SSE dashboard)
+├── Prediction ─── PredictionEngine, Forecaster (Holt-Winters, EWMA)
 ├── Memory ────── BaseMemoryEngine, MemoryRecord, SessionRecord, shared interfaces
 ├── Cross-Brain ── CrossBrainClient, CrossBrainNotifier, Correlator
 ├── Autonomous ── AutonomousResearchScheduler, MetaLearningEngine
@@ -173,10 +179,10 @@ class MyRouter implements IpcRouter {
 
 | Brain | Version | Purpose | Ports |
 |-------|---------|---------|-------|
-| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) | v3.10.0 | Error memory, code intelligence & persistent context | 7777/7778 |
-| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) | v2.10.0 | Adaptive trading intelligence with memory & sessions | 7779/7780 |
-| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) | v1.11.0 | Content strategy & engagement with memory & sessions | 7781/7782/7783 |
-| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) | v2.9.0 | Shared infrastructure (this package) | — |
+| [Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain) | v3.13.0 | Error memory, code intelligence & persistent context | 7777/7778/7784 |
+| [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain) | v2.13.0 | Adaptive trading intelligence with memory & sessions | 7779/7780/7785 |
+| [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain) | v1.14.0 | Content strategy & engagement with memory & sessions | 7781/7782/7783/7786 |
+| [Brain Core](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain-core) | v2.12.0 | Shared infrastructure (this package) | — |
 
 All packages live in the [brain-ecosystem](https://github.com/timmeck/brain-ecosystem) monorepo with npm workspaces. Brain Core provides shared infrastructure that eliminates ~2,800 lines of duplicated code across the ecosystem.
 
@@ -217,6 +223,16 @@ class MyMemoryEngine extends BaseMemoryEngine {
   runCycle() { /* expiry checks, consolidation, importance decay */ }
 }
 ```
+
+### Consciousness & Self-Improvement
+
+Brain Core includes a full consciousness layer that makes Brain's internal processes visible:
+
+- **ThoughtStream** — Circular buffer capturing every engine's activity in real-time
+- **ConsciousnessServer** — HTTP + SSE server with live neural dashboard (force-directed graph, thought stream, engine status)
+- **PredictionEngine** — Holt-Winters Double Exponential Smoothing with EWMA fallback, auto-calibration via confidence buckets
+- **AutoResponder** — Reacts to detected anomalies automatically: adjusts parameters, escalates critical issues, logs everything
+- **Self-Improvement Loop** — Brain analyzes its own state and generates improvement suggestions in `~/.brain/improvement-requests.md`
 
 Visit the [Brain Hub](https://timmeck.github.io/brain-hub/) for the full ecosystem overview.
 
