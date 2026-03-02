@@ -28,6 +28,9 @@ import type { NarrativeEngine } from '../narrative/narrative-engine.js';
 import type { CuriosityEngine } from '../curiosity/curiosity-engine.js';
 import type { EmergenceEngine } from '../emergence/emergence-engine.js';
 import type { DebateEngine } from '../debate/debate-engine.js';
+import type { ParameterRegistry } from '../metacognition/parameter-registry.js';
+import type { MetaCognitionLayer } from '../metacognition/meta-cognition-layer.js';
+import type { AutoExperimentEngine } from '../metacognition/auto-experiment-engine.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -72,6 +75,9 @@ export class ResearchOrchestrator {
   private curiosityEngine: CuriosityEngine | null = null;
   private emergenceEngine: EmergenceEngine | null = null;
   private debateEngine: DebateEngine | null = null;
+  private parameterRegistry: ParameterRegistry | null = null;
+  private metaCognitionLayer: MetaCognitionLayer | null = null;
+  private autoExperimentEngine: AutoExperimentEngine | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -85,6 +91,8 @@ export class ResearchOrchestrator {
   private suggestionHistory: Map<string, { count: number; firstCycle: number; lastCycle: number }> = new Map();
   /** Max repeats before trying an alternative. */
   private readonly stalledThreshold = 3;
+  /** Hash of last written suggestions to prevent duplicate file writes. */
+  private lastSuggestionsHash = '';
 
   constructor(db: Database.Database, config: ResearchOrchestratorConfig, causalGraph?: CausalGraph) {
     this.brainName = config.brainName;
@@ -169,6 +177,21 @@ export class ResearchOrchestrator {
 
   setDebateEngine(engine: DebateEngine): void {
     this.debateEngine = engine;
+  }
+
+  /** Set the ParameterRegistry — central tunable parameter store. */
+  setParameterRegistry(registry: ParameterRegistry): void {
+    this.parameterRegistry = registry;
+  }
+
+  /** Set the MetaCognitionLayer — engine evaluation and frequency adjustment. */
+  setMetaCognitionLayer(layer: MetaCognitionLayer): void {
+    this.metaCognitionLayer = layer;
+  }
+
+  /** Set the AutoExperimentEngine — autonomous parameter tuning. */
+  setAutoExperimentEngine(engine: AutoExperimentEngine): void {
+    this.autoExperimentEngine = engine;
   }
 
   /** Set the PredictionEngine — wires journal into it. */
@@ -549,14 +572,37 @@ export class ResearchOrchestrator {
       ts?.emit('orchestrator', 'perceiving', `Self-metrics recorded: ${anomalies.length} anomalies, ${insights.length} insights, ${cycleDuration}ms`);
     }
 
-    // 12. Auto-Experiments: propose experiments on own parameters when none exist
-    if (this.cycleCount > 3) {
+    // 12. Auto-Experiments: use AutoExperimentEngine if available, otherwise hardcoded fallback
+    if (this.autoExperimentEngine && this.cycleCount > 3 && this.cycleCount % 5 === 0) {
+      ts?.emit('auto_experiment', 'experimenting', 'Processing auto-experiments...');
+      try {
+        // Feed measurements
+        this.autoExperimentEngine.feedMeasurement('insight_count', insights.length);
+        this.autoExperimentEngine.feedMeasurement('anomaly_count', anomalies.length);
+        // Process completed
+        const completed = this.autoExperimentEngine.processCompleted(this.cycleCount);
+        for (const c of completed) {
+          ts?.emit('auto_experiment', 'discovering', `Auto-experiment #${c.autoExpId}: ${c.action}`, c.action === 'adopted' ? 'notable' : 'routine');
+        }
+        // Propose new
+        const candidates = this.autoExperimentEngine.discoverCandidates(this.cycleCount);
+        if (candidates.length > 0) {
+          const best = candidates[0];
+          const started = this.autoExperimentEngine.startExperiment(best);
+          if (started) {
+            ts?.emit('auto_experiment', 'experimenting', `Started: ${best.engine}.${best.name} ${best.currentValue.toFixed(3)} → ${best.proposedValue.toFixed(3)}`, 'notable');
+          }
+        }
+      } catch (err) {
+        this.log.error(`[orchestrator] AutoExperiment error: ${(err as Error).message}`);
+      }
+    } else if (this.cycleCount > 3) {
+      // Fallback: hardcoded experiments when no AutoExperimentEngine
       const running = this.experimentEngine.list('running_control', 5).length
         + this.experimentEngine.list('running_treatment', 5).length;
       if (running === 0 && this.cycleCount % 5 === 0) {
         this.proposeAutoExperiment(ts);
       }
-      // Feed measurements into running experiments
       this.feedExperimentMeasurements(anomalies.length, insights.length);
     }
 
@@ -877,9 +923,62 @@ export class ResearchOrchestrator {
       }
     }
 
+    // 21. MetaCognition: evaluate engine performance and adjust frequencies
+    if (this.metaCognitionLayer && this.cycleCount % this.reflectEvery === 0) {
+      ts?.emit('metacognition', 'analyzing', 'Evaluating engine performance...');
+      try {
+        const cards = this.metaCognitionLayer.evaluate();
+        if (cards.length > 0) {
+          const topGrade = cards.sort((a, b) => b.combined_score - a.combined_score)[0];
+          const worstGrade = cards.sort((a, b) => a.combined_score - b.combined_score)[0];
+          ts?.emit('metacognition', 'discovering',
+            `${cards.length} engines evaluated. Best: ${topGrade.engine} (${topGrade.grade}), Worst: ${worstGrade.engine} (${worstGrade.grade})`,
+            cards.some(c => c.grade === 'F') ? 'notable' : 'routine',
+          );
+          const adjustments = this.metaCognitionLayer.adjustFrequencies(cards);
+          if (adjustments.length > 0) {
+            ts?.emit('metacognition', 'discovering',
+              `Frequency adjusted: ${adjustments.map(a => `${a.engine} ${a.old_frequency}→${a.new_frequency}`).join(', ')}`,
+              'notable',
+            );
+          }
+        }
+      } catch (err) {
+        this.log.error(`[orchestrator] MetaCognition error: ${(err as Error).message}`);
+      }
+    }
+
+    // 22. Parameter Registry: refresh orchestrator params from registry
+    if (this.parameterRegistry) {
+      const distill = this.parameterRegistry.get('orchestrator', 'distillEvery');
+      if (distill !== undefined && distill !== this.distillEvery) {
+        this.log.info(`[orchestrator] distillEvery refreshed: ${this.distillEvery} → ${distill}`);
+        this.distillEvery = distill;
+      }
+      const agenda = this.parameterRegistry.get('orchestrator', 'agendaEvery');
+      if (agenda !== undefined && agenda !== this.agendaEvery) {
+        this.log.info(`[orchestrator] agendaEvery refreshed: ${this.agendaEvery} → ${agenda}`);
+        this.agendaEvery = agenda;
+      }
+      const reflect = this.parameterRegistry.get('orchestrator', 'reflectEvery');
+      if (reflect !== undefined && reflect !== this.reflectEvery) {
+        this.log.info(`[orchestrator] reflectEvery refreshed: ${this.reflectEvery} → ${reflect}`);
+        this.reflectEvery = reflect;
+      }
+    }
+
     const duration = Date.now() - start;
     ts?.emit('orchestrator', 'reflecting', `Feedback Cycle #${this.cycleCount} complete (${duration}ms)`);
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} complete (${duration}ms) ───`);
+
+    // Record cycle metrics into MetaCognition for engine-level tracking
+    if (this.metaCognitionLayer) {
+      this.metaCognitionLayer.recordStep('orchestrator', this.cycleCount, {
+        insights: insights.length,
+        anomalies: anomalies.length,
+        duration_ms: duration,
+      });
+    }
   }
 
   /** Analyze Brain's own state and generate concrete improvement suggestions.
@@ -1386,9 +1485,15 @@ export class ResearchOrchestrator {
     }
   }
 
-  /** Append improvement suggestions to ~/.brain/improvement-requests.md */
+  /** Append improvement suggestions to ~/.brain/improvement-requests.md.
+   *  Skips writing if suggestions are identical to the last write (dedup). */
   private writeSuggestionsToFile(suggestions: string[]): void {
     try {
+      // Dedup: hash current suggestions and skip if identical to last write
+      const contentHash = suggestions.join('\n').trim();
+      if (contentHash === this.lastSuggestionsHash) return;
+      this.lastSuggestionsHash = contentHash;
+
       const brainDir = path.join(os.homedir(), '.brain');
       const filePath = path.join(brainDir, 'improvement-requests.md');
       const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -1430,6 +1535,9 @@ export class ResearchOrchestrator {
       attention: this.attentionEngine?.getStatus() ?? null,
       transfer: this.transferEngine?.getStatus() ?? null,
       narrative: this.narrativeEngine?.getStatus() ?? null,
+      metacognition: this.metaCognitionLayer?.getStatus() ?? null,
+      autoExperiment: this.autoExperimentEngine?.getStatus(this.cycleCount) ?? null,
+      parameterRegistry: this.parameterRegistry?.getStatus() ?? null,
     };
   }
 }

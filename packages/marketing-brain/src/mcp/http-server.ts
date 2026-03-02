@@ -13,6 +13,7 @@ import { registerNarrativeToolsDirect } from './narrative-tools.js';
 import { registerCuriosityToolsDirect } from './curiosity-tools.js';
 import { registerEmergenceToolsDirect } from './emergence-tools.js';
 import { registerDebateToolsDirect } from './debate-tools.js';
+import { registerMetacognitionToolsDirect } from './metacognition-tools.js';
 
 export class McpHttpServer {
   private inner: CoreMcpHttpServer;
@@ -21,7 +22,7 @@ export class McpHttpServer {
     this.inner = new CoreMcpHttpServer(
       port,
       router,
-      { name: 'marketing-brain', version: '1.21.0' },
+      { name: 'marketing-brain', version: '1.22.0' },
       (server, _r) => {
         registerToolsDirect(server, router);
         registerResearchToolsDirect(server, router);
@@ -36,6 +37,7 @@ export class McpHttpServer {
         registerCuriosityToolsDirect(server, router);
         registerEmergenceToolsDirect(server, router);
         registerDebateToolsDirect(server, router);
+        registerMetacognitionToolsDirect(server, router);
       },
     );
   }

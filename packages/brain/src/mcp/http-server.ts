@@ -18,6 +18,7 @@ import { registerNarrativeToolsDirect } from './narrative-tools.js';
 import { registerCuriosityToolsDirect } from './curiosity-tools.js';
 import { registerEmergenceToolsDirect } from './emergence-tools.js';
 import { registerDebateToolsDirect } from './debate-tools.js';
+import { registerMetacognitionToolsDirect } from './metacognition-tools.js';
 import { registerPromptsDirect } from './prompts.js';
 
 export class McpHttpServer {
@@ -27,7 +28,7 @@ export class McpHttpServer {
     this.inner = new CoreMcpHttpServer(
       port,
       router,
-      { name: 'brain', version: '3.25.0' },
+      { name: 'brain', version: '3.26.0' },
       (server, _r) => {
         registerToolsDirect(server, router);
         registerResearchToolsDirect(server, router);
@@ -47,6 +48,7 @@ export class McpHttpServer {
         registerCuriosityToolsDirect(server, router);
         registerEmergenceToolsDirect(server, router);
         registerDebateToolsDirect(server, router);
+        registerMetacognitionToolsDirect(server, router);
         registerPromptsDirect(server, router);
       },
     );

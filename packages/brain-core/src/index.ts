@@ -248,6 +248,16 @@ export type {
   DebateSynthesis, DebateConflict, DebateEngineStatus,
 } from './debate/index.js';
 
+// ── Meta-Cognition ──────────────────────────────────────
+export { ParameterRegistry, runParameterRegistryMigration } from './metacognition/index.js';
+export type { ParameterDefinition, ParameterChange, ParameterSnapshot, RegisteredParameter } from './metacognition/index.js';
+
+export { MetaCognitionLayer, runMetaCognitionMigration } from './metacognition/index.js';
+export type { EngineGrade, EngineMetric, EngineReportCard, FrequencyAdjustment, MetaCognitionStatus } from './metacognition/index.js';
+
+export { AutoExperimentEngine, runAutoExperimentMigration } from './metacognition/index.js';
+export type { AutoExperiment, AutoExperimentStatus, ExperimentCandidate, AutoExperimentEngineStatus } from './metacognition/index.js';
+
 // ── Unified Dashboard ──────────────────────────────────
 export { UnifiedDashboardServer } from './unified/index.js';
 export type { UnifiedDashboardOptions } from './unified/index.js';

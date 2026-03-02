@@ -85,6 +85,9 @@ export interface Services {
   curiosityEngine?: import('@timmeck/brain-core').CuriosityEngine;
   emergenceEngine?: import('@timmeck/brain-core').EmergenceEngine;
   debateEngine?: import('@timmeck/brain-core').DebateEngine;
+  parameterRegistry?: import('@timmeck/brain-core').ParameterRegistry;
+  metaCognitionLayer?: import('@timmeck/brain-core').MetaCognitionLayer;
+  autoExperimentEngine?: import('@timmeck/brain-core').AutoExperimentEngine;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -470,6 +473,20 @@ export class IpcRouter {
       ['debate.get',                (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.getDebate(p(params).debateId); }],
       ['debate.list',               (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.listDebates(p(params)?.limit ?? 20); }],
       ['debate.status',             () => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.getStatus(); }],
+
+      // ─── Meta-Cognition ────────────────────────
+      ['metacognition.status',     () => { if (!s.metaCognitionLayer) throw new Error('MetaCognitionLayer not available'); return s.metaCognitionLayer.getStatus(); }],
+      ['metacognition.evaluate',   () => { if (!s.metaCognitionLayer) throw new Error('MetaCognitionLayer not available'); return s.metaCognitionLayer.evaluate(); }],
+      ['metacognition.report',     (params) => { if (!s.metaCognitionLayer) throw new Error('MetaCognitionLayer not available'); return s.metaCognitionLayer.getReportCard(p(params).engine); }],
+      ['metacognition.trend',      (params) => { if (!s.metaCognitionLayer) throw new Error('MetaCognitionLayer not available'); return s.metaCognitionLayer.getTrend(p(params).engine, p(params)?.limit ?? 10); }],
+
+      // ─── Auto-Experiment ────────────────────────
+      ['autoexperiment.status',    () => { if (!s.autoExperimentEngine) throw new Error('AutoExperimentEngine not available'); return s.autoExperimentEngine.getStatus(); }],
+      ['autoexperiment.candidates', () => { if (!s.autoExperimentEngine) throw new Error('AutoExperimentEngine not available'); return s.autoExperimentEngine.discoverCandidates(0); }],
+
+      // ─── Parameter Registry ────────────────────
+      ['parameter.list',           (params) => { if (!s.parameterRegistry) throw new Error('ParameterRegistry not available'); return s.parameterRegistry.list(p(params)?.engine); }],
+      ['parameter.history',        (params) => { if (!s.parameterRegistry) throw new Error('ParameterRegistry not available'); return s.parameterRegistry.getRecentChanges(p(params)?.limit ?? 20); }],
 
       ['status', () => ({
         name: 'trading-brain',
