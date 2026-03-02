@@ -65,7 +65,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
@@ -521,6 +521,38 @@ export class BrainCore {
     });
     this.orchestrator.setGoalEngine(goalEngine);
     services.goalEngine = goalEngine;
+
+    // 11j.18 EvolutionEngine — genetic algorithm for parameter optimization
+    runEvolutionMigration(this.db!);
+    const evolutionEngine = new EvolutionEngine(this.db!, parameterRegistry, { brainName: 'brain' });
+    evolutionEngine.setThoughtStream(thoughtStream);
+    evolutionEngine.setDataSources({
+      getReportCards: () => {
+        try { return metaCognitionLayer.getLatestReportCards() as Array<{ engine: string; combined_score: number }>; } catch { return []; }
+      },
+      getGoalProgress: () => {
+        try {
+          const status = goalEngine.getStatus();
+          return status.activeGoals > 0 ? status.achievedGoals / (status.achievedGoals + status.activeGoals + status.failedGoals || 1) : 0;
+        } catch { return 0; }
+      },
+      getPredictionAccuracy: () => {
+        try {
+          const summary = predictionEngine.getSummary();
+          const domains = (summary?.by_domain ?? []) as Array<{ accuracy_rate?: number }>;
+          return domains.length > 0 ? (domains[0]?.accuracy_rate ?? 0) : 0;
+        } catch { return 0; }
+      },
+      getPrincipleCount: () => {
+        try { return this.orchestrator!.knowledgeDistiller.getPrinciples(undefined, 1000).length; } catch { return 0; }
+      },
+      getHypothesisCount: () => {
+        try { return this.orchestrator!.hypothesisEngine.list(undefined, 1000).length; } catch { return 0; }
+      },
+    });
+    evolutionEngine.initializePopulation();
+    this.orchestrator.setEvolutionEngine(evolutionEngine);
+    services.evolutionEngine = evolutionEngine;
 
     this.consciousnessServer = new ConsciousnessServer({
       port: 7784,

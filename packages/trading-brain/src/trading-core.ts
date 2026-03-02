@@ -53,7 +53,7 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration } from '@timmeck/brain-core';
 import type { HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
 
 export class TradingCore {
@@ -470,6 +470,38 @@ export class TradingCore {
     });
     this.orchestrator.setGoalEngine(goalEngine);
     services.goalEngine = goalEngine;
+
+    // 12t. EvolutionEngine — genetic algorithm for parameter optimization
+    runEvolutionMigration(this.db!);
+    const evolutionEngine = new EvolutionEngine(this.db!, parameterRegistry, { brainName: 'trading-brain' });
+    evolutionEngine.setThoughtStream(thoughtStream);
+    evolutionEngine.setDataSources({
+      getReportCards: () => {
+        try { return metaCognitionLayer.getLatestReportCards() as Array<{ engine: string; combined_score: number }>; } catch { return []; }
+      },
+      getGoalProgress: () => {
+        try {
+          const status = goalEngine.getStatus();
+          return status.activeGoals > 0 ? status.achievedGoals / (status.achievedGoals + status.activeGoals + status.failedGoals || 1) : 0;
+        } catch { return 0; }
+      },
+      getPredictionAccuracy: () => {
+        try {
+          const summary = predictionEngine.getSummary();
+          const domains = (summary?.by_domain ?? []) as Array<{ accuracy_rate?: number }>;
+          return domains.length > 0 ? (domains[0]?.accuracy_rate ?? 0) : 0;
+        } catch { return 0; }
+      },
+      getPrincipleCount: () => {
+        try { return this.orchestrator!.knowledgeDistiller.getPrinciples(undefined, 1000).length; } catch { return 0; }
+      },
+      getHypothesisCount: () => {
+        try { return this.orchestrator!.hypothesisEngine.list(undefined, 1000).length; } catch { return 0; }
+      },
+    });
+    evolutionEngine.initializePopulation();
+    this.orchestrator.setEvolutionEngine(evolutionEngine);
+    services.evolutionEngine = evolutionEngine;
 
     logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active, Consciousness on :7785)');
 

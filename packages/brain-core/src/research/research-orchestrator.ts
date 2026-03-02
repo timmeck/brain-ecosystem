@@ -37,6 +37,7 @@ import type { DataScout } from './data-scout.js';
 import type { SimulationEngine } from '../metacognition/simulation-engine.js';
 import type { MemoryPalace } from '../memory-palace/memory-palace.js';
 import type { GoalEngine } from '../goals/goal-engine.js';
+import type { EvolutionEngine } from '../metacognition/evolution-engine.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -90,6 +91,7 @@ export class ResearchOrchestrator {
   private simulationEngine: SimulationEngine | null = null;
   private memoryPalace: MemoryPalace | null = null;
   private goalEngine: GoalEngine | null = null;
+  private evolutionEngine: EvolutionEngine | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -223,6 +225,9 @@ export class ResearchOrchestrator {
 
   /** Set the GoalEngine — autonomous goal setting and tracking. */
   setGoalEngine(engine: GoalEngine): void { this.goalEngine = engine; }
+
+  /** Set the EvolutionEngine — evolves parameter configurations via genetic algorithm. */
+  setEvolutionEngine(engine: EvolutionEngine): void { this.evolutionEngine = engine; }
 
   /** Set the PredictionEngine — wires journal into it. */
   setPredictionEngine(engine: PredictionEngine): void {
@@ -1273,6 +1278,24 @@ export class ResearchOrchestrator {
         }
         if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('goal_engine', this.cycleCount, { insights: achieved.length + failed.length, journal_entries: suggestions.length });
       } catch (err) { this.log.warn(`[orchestrator] Step 35 error: ${(err as Error).message}`); }
+    }
+
+    // Step 36: EvolutionEngine — evolve parameter configurations (every generationEvery cycles, default 20)
+    if (this.evolutionEngine && this.cycleCount % this.evolutionEngine.generationEvery === 0) {
+      try {
+        ts?.emit('evolution', 'reflecting', 'Step 36: Running evolution generation...', 'routine');
+        const gen = this.evolutionEngine.runGeneration();
+        this.journal.write({
+          type: 'experiment',
+          title: `Evolution Generation #${gen.generation}`,
+          content: `best=${gen.bestFitness.toFixed(3)} avg=${gen.avgFitness.toFixed(3)} diversity=${gen.diversity.toFixed(3)} pop=${gen.populationSize}`,
+          tags: [this.brainName, 'evolution', 'generation'],
+          references: [],
+          significance: gen.bestFitness > gen.avgFitness * 1.2 ? 'notable' : 'routine',
+          data: { generation: gen },
+        });
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('evolution_engine', this.cycleCount, { insights: 1, journal_entries: 1 });
+      } catch (err) { this.log.warn(`[orchestrator] Step 36 error: ${(err as Error).message}`); }
     }
 
     const duration = Date.now() - start;

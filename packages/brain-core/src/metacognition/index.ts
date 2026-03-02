@@ -15,3 +15,6 @@ export type { TeachingPackage, TeachEngineStatus } from './teach-engine.js';
 
 export { SimulationEngine, runSimulationMigration } from './simulation-engine.js';
 export type { Simulation, SimulationOutcome, SimulationStatus } from './simulation-engine.js';
+
+export { EvolutionEngine, runEvolutionMigration } from './evolution-engine.js';
+export type { EvolutionConfig, Genome, Individual, Generation, LineageEntry, EvolutionDataSources, EvolutionStatus } from './evolution-engine.js';

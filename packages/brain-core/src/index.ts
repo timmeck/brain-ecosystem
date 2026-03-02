@@ -270,6 +270,9 @@ export type { TeachingPackage, TeachEngineStatus } from './metacognition/index.j
 export { SimulationEngine, runSimulationMigration } from './metacognition/index.js';
 export type { Simulation, SimulationOutcome, SimulationStatus } from './metacognition/index.js';
 
+export { EvolutionEngine, runEvolutionMigration } from './metacognition/index.js';
+export type { EvolutionConfig, Genome, Individual, Generation, LineageEntry, EvolutionDataSources, EvolutionStatus } from './metacognition/index.js';
+
 // ── Memory Palace ──────────────────────────────────────
 export { MemoryPalace, runMemoryPalaceMigration } from './memory-palace/index.js';
 export type {

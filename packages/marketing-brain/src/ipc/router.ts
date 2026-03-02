@@ -98,6 +98,7 @@ export interface Services {
   simulationEngine?: import('@timmeck/brain-core').SimulationEngine;
   memoryPalace?: import('@timmeck/brain-core').MemoryPalace;
   goalEngine?: import('@timmeck/brain-core').GoalEngine;
+  evolutionEngine?: import('@timmeck/brain-core').EvolutionEngine;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -627,6 +628,15 @@ export class IpcRouter {
       ['goals.suggest',           (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return s.goalEngine.suggestGoals(p(params)?.currentCycle ?? 0); }],
       ['goals.pause',             (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return { paused: s.goalEngine.pauseGoal(p(params).goalId) }; }],
       ['goals.resume',            (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return { resumed: s.goalEngine.resumeGoal(p(params).goalId, p(params)?.currentCycle ?? 0) }; }],
+
+      // ─── Evolution Engine ──────────────────────────────────────
+      ['evolution.status',         () => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); return s.evolutionEngine.getStatus(); }],
+      ['evolution.history',        (params) => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); return s.evolutionEngine.getHistory(p(params)?.limit ?? 20); }],
+      ['evolution.best',           () => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); return s.evolutionEngine.getBestIndividual(); }],
+      ['evolution.lineage',        (params) => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); return s.evolutionEngine.getLineage(p(params).id); }],
+      ['evolution.run',            () => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); return s.evolutionEngine.runGeneration(); }],
+      ['evolution.population',     (params) => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); return s.evolutionEngine.getPopulation(p(params)?.generation); }],
+      ['evolution.activate',       (params) => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); s.evolutionEngine.activate(p(params).genome); return { activated: true }; }],
 
       ['status',               () => ({
         name: 'marketing-brain',

@@ -22,6 +22,7 @@ import { registerMetacognitionToolsDirect } from './metacognition-tools.js';
 import { registerSelfawareToolsDirect } from './selfaware-tools.js';
 import { registerMemoryPalaceToolsDirect } from './memory-palace-tools.js';
 import { registerGoalToolsDirect } from './goal-tools.js';
+import { registerEvolutionToolsDirect } from './evolution-tools.js';
 import { registerPromptsDirect } from './prompts.js';
 
 export class McpHttpServer {
@@ -55,6 +56,7 @@ export class McpHttpServer {
         registerSelfawareToolsDirect(server, router);
         registerMemoryPalaceToolsDirect(server, router);
         registerGoalToolsDirect(server, router);
+        registerEvolutionToolsDirect(server, router);
         registerPromptsDirect(server, router);
       },
     );
