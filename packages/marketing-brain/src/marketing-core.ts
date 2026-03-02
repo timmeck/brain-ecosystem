@@ -65,7 +65,7 @@ import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
@@ -85,6 +85,7 @@ export class MarketingCore {
   private transferEngine: TransferEngine | null = null;
   private narrativeEngine: NarrativeEngine | null = null;
   private curiosityEngine: CuriosityEngine | null = null;
+  private emergenceEngine: EmergenceEngine | null = null;
   private config: MarketingBrainConfig | null = null;
   private configPath?: string;
   private restarting = false;
@@ -323,6 +324,26 @@ export class MarketingCore {
     this.orchestrator.setCuriosityEngine(this.curiosityEngine);
     services.curiosityEngine = this.curiosityEngine;
 
+    // 12m. Emergence Engine — tracks emergent behaviors and complexity
+    this.emergenceEngine = new EmergenceEngine(this.db!, { brainName: 'marketing-brain' });
+    this.emergenceEngine.setThoughtStream(thoughtStream);
+    this.emergenceEngine.setDataSources({
+      knowledgeDistiller: this.orchestrator.knowledgeDistiller,
+      hypothesisEngine: this.orchestrator.hypothesisEngine,
+      journal: this.orchestrator.journal,
+      anomalyDetective: this.orchestrator.anomalyDetective,
+      experimentEngine: this.orchestrator.experimentEngine,
+      curiosityEngine: this.curiosityEngine!,
+      getNetworkStats: () => {
+        try {
+          const stats = this.db!.prepare('SELECT COUNT(DISTINCT source_type || source_id) + COUNT(DISTINCT target_type || target_id) as nodes, COUNT(*) as synapses, AVG(weight) as avg FROM synapses').get() as { nodes: number; synapses: number; avg: number };
+          return { totalNodes: stats.nodes || 0, totalSynapses: stats.synapses || 0, avgWeight: stats.avg || 0, nodesByType: {} };
+        } catch { return { totalNodes: 0, totalSynapses: 0, avgWeight: 0, nodesByType: {} }; }
+      },
+    });
+    this.orchestrator.setEmergenceEngine(this.emergenceEngine);
+    services.emergenceEngine = this.emergenceEngine;
+
     logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active, Consciousness on :7786)');
 
     // 11. IPC Server
@@ -451,6 +472,7 @@ export class MarketingCore {
     this.attentionEngine = null;
     this.narrativeEngine = null;
     this.curiosityEngine = null;
+    this.emergenceEngine = null;
     this.subscriptionManager = null;
     this.correlator = null;
   }

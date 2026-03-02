@@ -224,6 +224,14 @@ export type {
   ConfidenceReport, ConfidenceFactor, NarrativeAnswer,
 } from './narrative/index.js';
 
+// ── Emergence Engine ──────────────────────────────────
+export { EmergenceEngine, runEmergenceMigration } from './emergence/index.js';
+export type {
+  EmergenceEngineConfig, EmergenceDataSources,
+  EmergenceEvent, EmergenceType, ComplexityMetrics,
+  NetworkSnapshot, EmergenceStatus,
+} from './emergence/index.js';
+
 // ── Curiosity Engine ──────────────────────────────────
 export { CuriosityEngine, runCuriosityMigration } from './curiosity/index.js';
 export type {

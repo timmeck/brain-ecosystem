@@ -26,6 +26,7 @@ import type { AttentionEngine } from '../attention/attention-engine.js';
 import type { TransferEngine } from '../transfer/transfer-engine.js';
 import type { NarrativeEngine } from '../narrative/narrative-engine.js';
 import type { CuriosityEngine } from '../curiosity/curiosity-engine.js';
+import type { EmergenceEngine } from '../emergence/emergence-engine.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -68,6 +69,7 @@ export class ResearchOrchestrator {
   private transferEngine: TransferEngine | null = null;
   private narrativeEngine: NarrativeEngine | null = null;
   private curiosityEngine: CuriosityEngine | null = null;
+  private emergenceEngine: EmergenceEngine | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -156,6 +158,11 @@ export class ResearchOrchestrator {
   /** Set the CuriosityEngine — knowledge gap detection and exploration/exploitation. */
   setCuriosityEngine(engine: CuriosityEngine): void {
     this.curiosityEngine = engine;
+  }
+
+  /** Set the EmergenceEngine — tracks emergent behaviors and complexity metrics. */
+  setEmergenceEngine(engine: EmergenceEngine): void {
+    this.emergenceEngine = engine;
   }
 
   /** Set the PredictionEngine — wires journal into it. */
@@ -807,6 +814,33 @@ export class ResearchOrchestrator {
         }
       } catch (err) {
         this.log.error(`[orchestrator] Curiosity step error: ${(err as Error).message}`);
+      }
+    }
+
+    // 19. Emergence Tracking: detect emergent patterns + record complexity metrics
+    if (this.emergenceEngine && this.cycleCount % this.reflectEvery === 0) {
+      ts?.emit('emergence', 'exploring', 'Scanning for emergent behaviors...');
+      try {
+        const emergent = this.emergenceEngine.detect();
+        if (emergent.length > 0) {
+          for (const e of emergent.slice(0, 3)) {
+            this.journal.write({
+              type: 'discovery',
+              title: `Emergence: ${e.title}`,
+              content: `[${e.type}] ${e.description} (surprise=${(e.surpriseScore * 100).toFixed(0)}%)`,
+              tags: [this.brainName, 'emergence', e.type, e.sourceEngine],
+              references: e.evidence,
+              significance: e.surpriseScore > 0.8 ? 'breakthrough' : 'notable',
+              data: { emergence: e },
+            });
+          }
+          ts?.emit('emergence', 'discovering',
+            `${emergent.length} emergent event(s): ${emergent[0].title.substring(0, 60)}`,
+            emergent[0].surpriseScore > 0.8 ? 'breakthrough' : 'notable',
+          );
+        }
+      } catch (err) {
+        this.log.error(`[orchestrator] Emergence step error: ${(err as Error).message}`);
       }
     }
 

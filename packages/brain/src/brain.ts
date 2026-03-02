@@ -65,7 +65,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -89,6 +89,7 @@ export class BrainCore {
   private unifiedServer: UnifiedDashboardServer | null = null;
   private narrativeEngine: NarrativeEngine | null = null;
   private curiosityEngine: CuriosityEngine | null = null;
+  private emergenceEngine: EmergenceEngine | null = null;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   private config: BrainConfig | null = null;
   private configPath?: string;
@@ -343,6 +344,27 @@ export class BrainCore {
     this.orchestrator.setCuriosityEngine(curiosityEngine);
     this.curiosityEngine = curiosityEngine;
     services.curiosityEngine = curiosityEngine;
+
+    // 11j.9 Emergence Engine — tracks emergent behaviors and complexity metrics
+    const emergenceEngine = new EmergenceEngine(this.db!, { brainName: 'brain' });
+    emergenceEngine.setThoughtStream(thoughtStream);
+    emergenceEngine.setDataSources({
+      knowledgeDistiller: this.orchestrator.knowledgeDistiller,
+      hypothesisEngine: this.orchestrator.hypothesisEngine,
+      journal: this.orchestrator.journal,
+      anomalyDetective: this.orchestrator.anomalyDetective,
+      experimentEngine: this.orchestrator.experimentEngine,
+      curiosityEngine,
+      getNetworkStats: () => {
+        try {
+          const stats = this.db!.prepare('SELECT COUNT(DISTINCT source_type || source_id) + COUNT(DISTINCT target_type || target_id) as nodes, COUNT(*) as synapses, AVG(weight) as avg FROM synapses').get() as { nodes: number; synapses: number; avg: number };
+          return { totalNodes: stats.nodes || 0, totalSynapses: stats.synapses || 0, avgWeight: stats.avg || 0, nodesByType: {} };
+        } catch { return { totalNodes: 0, totalSynapses: 0, avgWeight: 0, nodesByType: {} }; }
+      },
+    });
+    this.orchestrator.setEmergenceEngine(emergenceEngine);
+    this.emergenceEngine = emergenceEngine;
+    services.emergenceEngine = emergenceEngine;
 
     this.consciousnessServer = new ConsciousnessServer({
       port: 7784,
@@ -606,6 +628,7 @@ export class BrainCore {
     this.unifiedServer = null;
     this.narrativeEngine = null;
     this.curiosityEngine = null;
+    this.emergenceEngine = null;
     this.subscriptionManager = null;
     this.correlator = null;
     this.ecosystemService = null;
