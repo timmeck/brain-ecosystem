@@ -636,9 +636,9 @@ export class ResearchOrchestrator {
       this.feedExperimentMeasurements(anomalies.length, insights.length);
     }
 
-    // 13. Periodic Dream Consolidation: don't wait for idle, consolidate every 20 cycles
-    if (this.dreamEngine && this.cycleCount % 20 === 0) {
-      ts?.emit('dream', 'dreaming', 'Scheduled consolidation starting (every 20 cycles)...');
+    // 13. Periodic Dream Consolidation: don't wait for idle, consolidate every 10 cycles
+    if (this.dreamEngine && this.cycleCount % 10 === 0) {
+      ts?.emit('dream', 'dreaming', 'Scheduled consolidation starting (every 10 cycles)...');
       try {
         this.dreamEngine.consolidate('auto');
         ts?.emit('dream', 'dreaming', 'Scheduled consolidation complete', 'notable');
@@ -1063,8 +1063,8 @@ export class ResearchOrchestrator {
       } catch (err) { this.log.warn(`[orchestrator] Step 25 error: ${(err as Error).message}`); }
     }
 
-    // Step 26: Dream Retrospective — analyze pruning regret (every 20 cycles)
-    if (this.dreamEngine && this.cycleCount % 20 === 0) {
+    // Step 26: Dream Retrospective — analyze pruning regret (every 10 cycles)
+    if (this.dreamEngine && this.cycleCount % 10 === 0) {
       try {
         ts?.emit('orchestrator', 'reflecting', 'Step 26: Analyzing dream retrospective...', 'routine');
         const retrospectives = this.dreamEngine.analyzeRetrospective(5);
@@ -1389,7 +1389,7 @@ export class ResearchOrchestrator {
     }
 
     const dream = summary.dream as Record<string, unknown> | null;
-    if (dream && (dream.total_dreams as number ?? 0) === 0 && this.cycleCount > 30) {
+    if (dream && (dream.totalCycles as number ?? 0) === 0 && this.cycleCount > 30) {
       raw.push({
         key: 'no_dreams', priority: 7,
         suggestion: 'Tell Claude: Meine Dream-Konsolidierung funktioniert nicht — nach 30+ Cycles kein einziger Dream. Da stimmt was im Code nicht.',
