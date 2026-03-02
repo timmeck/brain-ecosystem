@@ -96,6 +96,8 @@ export interface Services {
   teachEngine?: import('@timmeck/brain-core').TeachEngine;
   dataScout?: import('@timmeck/brain-core').DataScout;
   simulationEngine?: import('@timmeck/brain-core').SimulationEngine;
+  memoryPalace?: import('@timmeck/brain-core').MemoryPalace;
+  goalEngine?: import('@timmeck/brain-core').GoalEngine;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -606,6 +608,25 @@ export class IpcRouter {
       ['simulation.validate',     (params) => { if (!s.simulationEngine) throw new Error('SimulationEngine not available'); return s.simulationEngine.validateSimulation(p(params).id, p(params).outcomes); }],
       ['simulation.list',         (params) => { if (!s.simulationEngine) throw new Error('SimulationEngine not available'); return s.simulationEngine.listSimulations(p(params)?.limit); }],
       ['simulation.status',       () => { if (!s.simulationEngine) throw new Error('SimulationEngine not available'); return s.simulationEngine.getStatus(); }],
+
+      // ─── Memory Palace ─────────────────────────────────────────
+      ['palace.status',           () => { if (!s.memoryPalace) throw new Error('MemoryPalace not available'); return s.memoryPalace.getStatus(); }],
+      ['palace.build',            () => { if (!s.memoryPalace) throw new Error('MemoryPalace not available'); return s.memoryPalace.buildConnections(); }],
+      ['palace.connections',      (params) => { if (!s.memoryPalace) throw new Error('MemoryPalace not available'); return s.memoryPalace.getConnections(p(params).type, p(params).id); }],
+      ['palace.path',             (params) => { if (!s.memoryPalace) throw new Error('MemoryPalace not available'); return s.memoryPalace.getPath(p(params).fromType, p(params).fromId, p(params).toType, p(params).toId, p(params)?.maxDepth); }],
+      ['palace.map',              (params) => { if (!s.memoryPalace) throw new Error('MemoryPalace not available'); return s.memoryPalace.getKnowledgeMap(p(params)?.topic, p(params)?.limit); }],
+      ['palace.isolated',         () => { if (!s.memoryPalace) throw new Error('MemoryPalace not available'); return s.memoryPalace.getIsolatedNodes(); }],
+      ['palace.add',              (params) => { if (!s.memoryPalace) throw new Error('MemoryPalace not available'); return { added: s.memoryPalace.addConnection(p(params).sourceType, p(params).sourceId, p(params).targetType, p(params).targetId, p(params).relation, p(params)?.strength) }; }],
+
+      // ─── Goal Engine ──────────────────────────────────────────
+      ['goals.status',            () => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return s.goalEngine.getStatus(); }],
+      ['goals.create',            (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return s.goalEngine.createGoal(p(params).title, p(params).metricName, p(params).targetValue, p(params).deadlineCycles, p(params)); }],
+      ['goals.list',              (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return s.goalEngine.listGoals(p(params)?.status, p(params)?.limit); }],
+      ['goals.progress',          (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return s.goalEngine.getProgress(p(params).goalId); }],
+      ['goals.forecast',          (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return s.goalEngine.forecastCompletion(p(params).goalId); }],
+      ['goals.suggest',           (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return s.goalEngine.suggestGoals(p(params)?.currentCycle ?? 0); }],
+      ['goals.pause',             (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return { paused: s.goalEngine.pauseGoal(p(params).goalId) }; }],
+      ['goals.resume',            (params) => { if (!s.goalEngine) throw new Error('GoalEngine not available'); return { resumed: s.goalEngine.resumeGoal(p(params).goalId, p(params)?.currentCycle ?? 0) }; }],
 
       ['status',               () => ({
         name: 'marketing-brain',

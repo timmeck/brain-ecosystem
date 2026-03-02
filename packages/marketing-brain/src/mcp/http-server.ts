@@ -15,6 +15,8 @@ import { registerEmergenceToolsDirect } from './emergence-tools.js';
 import { registerDebateToolsDirect } from './debate-tools.js';
 import { registerMetacognitionToolsDirect } from './metacognition-tools.js';
 import { registerSelfawareToolsDirect } from './selfaware-tools.js';
+import { registerMemoryPalaceToolsDirect } from './memory-palace-tools.js';
+import { registerGoalToolsDirect } from './goal-tools.js';
 
 export class McpHttpServer {
   private inner: CoreMcpHttpServer;
@@ -40,6 +42,8 @@ export class McpHttpServer {
         registerDebateToolsDirect(server, router);
         registerMetacognitionToolsDirect(server, router);
         registerSelfawareToolsDirect(server, router);
+        registerMemoryPalaceToolsDirect(server, router);
+        registerGoalToolsDirect(server, router);
       },
     );
   }

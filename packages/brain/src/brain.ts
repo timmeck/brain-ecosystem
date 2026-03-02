@@ -65,7 +65,10 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine } from '@timmeck/brain-core';
+import type { HypothesisStatus } from '@timmeck/brain-core';
+import type { ExperimentStatus } from '@timmeck/brain-core';
+import type { AnomalyType } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -470,6 +473,54 @@ export class BrainCore {
     simulationEngine.setThoughtStream(thoughtStream);
     this.orchestrator.setSimulationEngine(simulationEngine);
     services.simulationEngine = simulationEngine;
+
+    // 11j.16 MemoryPalace — knowledge connection graph
+    const memoryPalace = new MemoryPalace(this.db!, { brainName: 'brain' });
+    memoryPalace.setThoughtStream(thoughtStream);
+    memoryPalace.setDataSources({
+      getHypotheses: (status, limit) => this.orchestrator!.hypothesisEngine.list(status as HypothesisStatus, limit ?? 200),
+      getPrinciples: (domain, limit) => this.orchestrator!.knowledgeDistiller.getPrinciples(domain, limit ?? 200),
+      getAntiPatterns: (domain, limit) => this.orchestrator!.knowledgeDistiller.getAntiPatterns(domain, limit ?? 200),
+      getExperiments: (status, limit) => this.orchestrator!.experimentEngine.list(status as ExperimentStatus, limit ?? 200),
+      getJournalEntries: (limit) => this.orchestrator!.journal.getEntries(undefined, limit ?? 200) as Array<{ id?: number; title: string; tags: string[]; data?: unknown }>,
+      getAnomalies: (type, limit) => this.orchestrator!.anomalyDetective.getAnomalies(type as AnomalyType, limit ?? 200),
+      getCuriosityGaps: (limit) => this.curiosityEngine ? this.curiosityEngine.getGaps(limit ?? 100) : [],
+    });
+    this.orchestrator.setMemoryPalace(memoryPalace);
+    services.memoryPalace = memoryPalace;
+
+    // 11j.17 GoalEngine — autonomous goal setting and tracking
+    const goalEngine = new GoalEngine(this.db!, { brainName: 'brain' });
+    goalEngine.setThoughtStream(thoughtStream);
+    goalEngine.setDataSources({
+      getPredictionAccuracy: () => {
+        try {
+          const summary = predictionEngine.getSummary();
+          const domains = (summary?.by_domain ?? []) as Array<{ accuracy_rate?: number }>;
+          return domains.length > 0 ? (domains[0]?.accuracy_rate ?? 0) : 0;
+        } catch { return 0; }
+      },
+      getActiveGaps: () => {
+        try { return this.curiosityEngine ? this.curiosityEngine.getStatus().activeGaps : 0; } catch { return 0; }
+      },
+      getPrincipleCount: () => {
+        try { return this.orchestrator!.knowledgeDistiller.getPrinciples(undefined, 1000).length; } catch { return 0; }
+      },
+      getKnowledgeQuality: () => {
+        try { return this.orchestrator!.knowledgeDistiller.getSummary().avgConfidence ?? 0; } catch { return 0; }
+      },
+      getExperimentCount: () => {
+        try { return this.orchestrator!.experimentEngine.list(undefined, 1000).length; } catch { return 0; }
+      },
+      getConfirmationRate: () => {
+        try {
+          const summary = this.orchestrator!.hypothesisEngine.getSummary();
+          return (summary as { confirmation_rate?: number }).confirmation_rate ?? 0;
+        } catch { return 0; }
+      },
+    });
+    this.orchestrator.setGoalEngine(goalEngine);
+    services.goalEngine = goalEngine;
 
     this.consciousnessServer = new ConsciousnessServer({
       port: 7784,

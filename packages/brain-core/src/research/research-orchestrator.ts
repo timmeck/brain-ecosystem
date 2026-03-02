@@ -35,6 +35,8 @@ import type { SelfTestEngine } from '../metacognition/self-test-engine.js';
 import type { TeachEngine } from '../metacognition/teach-engine.js';
 import type { DataScout } from './data-scout.js';
 import type { SimulationEngine } from '../metacognition/simulation-engine.js';
+import type { MemoryPalace } from '../memory-palace/memory-palace.js';
+import type { GoalEngine } from '../goals/goal-engine.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -86,6 +88,8 @@ export class ResearchOrchestrator {
   private teachEngine: TeachEngine | null = null;
   private dataScout: DataScout | null = null;
   private simulationEngine: SimulationEngine | null = null;
+  private memoryPalace: MemoryPalace | null = null;
+  private goalEngine: GoalEngine | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -213,6 +217,12 @@ export class ResearchOrchestrator {
 
   /** Set the SimulationEngine — runs what-if scenarios. */
   setSimulationEngine(engine: SimulationEngine): void { this.simulationEngine = engine; }
+
+  /** Set the MemoryPalace — knowledge connection graph. */
+  setMemoryPalace(palace: MemoryPalace): void { this.memoryPalace = palace; }
+
+  /** Set the GoalEngine — autonomous goal setting and tracking. */
+  setGoalEngine(engine: GoalEngine): void { this.goalEngine = engine; }
 
   /** Set the PredictionEngine — wires journal into it. */
   setPredictionEngine(engine: PredictionEngine): void {
@@ -1191,6 +1201,80 @@ export class ResearchOrchestrator {
       } catch (err) { this.log.warn(`[orchestrator] Step 32 error: ${(err as Error).message}`); }
     }
 
+    // Step 33: MemoryPalace — build knowledge connections (every 5 cycles)
+    if (this.memoryPalace && this.cycleCount % 5 === 0) {
+      try {
+        ts?.emit('orchestrator', 'correlating', 'Step 33: Building knowledge connections...', 'routine');
+        const result = this.memoryPalace.buildConnections();
+        if (result.newConnections > 0) {
+          this.journal.write({
+            type: 'discovery',
+            title: `MemoryPalace: ${result.newConnections} new connections (${result.totalConnections} total)`,
+            content: `Scanned: ${result.scannedSources.join(', ')}`,
+            tags: [this.brainName, 'memory-palace', 'connections'],
+            references: [],
+            significance: result.newConnections > 5 ? 'notable' : 'routine',
+            data: { memoryPalace: result },
+          });
+        }
+        // Check for isolated knowledge
+        const isolated = this.memoryPalace.getIsolatedNodes();
+        if (isolated.length > 5) {
+          this.researchAgenda.ask(
+            `${isolated.length} isolated knowledge nodes detected — investigate and connect them`,
+            'knowledge_gap',
+          );
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('memory_palace', this.cycleCount, { insights: result.newConnections, journal_entries: isolated.length });
+      } catch (err) { this.log.warn(`[orchestrator] Step 33 error: ${(err as Error).message}`); }
+    }
+
+    // Step 34: GoalEngine — gather metrics + record progress (every cycle)
+    if (this.goalEngine) {
+      try {
+        const metrics = this.goalEngine.gatherMetrics();
+        if (Object.keys(metrics).length > 0) {
+          this.goalEngine.recordProgress(this.cycleCount, metrics);
+        }
+      } catch (err) { this.log.warn(`[orchestrator] Step 34 error: ${(err as Error).message}`); }
+    }
+
+    // Step 35: GoalEngine — check goals + suggest new ones (every 10 cycles)
+    if (this.goalEngine && this.cycleCount % this.reflectEvery === 0) {
+      try {
+        ts?.emit('orchestrator', 'reflecting', 'Step 35: Checking goals and suggesting new ones...', 'routine');
+        const { achieved, failed } = this.goalEngine.checkGoals(this.cycleCount);
+        for (const g of achieved) {
+          this.journal.write({
+            type: 'discovery',
+            title: `Goal achieved: "${g.title}"`,
+            content: `${g.metricName}=${g.currentValue} reached target ${g.targetValue}`,
+            tags: [this.brainName, 'goal', 'achieved'],
+            references: [],
+            significance: 'notable',
+            data: { goal: g },
+          });
+        }
+        for (const g of failed) {
+          this.journal.write({
+            type: 'reflection',
+            title: `Goal failed: "${g.title}"`,
+            content: `${g.metricName}=${g.currentValue} did not reach ${g.targetValue} in ${g.deadlineCycles} cycles`,
+            tags: [this.brainName, 'goal', 'failed'],
+            references: [],
+            significance: 'notable',
+            data: { goal: g },
+          });
+        }
+        // Suggest new goals
+        const suggestions = this.goalEngine.suggestGoals(this.cycleCount);
+        for (const s of suggestions.slice(0, 2)) {
+          ts?.emit('goals', 'reflecting', `Goal suggestion: "${s.title}" — ${s.reason}`, 'routine');
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('goal_engine', this.cycleCount, { insights: achieved.length + failed.length, journal_entries: suggestions.length });
+      } catch (err) { this.log.warn(`[orchestrator] Step 35 error: ${(err as Error).message}`); }
+    }
+
     const duration = Date.now() - start;
     ts?.emit('orchestrator', 'reflecting', `Feedback Cycle #${this.cycleCount} complete (${duration}ms)`);
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} complete (${duration}ms) ───`);
@@ -1766,6 +1850,8 @@ export class ResearchOrchestrator {
       teach: this.teachEngine?.getStatus() ?? null,
       dataScout: this.dataScout?.getStatus() ?? null,
       simulation: this.simulationEngine?.getStatus() ?? null,
+      memoryPalace: this.memoryPalace?.getStatus() ?? null,
+      goals: this.goalEngine?.getStatus() ?? null,
     };
   }
 }

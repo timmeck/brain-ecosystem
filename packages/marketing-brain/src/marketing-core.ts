@@ -65,7 +65,8 @@ import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine } from '@timmeck/brain-core';
+import type { HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
@@ -430,6 +431,45 @@ export class MarketingCore {
     simulationEngine.setThoughtStream(thoughtStream);
     this.orchestrator.setSimulationEngine(simulationEngine);
     services.simulationEngine = simulationEngine;
+
+    // 11r. MemoryPalace — knowledge connection graph
+    const memoryPalace = new MemoryPalace(this.db!, { brainName: 'marketing-brain' });
+    memoryPalace.setThoughtStream(thoughtStream);
+    memoryPalace.setDataSources({
+      getHypotheses: (status, limit) => this.orchestrator!.hypothesisEngine.list(status as HypothesisStatus, limit ?? 200),
+      getPrinciples: (domain, limit) => this.orchestrator!.knowledgeDistiller.getPrinciples(domain, limit ?? 200),
+      getAntiPatterns: (domain, limit) => this.orchestrator!.knowledgeDistiller.getAntiPatterns(domain, limit ?? 200),
+      getExperiments: (status, limit) => this.orchestrator!.experimentEngine.list(status as ExperimentStatus, limit ?? 200),
+      getJournalEntries: (limit) => this.orchestrator!.journal.getEntries(undefined, limit ?? 200) as Array<{ id?: number; title: string; tags: string[]; data?: unknown }>,
+      getAnomalies: (type, limit) => this.orchestrator!.anomalyDetective.getAnomalies(type as AnomalyType, limit ?? 200),
+      getCuriosityGaps: (limit) => this.curiosityEngine ? this.curiosityEngine.getGaps(limit ?? 100) : [],
+    });
+    this.orchestrator.setMemoryPalace(memoryPalace);
+    services.memoryPalace = memoryPalace;
+
+    // 11s. GoalEngine — autonomous goal setting and tracking
+    const goalEngine = new GoalEngine(this.db!, { brainName: 'marketing-brain' });
+    goalEngine.setThoughtStream(thoughtStream);
+    goalEngine.setDataSources({
+      getPredictionAccuracy: () => {
+        try {
+          const summary = predictionEngine.getSummary();
+          const domains = (summary?.by_domain ?? []) as Array<{ accuracy_rate?: number }>;
+          return domains.length > 0 ? (domains[0]?.accuracy_rate ?? 0) : 0;
+        } catch { return 0; }
+      },
+      getActiveGaps: () => {
+        try { return this.curiosityEngine ? this.curiosityEngine.getStatus().activeGaps : 0; } catch { return 0; }
+      },
+      getPrincipleCount: () => {
+        try { return this.orchestrator!.knowledgeDistiller.getPrinciples(undefined, 1000).length; } catch { return 0; }
+      },
+      getExperimentCount: () => {
+        try { return this.orchestrator!.experimentEngine.list(undefined, 1000).length; } catch { return 0; }
+      },
+    });
+    this.orchestrator.setGoalEngine(goalEngine);
+    services.goalEngine = goalEngine;
 
     logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active, Consciousness on :7786)');
 

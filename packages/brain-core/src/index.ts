@@ -270,6 +270,22 @@ export type { TeachingPackage, TeachEngineStatus } from './metacognition/index.j
 export { SimulationEngine, runSimulationMigration } from './metacognition/index.js';
 export type { Simulation, SimulationOutcome, SimulationStatus } from './metacognition/index.js';
 
+// ── Memory Palace ──────────────────────────────────────
+export { MemoryPalace, runMemoryPalaceMigration } from './memory-palace/index.js';
+export type {
+  MemoryPalaceConfig, MemoryPalaceDataSources,
+  NodeType, RelationType, KnowledgeConnection, KnowledgeNode, KnowledgeEdge,
+  KnowledgeMap, PathStep, MemoryPalaceStats, BuildResult, MemoryPalaceStatus,
+} from './memory-palace/index.js';
+
+// ── Goal Engine ──────────────────────────────────────────
+export { GoalEngine, runGoalEngineMigration } from './goals/index.js';
+export type {
+  GoalEngineConfig, GoalEngineDataSources,
+  GoalType, GoalStatus, Goal, GoalProgress, GoalProgressReport,
+  GoalForecast, GoalSuggestion, GoalEngineStatus,
+} from './goals/index.js';
+
 // ── DataScout ──────────────────────────────────────────
 export { DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter } from './research/data-scout.js';
 export type { ScoutDiscovery, ScoutAdapter, DataScoutStatus } from './research/data-scout.js';
