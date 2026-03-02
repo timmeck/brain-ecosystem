@@ -93,6 +93,7 @@ export interface Services {
   codeMiner?: CodeMiner;
   patternExtractor?: PatternExtractor;
   codegenServer?: import('@timmeck/brain-core').CodegenServer;
+  attentionEngine?: import('@timmeck/brain-core').AttentionEngine;
   projectScanner?: ProjectScanner;
   reposignalImporter?: ReposignalImporter;
 }
@@ -502,6 +503,13 @@ export class IpcRouter {
       ['responder.history',       (params) => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.autoResponder.getHistory(p(params)?.limit ?? 20); }],
       ['responder.rules',         () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.autoResponder.getRules(); }],
       ['responder.add_rule',      (params) => { if (!s.orchestrator) throw new Error('Orchestrator not available'); const pp = p(params); s.orchestrator.autoResponder.addRule(pp); return { added: true }; }],
+
+      // ─── Attention Engine ───────────────────────────────────
+      ['attention.status',        () => { if (!s.attentionEngine) throw new Error('AttentionEngine not available'); return s.attentionEngine.getStatus(); }],
+      ['attention.focus',         (params) => { if (!s.attentionEngine) throw new Error('AttentionEngine not available'); const pp = p(params); s.attentionEngine.setFocus(pp.topic, pp.intensity ?? 2.0); return { focused: true, topic: pp.topic }; }],
+      ['attention.timeline',      (params) => { if (!s.attentionEngine) throw new Error('AttentionEngine not available'); return s.attentionEngine.getFocusTimeline(p(params)?.limit ?? 50); }],
+      ['attention.context',       () => { if (!s.attentionEngine) throw new Error('AttentionEngine not available'); return { context: s.attentionEngine.getCurrentContext(), history: s.attentionEngine.getContextHistory(20) }; }],
+      ['attention.weights',       () => { if (!s.attentionEngine) throw new Error('AttentionEngine not available'); return s.attentionEngine.computeEngineWeights(); }],
 
       // ─── Orchestrator ─────────────────────────────────────
       ['orchestrator.feedback',   () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); s.orchestrator.runFeedbackCycle(); return { triggered: true }; }],

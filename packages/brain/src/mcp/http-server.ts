@@ -11,6 +11,7 @@ import { registerScanToolsDirect } from './scan-tools.js';
 import { registerReposignalToolsDirect } from './reposignal-tools.js';
 import { registerScannerToolsDirect } from './scanner-tools.js';
 import { registerCodegenToolsDirect } from './codegen-tools.js';
+import { registerAttentionToolsDirect } from './attention-tools.js';
 import { registerPromptsDirect } from './prompts.js';
 
 export class McpHttpServer {
@@ -33,6 +34,7 @@ export class McpHttpServer {
         registerReposignalToolsDirect(server, router);
         registerScannerToolsDirect(server, router);
         registerCodegenToolsDirect(server, router);
+        registerAttentionToolsDirect(server, router);
         registerPromptsDirect(server, router);
       },
     );

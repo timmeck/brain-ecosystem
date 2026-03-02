@@ -22,6 +22,7 @@ import type { PredictionEngine } from '../prediction/prediction-engine.js';
 import type { SignalScanner } from '../scanner/signal-scanner.js';
 import type { CodeGenerator } from '../codegen/code-generator.js';
 import type { CodeMiner } from '../codegen/code-miner.js';
+import type { AttentionEngine } from '../attention/attention-engine.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -60,6 +61,7 @@ export class ResearchOrchestrator {
   private signalScanner: SignalScanner | null = null;
   private codeGenerator: CodeGenerator | null = null;
   private codeMiner: CodeMiner | null = null;
+  private attentionEngine: AttentionEngine | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -128,6 +130,11 @@ export class ResearchOrchestrator {
   /** Set the CodeMiner — mines repo contents from GitHub for pattern analysis. */
   setCodeMiner(miner: CodeMiner): void {
     this.codeMiner = miner;
+  }
+
+  /** Set the AttentionEngine — dynamic focus and resource allocation. */
+  setAttentionEngine(engine: AttentionEngine): void {
+    this.attentionEngine = engine;
   }
 
   /** Set the PredictionEngine — wires journal into it. */
@@ -304,6 +311,24 @@ export class ResearchOrchestrator {
     if (anomalies.length > 0) {
       for (const a of anomalies) {
         this.hypothesisEngine.observe({ source: this.brainName, type: `anomaly:${a.metric}`, value: a.deviation, timestamp: now, metadata: { severity: a.severity } });
+      }
+    }
+
+    // 2d. Attention Engine: decay scores, compute engine weights, persist focus
+    if (this.attentionEngine) {
+      ts?.emit('attention', 'focusing', 'Updating attention scores and engine weights...');
+      this.attentionEngine.decay();
+      const weights = this.attentionEngine.computeEngineWeights();
+      const topTopics = this.attentionEngine.getTopTopics(3);
+      const urgent = this.attentionEngine.getUrgentTopics();
+      const context = this.attentionEngine.getCurrentContext();
+
+      if (urgent.length > 0) {
+        ts?.emit('attention', 'focusing', `Urgent: ${urgent.map(u => `"${u.topic}" (${u.urgency.toFixed(1)})`).join(', ')}`, 'notable');
+      }
+      if (topTopics.length > 0) {
+        const topStr = topTopics.map(t => `${t.topic}(${t.score.toFixed(1)})`).join(', ');
+        ts?.emit('attention', 'focusing', `Context: ${context} | Top: ${topStr} | Weights: ${weights.slice(0, 3).map(w => `${w.engine}=${w.weight.toFixed(1)}`).join(', ')}`);
       }
     }
 
@@ -874,6 +899,7 @@ export class ResearchOrchestrator {
       scanner: this.signalScanner?.getStatus() ?? null,
       codeGenerator: this.codeGenerator?.getSummary() ?? null,
       codeMiner: this.codeMiner?.getSummary() ?? null,
+      attention: this.attentionEngine?.getStatus() ?? null,
     };
   }
 }

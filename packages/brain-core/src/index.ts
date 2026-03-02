@@ -202,6 +202,13 @@ export type {
   GenerationRequest, GenerationResult, GenerationRecord, CodeGeneratorSummary,
 } from './codegen/index.js';
 
+// ── Attention Engine ──────────────────────────────────
+export { AttentionEngine } from './attention/index.js';
+export type {
+  AttentionEngineConfig, AttentionScore, AttentionStatus,
+  WorkContext, ContextSwitch, FocusEntry, EngineWeight,
+} from './attention/index.js';
+
 // ── Scanner ──────────────────────────────────────────────
 export { SignalScanner, runScannerMigration } from './scanner/index.js';
 export { GitHubCollector } from './scanner/index.js';

@@ -65,7 +65,7 @@ import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
@@ -81,6 +81,7 @@ export class MarketingCore {
   private correlator: CrossBrainCorrelator | null = null;
   private orchestrator: ResearchOrchestrator | null = null;
   private consciousnessServer: ConsciousnessServer | null = null;
+  private attentionEngine: AttentionEngine | null = null;
   private config: MarketingBrainConfig | null = null;
   private configPath?: string;
   private restarting = false;
@@ -276,6 +277,13 @@ export class MarketingCore {
     this.consciousnessServer.start();
     services.consciousnessServer = this.consciousnessServer;
     services.thoughtStream = thoughtStream;
+
+    // 10k. Attention Engine
+    this.attentionEngine = new AttentionEngine(this.db!, { brainName: 'marketing-brain' });
+    this.attentionEngine.setThoughtStream(thoughtStream);
+    this.orchestrator.setAttentionEngine(this.attentionEngine);
+    services.attentionEngine = this.attentionEngine;
+
     logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active, Consciousness on :7786)');
 
     // 11. IPC Server
@@ -381,6 +389,7 @@ export class MarketingCore {
 
   private cleanup(): void {
     this.subscriptionManager?.disconnectAll();
+    this.attentionEngine?.stop();
     this.consciousnessServer?.stop();
     this.orchestrator?.stop();
     this.researchEngine?.stop();
@@ -400,6 +409,7 @@ export class MarketingCore {
     this.researchEngine = null;
     this.orchestrator = null;
     this.consciousnessServer = null;
+    this.attentionEngine = null;
     this.subscriptionManager = null;
     this.correlator = null;
   }
