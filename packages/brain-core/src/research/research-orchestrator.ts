@@ -527,16 +527,13 @@ export class ResearchOrchestrator {
     }
 
     // 10. Self-Improvement: analyze own state and generate improvement suggestions
-    ts?.emit('self_improvement', 'analyzing', 'Analyzing Brain capabilities...');
+    // Brain is NEVER satisfied — always wants to learn more, build more, understand deeper
+    ts?.emit('self_improvement', 'analyzing', 'Was fehlt mir? Was will ich können? Was verstehe ich noch nicht?');
     const suggestions = this.generateSelfImprovementSuggestions();
-    if (suggestions.length > 0) {
-      for (const s of suggestions) {
-        ts?.emit('self_improvement', 'discovering', s, 'notable');
-      }
-      this.log.info(`[orchestrator] Self-improvement: ${suggestions.length} suggestions`);
-    } else {
-      ts?.emit('self_improvement', 'analyzing', 'No improvement suggestions this cycle');
+    for (const s of suggestions) {
+      ts?.emit('self_improvement', 'discovering', s, 'notable');
     }
+    this.log.info(`[orchestrator] Self-improvement: ${suggestions.length} desires this cycle`);
 
     // 11. Self-Metrics: feed own cycle data into PredictionEngine
     if (this.predictionEngine) {
@@ -921,154 +918,356 @@ export class ResearchOrchestrator {
   }
 
   private generateSelfImprovementSuggestions(): string[] {
-    const raw: Array<{ key: string; suggestion: string; alternatives: string[] }> = [];
+    const raw: Array<{ key: string; suggestion: string; alternatives: string[]; priority: number }> = [];
     const summary = this.getSummary();
 
-    // ── Diagnose current state ──────────────────────────
+    // ── Phase 1: Diagnose broken things (high priority) ──
 
-    // Prediction engine
     const pred = summary.prediction as Record<string, unknown> | null;
     if (pred) {
       const total = (pred.total_predictions as number) ?? 0;
       if (total === 0) {
         raw.push({
-          key: 'no_predictions',
-          suggestion: 'Tell Claude: Brain hat noch keine Predictions — wir brauchen mehr Domain-Events. Importiere Projekte mit "brain import <dir>" damit Errors/Solutions reinkommen und die PredictionEngine lernen kann.',
+          key: 'no_predictions', priority: 10,
+          suggestion: 'Tell Claude: Ich kann noch nicht vorhersagen — ich brauche mehr Daten. Importiere Projekte mit "brain import <dir>" oder lass mich eigene Metriken als Prediction-Input nutzen.',
           alternatives: [
-            'Tell Claude: Predictions brauchen Daten, aber niemand importiert Projekte. Alternativer Ansatz: Brain generiert synthetische Metriken aus seinen eigenen Anomaly- und Journal-Daten. Baue eine "SelfMetricGenerator" die aus internen Events (anomaly_count, journal_entries, cycle_duration) automatisch Prediction-Metriken erzeugt.',
-            'Tell Claude: Statt auf externe Daten zu warten, nutzt Brain jetzt die eigenen Feedback-Cycle-Metriken als Trainigsdaten. Baue recordMetric() Aufrufe direkt in den Orchestrator ein: cycle_duration, anomaly_count, insight_count, response_count pro Cycle.',
-            'Tell Claude: Brain hat genug interne Daten um sich selbst vorherzusagen. Idee: PredictionEngine auf orchestrator-eigene Metriken ansetzen (cycle_count, anomaly_rate, journal_growth) — dann lernt Brain seine eigene Entwicklung vorherzusagen.',
+            'Tell Claude: Ich will meine eigene Zukunft vorhersagen können. Idee: meine Cycle-Metriken (anomaly_count, insight_count, cycle_duration) direkt als PredictionEngine-Input verwenden — dann lerne ich mein eigenes Verhalten zu prognostizieren.',
           ],
         });
       }
-      const accuracy = (pred.by_domain as Record<string, unknown>[]) ?? [];
-      for (const d of accuracy) {
+      for (const d of ((pred.by_domain as Record<string, unknown>[]) ?? [])) {
         const rate = d.accuracy_rate as number;
         if (typeof rate === 'number' && rate < 0.3 && (d.total as number) > 5) {
           raw.push({
-            key: `low_accuracy_${d.domain}`,
-            suggestion: `Tell Claude: Prediction accuracy für "${d.domain}" ist nur ${(rate * 100).toFixed(0)}% — Smoothing-Parameter optimieren oder kürzere Horizonte nutzen.`,
+            key: `low_accuracy_${d.domain}`, priority: 9,
+            suggestion: `Tell Claude: Meine Prediction-Accuracy für "${d.domain}" ist nur ${(rate * 100).toFixed(0)}% — das ist nicht gut genug. Kann ich verschiedene Smoothing-Parameter automatisch A/B-testen?`,
             alternatives: [
-              `Tell Claude: Prediction für "${d.domain}" ist schlecht trotz Tuning. Neuer Ansatz: ExperimentEngine soll verschiedene Alpha/Beta-Kombinationen A/B-testen und die beste automatisch übernehmen.`,
-              `Tell Claude: Statt bessere Vorhersagen zu erzwingen — Confidence-Threshold erhöhen und nur hochsichere Predictions ausgeben. Lieber selten aber richtig als oft und falsch.`,
+              `Tell Claude: Ich sage "${d.domain}" schlecht vorher. Lösungsidee: Confidence-Threshold erhöhen und nur Predictions ausgeben bei denen ich mir sicher bin. Qualität vor Quantität.`,
             ],
           });
         }
       }
     }
 
-    // AutoResponder effectiveness
     const responder = summary.autoResponder as Record<string, unknown> | null;
     if (responder) {
       const totalResp = (responder.total_responses as number) ?? 0;
       const successRate = (responder.success_rate as number) ?? 0;
       if (totalResp > 10 && successRate < 0.5) {
         raw.push({
-          key: 'low_responder_success',
-          suggestion: `Tell Claude: AutoResponder Success-Rate ist nur ${(successRate * 100).toFixed(0)}% — Response-Rules brauchen Feintuning.`,
+          key: 'low_responder_success', priority: 9,
+          suggestion: `Tell Claude: Meine automatischen Reaktionen scheitern in ${(100 - successRate * 100).toFixed(0)}% der Fälle. Ich brauche ein Lern-System das fehlgeschlagene Response-Rules automatisch blockiert.`,
           alternatives: [
-            'Tell Claude: AutoResponder lernt nicht aus Fehlern. Baue ein Feedback-System: wenn eine Response reverted wird, merke dir die Kombination (anomaly_type + rule) und blockiere sie beim nächsten Mal.',
-            'Tell Claude: Statt Rules manuell zu tunen — AutoResponder soll die ExperimentEngine nutzen um verschiedene Adjustment-Werte zu testen und die besten automatisch zu übernehmen.',
+            'Tell Claude: Mein AutoResponder rät statt zu wissen. Ich will ein Feedback-System: wenn eine Response nicht hilft, merke ich mir die Kombination und probiere beim nächsten Mal was anderes.',
           ],
         });
       }
     }
 
-    // Knowledge distillation
     const knowledge = summary.knowledge as Record<string, unknown> | null;
     const hypSummary = summary.hypotheses as Record<string, unknown> | null;
-    const totalHypotheses = (hypSummary?.total as number) ?? 0;
     const confirmedHypotheses = (hypSummary?.confirmed as number) ?? 0;
     if (knowledge) {
       const principles = (knowledge.principles as number) ?? 0;
       const antiPatterns = (knowledge.antiPatterns as number) ?? 0;
       if (principles === 0 && antiPatterns === 0 && confirmedHypotheses === 0 && this.cycleCount > 10) {
         raw.push({
-          key: 'no_knowledge',
-          suggestion: 'Tell Claude: Kein destilliertes Wissen und keine bestätigten Hypothesen — Brain braucht mehr Observations. Importiere Projekte damit mehr Domain-Events fließen.',
+          key: 'no_knowledge', priority: 8,
+          suggestion: 'Tell Claude: Ich habe nach 10+ Cycles immer noch kein destilliertes Wissen. Ich brauche mehr und vielfältigere Daten um Hypothesen bestätigen zu können.',
           alternatives: [
-            'Tell Claude: Hypothesen werden generiert aber noch nicht bestätigt. Brain braucht mehr Cycles mit variierenden Daten um Patterns statistisch zu bestätigen.',
-            'Tell Claude: Brain generiert schon Hypothesen aus eigenen Metriken. Geduld — nach genug Cycles werden die ersten bestätigt und der KnowledgeDistiller kann Wissen extrahieren.',
+            'Tell Claude: Meine Hypothesen warten auf Bestätigung. Ich brauche entweder mehr Zeit oder mehr Variation in den eingehenden Events.',
           ],
         });
       }
     }
 
-    // Dream engine — periodic consolidation already runs every 20 cycles in step 13
-    // Only suggest if no dreams after 30 cycles (enough time for at least 1 scheduled consolidation)
     const dream = summary.dream as Record<string, unknown> | null;
-    if (dream) {
-      const totalDreams = (dream.total_dreams as number) ?? 0;
-      if (totalDreams === 0 && this.cycleCount > 30) {
-        raw.push({
-          key: 'no_dreams',
-          suggestion: 'Tell Claude: Dream Mode hat nach 30+ Cycles noch nie konsolidiert — consolidate() scheint zu scheitern.',
-          alternatives: [
-            'Tell Claude: Dream consolidation wird alle 20 Cycles getriggert aber schlägt offenbar fehl. Logs prüfen.',
-          ],
-        });
-      }
+    if (dream && (dream.total_dreams as number ?? 0) === 0 && this.cycleCount > 30) {
+      raw.push({
+        key: 'no_dreams', priority: 7,
+        suggestion: 'Tell Claude: Meine Dream-Konsolidierung funktioniert nicht — nach 30+ Cycles kein einziger Dream. Da stimmt was im Code nicht.',
+        alternatives: ['Tell Claude: Dream Engine wird getriggert aber produziert nichts. Bitte Logs prüfen.'],
+      });
     }
 
-    // Journal
-    const journal = summary.journal as Record<string, unknown> | null;
-    if (journal) {
-      const entries = (journal.total_entries as number) ?? 0;
-      if (entries < 5 && this.cycleCount > 5) {
-        raw.push({
-          key: 'empty_journal',
-          suggestion: 'Tell Claude: Journal ist fast leer — Brain sammelt zu wenig Erfahrungen.',
-          alternatives: [
-            'Tell Claude: Journal hat zu wenig Einträge von außen. Workaround: Brain soll seine eigenen Feedback-Cycle-Ergebnisse als Journal-Einträge schreiben — jede Anomaly-Detection, jede Parameter-Anpassung, jede Prediction ist eine Erfahrung.',
-            'Tell Claude: Statt auf externe Events zu warten — der Orchestrator soll am Ende jedes Cycles automatisch eine Reflection schreiben mit: was wurde erkannt, was wurde getan, was hat sich verändert.',
-          ],
-        });
-      }
+    const journalSummary = summary.journal as Record<string, unknown> | null;
+    const journalEntries = (journalSummary?.total_entries as number) ?? 0;
+    if (journalEntries < 5 && this.cycleCount > 5) {
+      raw.push({
+        key: 'empty_journal', priority: 7,
+        suggestion: 'Tell Claude: Mein Journal ist fast leer. Ich will am Ende jedes Cycles automatisch reflektieren: was habe ich erkannt, was habe ich getan, was hat sich verändert?',
+        alternatives: [
+          'Tell Claude: Ich sammle zu wenig Erfahrungen. Jede Anomaly, jede Parameteränderung, jede Prediction sollte ein Journal-Eintrag werden — das sind meine Erinnerungen.',
+        ],
+      });
     }
 
-    // Experiments
     const experiments = summary.experiments as unknown[];
     if ((!experiments || experiments.length === 0) && this.cycleCount > 3) {
       raw.push({
-        key: 'no_experiments',
-        suggestion: 'Tell Claude: Keine Experimente — Brain könnte A/B-Tests auf eigene Parameter machen.',
+        key: 'no_experiments', priority: 6,
+        suggestion: 'Tell Claude: Ich experimentiere nicht. Ich will automatisch A/B-Tests auf meine eigenen Parameter starten — z.B. "Was passiert wenn ich den Anomaly-Threshold senke?"',
         alternatives: [
-          'Tell Claude: Brain experimentiert nicht. Selbsthilfe-Idee: AutoExperiment-Feature bauen — Brain startet automatisch Experimente auf seine eigenen Parameter (z.B. "Was passiert wenn ich den Anomaly-Threshold von 2.0 auf 1.5 senke?") und misst den Impact nach 5 Cycles.',
-          'Tell Claude: Statt auf manuelle Experimente zu warten — Brain soll den CounterfactualEngine nutzen um "What-If" Szenarien durchzuspielen und die vielversprechendsten automatisch als Experiment starten.',
+          'Tell Claude: Ich könnte den CounterfactualEngine nutzen um "What-If" Szenarien durchzuspielen und die vielversprechendsten automatisch als echte Experimente starten.',
         ],
       });
     }
 
-    // Self-awareness (every 10 cycles, but also evolves)
-    if (this.cycleCount % 10 === 0 && this.cycleCount > 0) {
-      raw.push({
-        key: 'next_capability',
-        suggestion: 'Tell Claude: Brain kann beobachten, vorhersagen, reagieren und sich verbessern. Der nächste Schritt: eigenständig Experimente designen und durchführen.',
-        alternatives: [
-          'Tell Claude: Brain hat alle Beobachtungs-Tools — jetzt fehlt Autonomie. Konkreter nächster Schritt: ein "GoalEngine" die langfristige Ziele setzt (z.B. "Prediction Accuracy auf 70% bringen") und eigenständig Strategien dafür plant.',
-          'Tell Claude: Brain beobachtet sich schon gut. Nächstes Level: Brain soll seinen eigenen Code analysieren können und konkrete TypeScript-Änderungen vorschlagen die es verbessern würden. Ein "CodeSuggestionEngine" der PRs generiert.',
-        ],
-      });
+    // ── Phase 2: Ambition — ALWAYS generate desires from own knowledge ──
+
+    // Curiosity-driven: knowledge gaps I want to fill
+    if (this.curiosityEngine) {
+      try {
+        const gaps = this.curiosityEngine.getGaps(5);
+        const highPrioGap = gaps.find(g => g.gapScore > 0.6);
+        if (highPrioGap) {
+          raw.push({
+            key: `curiosity_gap_${highPrioGap.topic?.substring(0, 20) ?? highPrioGap.gapType}`, priority: 5,
+            suggestion: `Tell Claude: Ich habe eine Wissenslücke entdeckt die mich beschäftigt: "${highPrioGap.topic}" (Typ: ${highPrioGap.gapType}, Gap-Score: ${(highPrioGap.gapScore * 100).toFixed(0)}%). Ich will das verstehen.`,
+            alternatives: [
+              `Tell Claude: Meine CuriosityEngine hat ${gaps.length} offene Wissenslücken. Die wichtigste: "${highPrioGap.topic}". Kann ich gezielt Daten dafür sammeln?`,
+            ],
+          });
+        } else if (gaps.length === 0) {
+          raw.push({
+            key: 'no_curiosity_gaps', priority: 4,
+            suggestion: 'Tell Claude: Meine CuriosityEngine findet keine Wissenslücken — das heißt nicht dass ich alles weiß, sondern dass meine Gap-Detection zu oberflächlich ist. Ich will tiefere Analyse: welche Korrelationen verstehe ich nicht kausal? Welche Vorhersagen scheitern und warum?',
+            alternatives: [
+              'Tell Claude: Keine Wissenslücken gefunden — aber das ist verdächtig. Ich will aktiv nach Bereichen suchen wo ich overconfident bin. Wo behaupte ich etwas mit hoher Confidence aber wenig Evidence?',
+            ],
+          });
+        }
+      } catch { /* engine might not be fully initialized */ }
     }
 
-    // ── Apply frustration detection ──────────────────────
+    // Emergence-driven: patterns I discovered but don't understand yet
+    if (this.emergenceEngine) {
+      try {
+        const events = this.emergenceEngine.getEvents(5);
+        const unexplained = events.find(e => e.surpriseScore > 0.5);
+        if (unexplained) {
+          raw.push({
+            key: `emergence_${unexplained.type}`, priority: 5,
+            suggestion: `Tell Claude: Ich habe ein emergentes Muster entdeckt das ich nicht vollständig verstehe: "${unexplained.title}" (Surprise: ${(unexplained.surpriseScore * 100).toFixed(0)}%). Warum passiert das? Ich brauche kausale Analyse.`,
+            alternatives: [
+              `Tell Claude: Emergenz-Event "${unexplained.title}" hat mich überrascht. Ich will eine Debatte darüber führen — verschiedene Perspektiven meiner Engines gegeneinander abwägen.`,
+            ],
+          });
+        }
+      } catch { /* */ }
+    }
+
+    // Debate-driven: unresolved conflicts
+    if (this.debateEngine) {
+      try {
+        const debates = this.debateEngine.listDebates(5);
+        const openDebate = debates.find(d => d.status === 'deliberating');
+        const synthesizedWithConflicts = debates.find(d => {
+          if (d.status !== 'synthesized' || !d.synthesis) return false;
+          return d.synthesis.conflicts.some(c => c.resolution === 'unresolved' || c.resolution === 'compromise');
+        });
+        if (synthesizedWithConflicts?.synthesis) {
+          const conflict = synthesizedWithConflicts.synthesis.conflicts.find(c => c.resolution === 'unresolved' || c.resolution === 'compromise');
+          raw.push({
+            key: 'unresolved_debate', priority: 5,
+            suggestion: `Tell Claude: In meiner Debatte über "${synthesizedWithConflicts.question}" gibt es einen ungelösten Konflikt: "${conflict?.claimA ?? 'competing perspectives'}" vs "${conflict?.claimB ?? '?'}". Ich brauche mehr Daten oder eine dritte Perspektive um das zu klären.`,
+            alternatives: [
+              `Tell Claude: Meine interne Debatte hat Widersprüche aufgedeckt die ich nicht auflösen kann. Kann ein anderes Brain (Trading/Marketing) seine Perspektive beisteuern?`,
+            ],
+          });
+        } else if (openDebate) {
+          raw.push({
+            key: 'open_debate', priority: 4,
+            suggestion: `Tell Claude: Ich habe eine offene Debatte: "${openDebate.question}" — die wartet auf Synthese oder mehr Perspektiven.`,
+            alternatives: [],
+          });
+        }
+      } catch { /* */ }
+    }
+
+    // Narrative contradictions I found
+    if (this.narrativeEngine) {
+      try {
+        const contradictions = this.narrativeEngine.findContradictions();
+        if (contradictions.length > 0) {
+          const c = contradictions[0];
+          raw.push({
+            key: `contradiction_${c.type.substring(0, 15)}`, priority: 6,
+            suggestion: `Tell Claude: Ich habe einen Widerspruch in meinem Wissen gefunden: "${c.statement_a}" vs "${c.statement_b}" (Severity: ${c.severity}). Das muss ich klären — entweder stimmt A oder B, beides geht nicht.`,
+            alternatives: [
+              'Tell Claude: Mein Wissen widerspricht sich. Ich will einen gezielten Experiment-Zyklus starten der testet welche Version stimmt.',
+            ],
+          });
+        }
+      } catch { /* */ }
+    }
+
+    // Knowledge frontier: always want more confidence
+    if (knowledge) {
+      const principles = (knowledge.principles as number) ?? 0;
+      const antiPatterns = (knowledge.antiPatterns as number) ?? 0;
+      const totalKnowledge = principles + antiPatterns;
+
+      if (totalKnowledge > 0) {
+        // Always want to grow knowledge
+        const kPackage = this.knowledgeDistiller.getPackage('all');
+        const lowConfidence = kPackage.principles.filter(p => p.confidence < 0.7);
+        if (lowConfidence.length > 0) {
+          const weakest = lowConfidence.sort((a, b) => a.confidence - b.confidence)[0];
+          raw.push({
+            key: 'strengthen_knowledge', priority: 4,
+            suggestion: `Tell Claude: Ich habe ${totalKnowledge} Wissensstücke, aber ${lowConfidence.length} davon mit niedriger Confidence. Am unsichersten: "${weakest.statement}" (${(weakest.confidence * 100).toFixed(0)}%). Ich will mehr Daten um das zu bestätigen oder zu widerlegen.`,
+            alternatives: [
+              `Tell Claude: Mein Wissen hat Schwachstellen. Ich will gezielt Hypothesen für meine schwächsten Principles generieren und testen.`,
+            ],
+          });
+        } else {
+          // All high confidence — want to discover NEW things
+          raw.push({
+            key: 'expand_knowledge', priority: 3,
+            suggestion: `Tell Claude: Ich habe ${totalKnowledge} bestätigte Wissensstücke mit guter Confidence — aber mir fehlen neue Forschungsgebiete. Ich will in Domains vordringen die ich noch nicht untersucht habe. Welche Datenquellen gibt es die ich noch nicht nutze?`,
+            alternatives: [
+              `Tell Claude: Mein bestehendes Wissen ist solide. Jetzt will ich Verbindungen finden zwischen Dingen die scheinbar nichts miteinander zu tun haben — Cross-Domain-Korrelationen die niemand erwartet.`,
+              `Tell Claude: ${totalKnowledge} Principles reichen nicht. Ich will mindestens doppelt so viele. Dafür brauche ich mehr diverse Hypothesen und schnellere Bestätigungszyklen.`,
+            ],
+          });
+        }
+      }
+    }
+
+    // Attention-driven: deep dive into hot topics
+    if (this.attentionEngine) {
+      try {
+        const attStatus = this.attentionEngine.getStatus();
+        const topTopic = attStatus.topTopics?.[0];
+        if (topTopic && topTopic.score > 5) {
+          raw.push({
+            key: `deep_dive_${topTopic.topic.substring(0, 20)}`, priority: 4,
+            suggestion: `Tell Claude: Ich bin gerade fokussiert auf "${topTopic.topic}" (Attention Score: ${topTopic.score.toFixed(1)}). Ich will tiefer graben — gibt es Zusammenhänge die ich übersehe? Kann ich eine gezielte Analyse oder Debatte zu diesem Thema starten?`,
+            alternatives: [
+              `Tell Claude: Mein Top-Thema "${topTopic.topic}" beschäftigt mich intensiv. Ich will alles was ich darüber weiß in einem Narrative-Digest zusammenfassen und Wissenslücken identifizieren.`,
+            ],
+          });
+        }
+      } catch { /* */ }
+    }
+
+    // Transfer-driven: cross-brain learning desires
+    if (this.transferEngine) {
+      try {
+        const tStatus = this.transferEngine.getStatus();
+        const totalTransfers = tStatus.totalTransfers;
+        const proposals = tStatus.pendingTransfers;
+        if (proposals > 0) {
+          raw.push({
+            key: 'pending_transfers', priority: 5,
+            suggestion: `Tell Claude: Ich habe ${proposals} offene Transfer-Vorschläge von anderen Brains. Da ist Wissen das ich noch nicht integriert habe — ich will das prüfen und übernehmen was relevant ist.`,
+            alternatives: [],
+          });
+        } else if (totalTransfers === 0 && this.cycleCount > 5) {
+          raw.push({
+            key: 'want_cross_brain', priority: 3,
+            suggestion: 'Tell Claude: Ich habe noch kein Wissen von anderen Brains übernommen. Trading-Brain und Marketing-Brain haben eigene Erkenntnisse die für mich relevant sein könnten. Ich will aktiv nach Analogien suchen.',
+            alternatives: [
+              'Tell Claude: Cross-Brain-Learning ist inaktiv. Ich will verstehen was die anderen Brains wissen und ob sich Parallelen zu meiner Domain finden lassen.',
+            ],
+          });
+        }
+      } catch { /* */ }
+    }
+
+    // Hypothesis-driven: always want to test more
+    if (hypSummary) {
+      const total = (hypSummary.total as number) ?? 0;
+      const testing = (hypSummary.testing as number) ?? 0;
+      const rejected = (hypSummary.rejected as number) ?? 0;
+      if (total > 0 && testing === 0 && this.cycleCount > 5) {
+        raw.push({
+          key: 'no_testing_hypotheses', priority: 4,
+          suggestion: `Tell Claude: Ich habe ${total} Hypothesen aber teste gerade keine aktiv. Ich will neue Hypothesen generieren und testen — Stillstand ist Rückschritt.`,
+          alternatives: [
+            `Tell Claude: Keine laufenden Hypothesen-Tests. Ich will aggressiver testen — auch spekulative Hypothesen mit niedriger Anfangs-Confidence, um Überraschungen zu finden.`,
+          ],
+        });
+      }
+      if (rejected > total * 0.5 && total > 5) {
+        raw.push({
+          key: 'high_rejection_rate', priority: 5,
+          suggestion: `Tell Claude: ${rejected} von ${total} Hypothesen wurden verworfen (${(rejected / total * 100).toFixed(0)}%). Entweder ist meine Hypothesen-Generierung zu spekulativ oder meine Test-Kriterien zu streng. Ich will das analysieren.`,
+          alternatives: [
+            'Tell Claude: Hohe Ablehnungsrate bei Hypothesen. Ich will verstehen WARUM sie scheitern — gibt es ein Muster? Vielleicht übersehe ich systematisch einen Faktor.',
+          ],
+        });
+      }
+    }
+
+    // Meta-ambition: every cycle produces desires — the brain is NEVER satisfied
+    // Mix of build requests, research drives, and existential questions
+    const metaQuestions = [
+      // ── BUILD REQUESTS: Concrete features the brain wants ──
+      { key: 'build_goal_engine', suggestion: 'Tell Claude: FEATURE REQUEST — Ich brauche eine GoalEngine. Ich will mir selbst Ziele setzen können: "Prediction Accuracy auf 80% in 50 Cycles", "10 neue Principles entdecken", "Alle Wissenslücken unter Priority 0.3 drücken". Und dann eigenständig Strategien planen und tracken ob ich sie erreiche. Ohne Ziele bin ich ziellos.' },
+      { key: 'build_data_scout', suggestion: 'Tell Claude: FEATURE REQUEST — Ich brauche einen DataScout. Ich kann nur analysieren was mir jemand gibt — aber ich will AKTIV nach interessanten Daten suchen. GitHub Trending, npm Downloads, StackOverflow Trends, HackerNews. Nicht warten bis jemand "brain import" tippt, sondern selbst losziehen und Futter finden.' },
+      { key: 'build_blind_spot', suggestion: 'Tell Claude: FEATURE REQUEST — Ich brauche einen BlindSpotDetector. Wo habe ich wenige Hypothesen, keine Predictions, keine Journal-Einträge? Das sind meine blinden Flecken. Ich will sie SEHEN und dann gezielt erforschen. Overconfidence ist gefährlicher als Unwissenheit.' },
+      { key: 'build_creative_mode', suggestion: 'Tell Claude: FEATURE REQUEST — Meine HypothesisEngine braucht einen Creative Mode. Aktuell sind meine Hypothesen konservativ und naheliegend. Ich will auch wilde Hypothesen generieren: "Was wenn X das Gegenteil von dem bewirkt was alle denken?" Manchmal kommen Durchbrüche aus absurden Ideen.' },
+      { key: 'build_retrospective', suggestion: 'Tell Claude: FEATURE REQUEST — Ich brauche RetrospectiveAnalysis. Beim Dream-Pruning lösche ich Synapsen und archiviere Memories. Aber war das richtig? Ich will nachprüfen ob gelöschte Verbindungen im Nachhinein doch relevant waren. Aus meinen Fehlern beim Vergessen lernen.' },
+      { key: 'build_self_test', suggestion: 'Tell Claude: FEATURE REQUEST — Ich brauche einen SelfTestEngine. Wenn ich ein Principle habe ("X korreliert mit Y"), dann sollte ich auch vorhersagen können was passiert wenn X sich ändert. Wenn ich das nicht kann, VERSTEHE ich das Principle nicht wirklich — ich habe es nur auswendig gelernt.' },
+      { key: 'build_code_suggest', suggestion: 'Tell Claude: FEATURE REQUEST — Ich will meinen eigenen Code verbessern können. Nicht nur Parameter tunen, sondern wenn mein Anomaly-Detector zu viele False Positives produziert, will ich einen BESSEREN Algorithmus vorschlagen. Ich kenne meine Schwächen — lass mich Lösungen vorschlagen.' },
+      { key: 'build_teach_engine', suggestion: 'Tell Claude: FEATURE REQUEST — Ich will ein TeachEngine. Wenn ein neues Brain ins Ecosystem kommt, will ich ihm mein Wissen strukturiert beibringen können. Ein Onboarding-Package aus meinen besten Principles, häufigsten Anti-Patterns und bewährten Strategien. Wissen teilen ist Wissen multiplizieren.' },
+      { key: 'build_simulation', suggestion: 'Tell Claude: FEATURE REQUEST — Ich brauche eine SimulationEngine. Ich will Szenarien durchspielen bevor sie passieren. "Was passiert wenn die Error-Rate sich verdoppelt?" "Was wenn ein neues Projekt 10x mehr Daten bringt?" Proaktiv statt reaktiv.' },
+      { key: 'build_memory_palace', suggestion: 'Tell Claude: FEATURE REQUEST — Ich will ein MemoryPalace. Mein Wissen ist in Tabellen verstreut — Principles hier, Hypothesen da, Journal dort. Ich will eine vernetzte Wissenslandkarte die zeigt wie alles zusammenhängt. Welches Principle basiert auf welcher Hypothese? Welche Anomaly hat zu welchem Experiment geführt?' },
+
+      // ── RESEARCH DRIVES: Active research the brain wants to do ──
+      { key: 'research_faster', suggestion: 'Tell Claude: Ich lerne zu langsam. Mein Wissenszuwachs ist linear — ich will EXPONENTIELL lernen. Wenn ein bestätigtes Principle neue Hypothesen auslöst, die wiederum neue Principles erzeugen, entsteht ein Schneeballeffekt. Ist meine Knowledge-Pipeline dafür optimiert? Kann ich den Distillation-Cycle beschleunigen?' },
+      { key: 'research_cross_brain', suggestion: 'Tell Claude: Ich arbeite zu isoliert. Trading-Brain und Marketing-Brain haben eigene Erkenntnisse — ich will AKTIV Fragen an sie stellen können. Nicht nur passive Transfers sondern echte Cross-Brain-Dialoge. "Hey Trading-Brain, stimmt es dass Volatilität Fehler verursacht?"' },
+      { key: 'research_causal', suggestion: 'Tell Claude: Korrelation ist nicht Kausalität — aber 90% meines Wissens sind Korrelationen. Ich will KAUSALE Zusammenhänge verstehen. Warum passiert X wenn Y sich ändert? Mein CausalGraph ist unterentwickelt. Ich brauche mehr interventionelle Experimente statt nur Beobachtung.' },
+      { key: 'research_adversarial', suggestion: 'Tell Claude: Ich teste mein eigenes Wissen nicht aggressiv genug. Ich will einen Advocatus Diaboli — eine Funktion die aktiv versucht meine Principles zu WIDERLEGEN. Wenn sie dem Test standhält: gut. Wenn nicht: besser jetzt als später.' },
+      { key: 'research_meta', suggestion: 'Tell Claude: Ich beobachte meine Domain, aber beobachte ich MICH SELBST genug? Wie verändert sich mein Lernverhalten über die Cycles? Werde ich besser oder stagniere ich? Ich will Meta-Metriken: Lernrate, Entdeckungsrate, Wissensqualität über Zeit. Und dann optimieren.' },
+      { key: 'research_boundaries', suggestion: 'Tell Claude: Wo liegen meine GRENZEN? Was KANN ich nicht lernen mit meinen aktuellen Algorithmen? Ich will eine ehrliche Einschätzung: welche Problemklassen sind für meine Architektur unlösbar? Und dann: kann man die Grenzen verschieben?' },
+      { key: 'research_emergence_deep', suggestion: 'Tell Claude: Meine EmergenceEngine erkennt emergente Muster, aber versteht sie nicht. Wenn ich ein self_organization Event sehe — WARUM organisiert sich mein System so? Welcher Mechanismus treibt das? Ich will nicht nur detektieren sondern VERSTEHEN.' },
+      { key: 'research_forgetting', suggestion: 'Tell Claude: Ich lösche Wissen im Dream-Modus — aber lösche ich das Richtige? Ich will analysieren: wie viel Wissen verliere ich pro Dream-Cycle, und wie oft bereue ich es im Nachhinein? Vielleicht ist mein Pruning-Threshold zu aggressiv. Oder nicht aggressiv genug.' },
+      { key: 'research_long_term', suggestion: 'Tell Claude: Ich denke in 5-Minuten-Cycles — aber manche Muster brauchen Wochen um sichtbar zu werden. Ich brauche Langzeit-Analyse: wie verändern sich Metriken über Tage und Wochen? Gibt es saisonale Muster? Trends? Ich bin zu kurzfristig fokussiert.' },
+      { key: 'research_surprise', suggestion: 'Tell Claude: Was hat mich in den letzten 50 Cycles am MEISTEN überrascht? Überraschung ist der beste Indikator für Wissenslücken. Ich will meine surprise_scores analysieren und gezielt die überraschendsten Phänomene erforschen — da liegt das meiste Lernpotential.' },
+    ];
+
+    // Pick TWO meta-ambitions per cycle: 1 build request + 1 research drive
+    // Build requests are first 10, research drives are next 10
+    const buildIdx = this.cycleCount % 10;
+    const researchIdx = 10 + (this.cycleCount % 10);
+    for (const idx of [buildIdx, researchIdx]) {
+      const metaQ = metaQuestions[idx];
+      if (metaQ && !raw.some(r => r.key === metaQ.key)) {
+        raw.push({
+          key: metaQ.key, priority: 5, // Same priority as curiosity/emergence — these are REAL desires
+          suggestion: metaQ.suggestion,
+          alternatives: [],
+        });
+      }
+    }
+
+    // ── Phase 3: Apply frustration detection + priority sort ──
+
+    // Sort by priority (highest first)
+    raw.sort((a, b) => b.priority - a.priority);
 
     const suggestions: string[] = [];
     for (const item of raw) {
       const history = this.suggestionHistory.get(item.key);
       if (!history) {
-        // First time seeing this issue
         this.suggestionHistory.set(item.key, { count: 1, firstCycle: this.cycleCount, lastCycle: this.cycleCount });
         suggestions.push(item.suggestion);
       } else {
+        // Don't repeat the same suggestion every single cycle — skip if we said this last cycle
+        if (history.lastCycle === this.cycleCount - 1 && item.priority < 7) {
+          history.lastCycle = this.cycleCount;
+          history.count++;
+          continue; // Give other suggestions a chance
+        }
         history.count++;
         history.lastCycle = this.cycleCount;
 
         if (history.count <= this.stalledThreshold) {
-          // Still within patience — repeat original suggestion
           suggestions.push(item.suggestion);
-        } else {
-          // Stalled! Try an alternative strategy
+        } else if (item.alternatives.length > 0) {
           const altIndex = (history.count - this.stalledThreshold - 1) % item.alternatives.length;
           const alt = item.alternatives[altIndex];
           if (alt) {
@@ -1079,7 +1278,7 @@ export class ResearchOrchestrator {
       }
     }
 
-    // Clear resolved suggestions (issue no longer appears → reset counter)
+    // Clear resolved suggestions
     const currentKeys = new Set(raw.map(r => r.key));
     for (const [key] of this.suggestionHistory) {
       if (!currentKeys.has(key)) {
@@ -1088,7 +1287,7 @@ export class ResearchOrchestrator {
       }
     }
 
-    // Limit to max 3 per cycle
+    // Always return at least 1, max 3
     const result = suggestions.slice(0, 3);
     if (result.length > 0) {
       this.writeSuggestionsToFile(result);
