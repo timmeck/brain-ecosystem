@@ -616,6 +616,105 @@ export class ResearchOrchestrator {
       }
     }
 
+    // 17. Self-Reflection: NarrativeEngine analyzes own knowledge, finds gaps, proposes new research
+    if (this.narrativeEngine && this.cycleCount % this.reflectEvery === 0) {
+      ts?.emit('narrative', 'explaining', 'Self-reflection: analyzing knowledge state...');
+      try {
+        // a) Find contradictions — conflicting knowledge needs investigation
+        const contradictions = this.narrativeEngine.findContradictions();
+        if (contradictions.length > 0) {
+          const highSeverity = contradictions.filter(c => c.severity === 'high');
+          ts?.emit('narrative', 'discovering',
+            `Found ${contradictions.length} contradiction${contradictions.length > 1 ? 's' : ''} (${highSeverity.length} high severity)`,
+            highSeverity.length > 0 ? 'notable' : 'routine',
+          );
+          // Journal each high-severity contradiction
+          for (const c of highSeverity.slice(0, 3)) {
+            this.journal.write({
+              type: 'discovery',
+              title: `Contradiction: ${c.type.replace(/_/g, ' ')}`,
+              content: `"${c.statement_a}" vs "${c.statement_b}". Trade-off: ${c.tradeoff}`,
+              tags: [this.brainName, 'contradiction', c.severity, c.type],
+              references: [],
+              significance: 'notable',
+              data: { contradiction: c },
+            });
+          }
+          // Generate hypotheses from contradictions
+          for (const c of contradictions.slice(0, 2)) {
+            this.hypothesisEngine.observe({
+              source: this.brainName,
+              type: 'contradiction_detected',
+              value: c.severity === 'high' ? 3 : c.severity === 'medium' ? 2 : 1,
+              timestamp: now,
+              metadata: { type: c.type, statement_a: c.statement_a.substring(0, 100), statement_b: c.statement_b.substring(0, 100) },
+            });
+          }
+        }
+
+        // b) Confidence report — find weak areas that need more research
+        const confidence = this.narrativeEngine.getConfidenceReport();
+        if (confidence.uncertainties.length > 0) {
+          ts?.emit('narrative', 'analyzing',
+            `Confidence: ${(confidence.overallConfidence * 100).toFixed(0)}% | Uncertainties: ${confidence.uncertainties.slice(0, 3).join('; ')}`,
+          );
+          // For each uncertainty, create a research agenda item
+          for (const uncertainty of confidence.uncertainties.slice(0, 2)) {
+            this.researchAgenda.ask(
+              `Investigate: ${uncertainty}`,
+              'knowledge_gap',
+            );
+          }
+        }
+
+        // c) Explain top attention topics — does Brain actually know about what it's focusing on?
+        if (this.attentionEngine) {
+          const topTopics = this.attentionEngine.getTopTopics(3);
+          for (const topic of topTopics) {
+            const explanation = this.narrativeEngine.explain(topic.topic);
+            if (explanation.details.length === 0) {
+              // Brain is focusing on something it knows nothing about — that's a gap!
+              ts?.emit('narrative', 'discovering',
+                `Knowledge gap: focusing on "${topic.topic}" but no knowledge found — adding to research agenda`,
+                'notable',
+              );
+              this.researchAgenda.ask(
+                `Why is "${topic.topic}" getting attention but Brain has no knowledge about it? Investigate and gather data.`,
+                'knowledge_gap',
+              );
+              this.journal.write({
+                type: 'reflection',
+                title: `Knowledge gap: ${topic.topic}`,
+                content: `Brain is paying attention to "${topic.topic}" (score: ${topic.score.toFixed(2)}) but has no principles, hypotheses, or experiments about it. This is a priority research target.`,
+                tags: [this.brainName, 'knowledge_gap', 'self_reflection'],
+                references: [],
+                significance: 'notable',
+                data: { topic: topic.topic, score: topic.score },
+              });
+            } else if (explanation.confidence < 0.5) {
+              ts?.emit('narrative', 'analyzing',
+                `Low confidence on focus topic "${topic.topic}" (${(explanation.confidence * 100).toFixed(0)}%) — needs more data`,
+              );
+            }
+          }
+        }
+
+        // d) Periodic digest generation (every 10 reflection cycles = every 50 feedback cycles)
+        if (this.cycleCount % (this.reflectEvery * 10) === 0) {
+          ts?.emit('narrative', 'reflecting', 'Generating periodic knowledge digest...');
+          const digest = this.narrativeEngine.generateDigest(7);
+          ts?.emit('narrative', 'discovering',
+            `Digest: ${digest.highlights.length} highlights, ${digest.contradictions} contradictions, accuracy ${(digest.predictions_accuracy * 100).toFixed(0)}%`,
+            digest.highlights.length > 3 ? 'notable' : 'routine',
+          );
+        }
+
+        ts?.emit('narrative', 'reflecting', 'Self-reflection complete');
+      } catch (err) {
+        this.log.error(`[orchestrator] Self-reflection error: ${(err as Error).message}`);
+      }
+    }
+
     const duration = Date.now() - start;
     ts?.emit('orchestrator', 'reflecting', `Feedback Cycle #${this.cycleCount} complete (${duration}ms)`);
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} complete (${duration}ms) ───`);
