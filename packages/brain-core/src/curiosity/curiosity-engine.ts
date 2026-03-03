@@ -878,7 +878,7 @@ export class CuriosityEngine {
         const principleMatches = pkg.principles.filter(p =>
           p.statement.toLowerCase().includes(topic.toLowerCase()),
         ).length;
-        score += Math.min(1, principleMatches / 3); // 3+ principles = full knowledge
+        score += Math.min(1, principleMatches / 2); // 2+ principles = full knowledge
         factors++;
 
         const antiPatternMatches = pkg.anti_patterns.filter(ap =>
@@ -932,8 +932,8 @@ export class CuriosityEngine {
   // ── Private: Gap Classification ──────────────────────
 
   private classifyGap(topic: string, knowledgeScore: number): GapType {
-    if (knowledgeScore === 0) return 'dark_zone';
-    if (knowledgeScore < 0.2) return 'unexplored';
+    if (knowledgeScore < 0.05) return 'dark_zone';
+    if (knowledgeScore < 0.15) return 'unexplored';
 
     // Check for contradictions via narrative engine
     if (this.sources.narrativeEngine) {
@@ -955,7 +955,7 @@ export class CuriosityEngine {
         if (relevant.length > 0) {
           const newest = relevant[0];
           const age = Date.now() - new Date(newest.created_at || 0).getTime();
-          if (age > 24 * 60 * 60 * 1000) return 'stale'; // > 24h old
+          if (age > 3_600_000) return 'stale'; // > 1h old (stale for a 5-min cycle brain)
         }
       } catch { /* not wired */ }
     }

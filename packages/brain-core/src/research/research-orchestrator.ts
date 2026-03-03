@@ -121,6 +121,8 @@ export class ResearchOrchestrator {
   private readonly stalledThreshold = 3;
   /** Hash of last written suggestions to prevent duplicate file writes. */
   private lastSuggestionsHash = '';
+  /** Cycle number of last written suggestions — write at most once per cycle. */
+  private lastSuggestionsCycle = -1;
 
   constructor(db: Database.Database, config: ResearchOrchestratorConfig, causalGraph?: CausalGraph) {
     this.db = db;
@@ -2377,8 +2379,12 @@ export class ResearchOrchestrator {
    *  Skips writing if suggestions are identical to the last write (dedup). */
   private writeSuggestionsToFile(suggestions: string[]): void {
     try {
-      // Dedup: hash current suggestions and skip if identical to last write
-      const contentHash = suggestions.join('\n').trim();
+      // Only write once per cycle (prevents duplicate calls from Step 10 + Step 40)
+      if (this.cycleCount === this.lastSuggestionsCycle) return;
+      this.lastSuggestionsCycle = this.cycleCount;
+
+      // Dedup: sort + hash current suggestions and skip if identical to last write
+      const contentHash = [...suggestions].sort().join('\n').trim();
       if (contentHash === this.lastSuggestionsHash) return;
       this.lastSuggestionsHash = contentHash;
 
