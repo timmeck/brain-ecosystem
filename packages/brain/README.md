@@ -105,11 +105,14 @@ The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes, coordina
 - **Importance Decay** — Old memories gradually lose importance, eventually archived
 - **Triggers** — Every 20 cycles, after 5 minutes idle, or manually
 
-### Consciousness Dashboard (`:7784`)
-- **Neural Graph** — Force-directed visualization of the synapse network (Canvas 2D physics)
-- **Thought Stream** — Real-time feed of every engine's activity
+### Mission Control Dashboard (`:7788`)
+- **7 Tabs** — Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence
+- **Neural Graph** — Force-directed visualization of the synapse network (Canvas 2D physics, zoom/pan/drag)
+- **Thought Stream** — Real-time feed of every engine's activity with significance filtering
+- **CodeGen** — Generate, review, approve/reject code with syntax highlighting
+- **Self-Mod** — Pending modifications with side-by-side diff viewer
 - **Engine Status** — Live status cards for all 30+ engines
-- **Brain Insights** — Notable discoveries and breakthroughs
+- **Intelligence** — Attention topics, transfer analogies, cross-domain rules
 - **Trigger Cycle** — Button to manually trigger a feedback cycle
 
 ### Prediction Engine
@@ -129,16 +132,14 @@ The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes, coordina
 - **Human-in-the-Loop** — Generated code is reviewed: approve or reject with notes
 - **CodeMiner** — Mines GitHub repos (README, package.json, directory trees) for pattern learning
 - **PatternExtractor** — Extracts dependency, tech stack, structure, and README patterns from mined repos
-- **CodeGen Dashboard** — Web UI at http://localhost:7787 for reviewing and managing code generations
+- **CodeGen Tab** — Integrated in Mission Control at http://localhost:7788 for reviewing and managing code generations
 - **Signal Scanner** — Tracks GitHub trending repos, Hacker News mentions, crypto signals
 
 ### Dashboards
 
 | Dashboard | Port | What It Shows |
 |-----------|------|--------------|
-| **Consciousness** | 7784 | Neural graph, thought stream, engine status |
-| **CodeGen** | 7787 | Code generations, approve/reject, mined patterns, self-modification |
-| **Unified** | 7788 | Cross-brain overview, notifications, attention, transfers |
+| **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
 
 ## Architecture
 
@@ -262,10 +263,10 @@ brain peers              Show peer brains in the ecosystem
 
 | Brain | Version | Purpose | Ports |
 |-------|---------|---------|-------|
-| **Brain** | v3.33.0 | Error memory, code intelligence, full autonomy & self-modification | **7777** / 7778 / 7784 / 7787 / 7788 |
-| [Trading Brain](../trading-brain) | v2.28.0 | Adaptive trading intelligence with signal learning & backtesting | 7779 / 7780 / 7785 |
-| [Marketing Brain](../marketing-brain) | v1.29.0 | Content strategy, engagement & cross-platform optimization | 7781 / 7782 / 7783 / 7786 |
-| [Brain Core](../brain-core) | v2.33.0 | Shared infrastructure — 30+ engines, synapses, IPC, MCP, dream, consciousness, codegen | — |
+| **Brain** | v3.34.0 | Error memory, code intelligence, full autonomy & self-modification | **7777** / 7778 / 7788 |
+| [Trading Brain](../trading-brain) | v2.29.0 | Adaptive trading intelligence with signal learning & backtesting | 7779 / 7780 |
+| [Marketing Brain](../marketing-brain) | v1.30.0 | Content strategy, engagement & cross-platform optimization | 7781 / 7782 / 7783 |
+| [Brain Core](../brain-core) | v2.34.0 | Shared infrastructure — 30+ engines, synapses, IPC, MCP, dream, consciousness, codegen | — |
 
 ## Support
 

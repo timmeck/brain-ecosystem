@@ -50,7 +50,7 @@ Same full engine suite as Brain, fed with trade history via DataMiner:
 
 ### Dream Mode & Consciousness
 - **Dream Engine** — Offline consolidation: memory replay, synapse pruning, compression, importance decay
-- **Consciousness Dashboard** — Live neural graph at http://localhost:7785 with thought stream and engine status
+- **Mission Control Dashboard** — Unified dashboard at http://localhost:7788 (Neural Graph, Thoughts, Engines, Intelligence)
 - **Prediction Engine** — Holt-Winters forecasting for win rates and PnL with auto-calibration
 - **AutoResponder** — Automatically adjusts trading parameters when anomalies detected
 - **Self-Improvement Loop** — Generates improvement suggestions
@@ -161,10 +161,10 @@ trading import <file>      Import trades from JSON
 
 | Brain | Version | Purpose | Ports |
 |-------|---------|---------|-------|
-| [Brain](../brain) | v3.33.0 | Error memory, code intelligence, full autonomy & self-modification | 7777 / 7778 / 7784 / 7787 / 7788 |
-| **Trading Brain** | v2.28.0 | Adaptive trading intelligence with signal learning & backtesting | **7779** / 7780 / 7785 |
-| [Marketing Brain](../marketing-brain) | v1.29.0 | Content strategy, engagement & cross-platform optimization | 7781 / 7782 / 7783 / 7786 |
-| [Brain Core](../brain-core) | v2.33.0 | Shared infrastructure — 30+ engines | — |
+| [Brain](../brain) | v3.34.0 | Error memory, code intelligence, full autonomy & self-modification | 7777 / 7778 / 7788 |
+| **Trading Brain** | v2.29.0 | Adaptive trading intelligence with signal learning & backtesting | **7779** / 7780 |
+| [Marketing Brain](../marketing-brain) | v1.30.0 | Content strategy, engagement & cross-platform optimization | 7781 / 7782 / 7783 |
+| [Brain Core](../brain-core) | v2.34.0 | Shared infrastructure — 30+ engines | — |
 
 ## Support
 

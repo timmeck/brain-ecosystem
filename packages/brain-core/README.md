@@ -112,7 +112,7 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 | **DreamEngine** | Offline memory consolidation — replay, prune, compress, decay |
 | **DreamConsolidator** | 4 phases: Memory Replay, Synapse Pruning, Compression, Importance Decay |
 | **ThoughtStream** | Circular buffer capturing every engine's thoughts in real-time |
-| **ConsciousnessServer** | HTTP + SSE server with live neural dashboard (force-directed graph) |
+| **ConsciousnessServer** | HTTP + SSE server with live neural dashboard (legacy — now part of Mission Control) |
 
 ### Code Generation & Mining
 
@@ -122,17 +122,14 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 | **ContextBuilder** | Builds system prompts from principles, anti-patterns, strategies, patterns |
 | **CodeMiner** | Mines GitHub repos: README, package.json, directory structures |
 | **PatternExtractor** | Extracts dependency, tech stack, structure, and README patterns |
-| **CodegenServer** | HTTP + SSE dashboard for code review with approve/reject workflow |
+| **CodegenServer** | HTTP + SSE dashboard for code review (legacy — now part of Mission Control) |
 | **SignalScanner** | GitHub trending repos, Hacker News, crypto signal tracking |
 
 ### Dashboards
 
 | Dashboard | Port | Description |
 |-----------|------|-------------|
-| **Consciousness** | 7784/7785/7786 | Live neural graph, thought stream, engine status |
-| **CodeGen** | 7787 | Generated code review, mined patterns, self-modification |
-| **Hub** | — | Cross-brain status overview |
-| **Unified** | 7788 | Single UI for all brains with deep links |
+| **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
 
 ### Cross-Brain & Services
 
@@ -172,7 +169,7 @@ npm install @timmeck/brain-core
 import {
   createConnection, IpcServer, startMcpServer,
   ResearchOrchestrator, DreamEngine, ThoughtStream,
-  ConsciousnessServer, PredictionEngine,
+  UnifiedDashboardServer, PredictionEngine,
 } from '@timmeck/brain-core';
 
 // 1. Database
@@ -190,8 +187,9 @@ dreamEngine.start();
 // 4. Consciousness
 const thoughtStream = new ThoughtStream();
 orchestrator.setThoughtStream(thoughtStream);
-const consciousness = new ConsciousnessServer({ port: 7790, thoughtStream, ... });
-consciousness.start();
+// Unified Mission Control dashboard (includes Neural Graph, Thoughts, CodeGen, Self-Mod, Engines)
+const dashboard = new UnifiedDashboardServer({ port: 7790, thoughtStream, ... });
+dashboard.start();
 
 // 5. Predictions
 const prediction = new PredictionEngine(db, { brainName: 'my-brain' });
@@ -227,7 +225,7 @@ prediction.start();
 ├── Scanner ────── SignalScanner, GitHubCollector, HnCollector, CryptoCollector
 ├── Causal ─────── CausalGraph (Granger causality), HypothesisEngine
 ├── Cross-Brain ── Client, Notifier, Correlator, Subscriptions
-├── Dashboard ──── Consciousness, CodeGen, Hub, Research, Unified
+├── Dashboard ──── Mission Control (Unified), Consciousness*, CodeGen*, Hub*, Research*
 ├── Services ───── Webhook, Export, Backup, Ecosystem
 ├── Memory ─────── BaseMemoryEngine, types
 ├── DB ─────────── SQLite connection (WAL mode)
@@ -238,10 +236,10 @@ prediction.start();
 
 | Brain | Version | Purpose | Ports |
 |-------|---------|---------|-------|
-| [Brain](../brain) | v3.33.0 | Error memory, code intelligence, full autonomy & self-modification | 7777/7778/7784/7787/7788 |
-| [Trading Brain](../trading-brain) | v2.28.0 | Adaptive trading intelligence with signal learning & backtesting | 7779/7780/7785 |
-| [Marketing Brain](../marketing-brain) | v1.29.0 | Content strategy, engagement & cross-platform optimization | 7781/7782/7783/7786 |
-| **Brain Core** | v2.33.0 | Shared infrastructure — 30+ engines (this package) | — |
+| [Brain](../brain) | v3.34.0 | Error memory, code intelligence, full autonomy & self-modification | 7777/7778/7788 |
+| [Trading Brain](../trading-brain) | v2.29.0 | Adaptive trading intelligence with signal learning & backtesting | 7779/7780 |
+| [Marketing Brain](../marketing-brain) | v1.30.0 | Content strategy, engagement & cross-platform optimization | 7781/7782/7783 |
+| **Brain Core** | v2.34.0 | Shared infrastructure — 30+ engines (this package) | — |
 
 ## Support
 

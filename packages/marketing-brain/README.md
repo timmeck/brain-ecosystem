@@ -51,7 +51,7 @@ Same full engine suite as Brain, fed with post/engagement history via DataMiner:
 
 ### Dream Mode & Consciousness
 - **Dream Engine** — Offline consolidation: memory replay, synapse pruning, compression, importance decay
-- **Consciousness Dashboard** — Live neural graph at http://localhost:7786 with thought stream and engine status
+- **Mission Control Dashboard** — Unified dashboard at http://localhost:7788 (Neural Graph, Thoughts, Engines, Intelligence)
 - **Prediction Engine** — Holt-Winters forecasting for engagement rates and post performance
 - **AutoResponder** — Automatically adjusts marketing parameters when anomalies detected
 - **Self-Improvement Loop** — Generates improvement suggestions
@@ -69,7 +69,7 @@ Same full engine suite as Brain, fed with post/engagement history via DataMiner:
 | Dashboard | Port | What It Shows |
 |-----------|------|--------------|
 | **Marketing Dashboard** | 7783 | Interactive synapse graph, platform charts, top posts, insights |
-| **Consciousness** | 7786 | Neural graph, thought stream, engine status |
+| **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
 
 ### Universal Access
 - **MCP Server** — Stdio transport for Claude Code
@@ -183,10 +183,10 @@ marketing config                 Configuration management
 
 | Brain | Version | Purpose | Ports |
 |-------|---------|---------|-------|
-| [Brain](../brain) | v3.33.0 | Error memory, code intelligence, full autonomy & self-modification | 7777 / 7778 / 7784 / 7787 / 7788 |
-| [Trading Brain](../trading-brain) | v2.28.0 | Adaptive trading intelligence with signal learning & backtesting | 7779 / 7780 / 7785 |
-| **Marketing Brain** | v1.29.0 | Content strategy, engagement & cross-platform optimization | **7781** / 7782 / 7783 / 7786 |
-| [Brain Core](../brain-core) | v2.33.0 | Shared infrastructure — 30+ engines | — |
+| [Brain](../brain) | v3.34.0 | Error memory, code intelligence, full autonomy & self-modification | 7777 / 7778 / 7788 |
+| [Trading Brain](../trading-brain) | v2.29.0 | Adaptive trading intelligence with signal learning & backtesting | 7779 / 7780 |
+| **Marketing Brain** | v1.30.0 | Content strategy, engagement & cross-platform optimization | **7781** / 7782 / 7783 |
+| [Brain Core](../brain-core) | v2.34.0 | Shared infrastructure — 30+ engines | — |
 
 ## Support
 

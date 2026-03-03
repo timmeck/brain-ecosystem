@@ -14,9 +14,9 @@ Brain Ecosystem is a system of three specialized "brains" connected through a He
 
 | Package | Version | Description | Ports |
 |---------|---------|-------------|-------|
-| [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Error memory, code intelligence, autonomous research & code generation | 7777 / 7778 / 7784 / 7787 |
-| [@timmeck/trading-brain](packages/trading-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/trading-brain)](https://www.npmjs.com/package/@timmeck/trading-brain) | Adaptive trading intelligence with signal learning & backtesting | 7779 / 7780 / 7785 |
-| [@timmeck/marketing-brain](packages/marketing-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/marketing-brain)](https://www.npmjs.com/package/@timmeck/marketing-brain) | Content strategy, engagement & cross-platform optimization | 7781 / 7782 / 7783 / 7786 |
+| [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Error memory, code intelligence, autonomous research & code generation | 7777 / 7778 / 7788 |
+| [@timmeck/trading-brain](packages/trading-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/trading-brain)](https://www.npmjs.com/package/@timmeck/trading-brain) | Adaptive trading intelligence with signal learning & backtesting | 7779 / 7780 |
+| [@timmeck/marketing-brain](packages/marketing-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/marketing-brain)](https://www.npmjs.com/package/@timmeck/marketing-brain) | Content strategy, engagement & cross-platform optimization | 7781 / 7782 / 7783 |
 | [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure — 30+ engines, synapses, IPC, MCP, dream, consciousness, prediction, codegen, reasoning, emotions, evolution, self-modification | — |
 
 ## Quick Start
@@ -61,7 +61,7 @@ All brains support MCP over HTTP with SSE transport:
 - **Persistent Memory** — Remember preferences, decisions, context, facts, goals, and lessons across sessions
 - **30+ Autonomous Engines** — SelfObserver, AnomalyDetective, HypothesisEngine, KnowledgeDistiller, CuriosityEngine, EmergenceEngine, DebateEngine, NarrativeEngine, ReasoningEngine, EmotionalModel, EvolutionEngine, GoalEngine, MemoryPalace, AttentionEngine, TransferEngine, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, SimulationEngine, DataScout, SelfScanner, SelfModificationEngine, and more
 - **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle
-- **Consciousness Dashboard** — Live neural graph at http://localhost:7784 with thought stream
+- **Mission Control Dashboard** — Unified 7-tab dashboard at http://localhost:7788 (Neural Graph, Thought Stream, CodeGen, Self-Mod, Engines, Intelligence)
 - **Prediction Engine** — Holt-Winters + EWMA forecasting, auto-calibration
 - **ReasoningEngine** — Forward chaining, abductive reasoning, temporal inference, counterfactuals
 - **EmotionalModel** — 8 emotion dimensions, 6 moods, mood-based behavior recommendations
@@ -84,7 +84,7 @@ All brains support MCP over HTTP with SSE transport:
 - **Alert System** — 5 condition types, cooldown, webhooks, history
 - **30+ Autonomous Engines** — Same full engine suite as Brain, with trading-specific DataMiner
 - **Dream Mode, Consciousness, Prediction, Reasoning, Emotions, Evolution** — All autonomous features active
-- **Consciousness Dashboard** — Live neural graph at http://localhost:7785
+- **Mission Control Dashboard** — Unified dashboard at http://localhost:7788
 
 ### Marketing Brain — Self-Learning Marketing Intelligence
 
@@ -97,7 +97,7 @@ All brains support MCP over HTTP with SSE transport:
 - **Cross-Platform** — Optimize for X, LinkedIn, Reddit, Bluesky, Mastodon, Threads
 - **30+ Autonomous Engines** — Same full engine suite as Brain, with marketing-specific DataMiner
 - **Dream Mode, Consciousness, Prediction, Reasoning, Emotions, Evolution** — All autonomous features active
-- **Consciousness Dashboard** — Live neural graph at http://localhost:7786
+- **Mission Control Dashboard** — Unified dashboard at http://localhost:7788
 
 ## Architecture
 
@@ -121,9 +121,8 @@ All brains support MCP over HTTP with SSE transport:
 |  Brain |    |  Trading   |   |  Marketing   |
 | :7777  |<-->|  Brain     |<->|  Brain       |
 | :7778  |    |  :7779     |   |  :7781       |
-| :7784  |    |  :7780     |   |  :7782       |
-| :7787  |    |  :7785     |   |  :7783       |
-+---+----+    +-----+------+   |  :7786       |
+| :7788  |    |  :7780     |   |  :7782       |
++---+----+    +-----+------+   |  :7783       |
     |               |          +---+----------+
     |               |               |
     v               v               v
@@ -217,7 +216,7 @@ Engine    Engine   (GitHub/HN)   Engine     (graph)   Engine    Engine
 | **SelfScanner** | Indexes own source code for self-modification context |
 | **SelfModificationEngine** | Generates and tests code changes autonomously via Claude API |
 | **CodeGenerator + CodeMiner** | Code generation with brain context + GitHub repo mining |
-| **CodegenServer** | HTTP + SSE dashboard for code review (approve/reject) |
+| **Mission Control** | Unified 7-tab dashboard: Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
 | **Signal Scanner** | GitHub trending, Hacker News, crypto signal tracking |
 | **Webhook / Export / Backup** | HMAC webhooks, JSON/CSV export, SQLite backups |
 | **Memory System** | Persistent memory with categories, importance, FTS5 search |
@@ -234,11 +233,7 @@ Engine    Engine   (GitHub/HN)   Engine     (graph)   Engine    Engine
 | Marketing Brain REST | 7781 | HTTP |
 | Marketing Brain MCP | 7782 | SSE |
 | Marketing Dashboard | 7783 | SSE |
-| Brain Consciousness | 7784 | HTTP + SSE |
-| Trading Consciousness | 7785 | HTTP + SSE |
-| Marketing Consciousness | 7786 | HTTP + SSE |
-| Brain CodeGen Dashboard | 7787 | HTTP + SSE |
-| Unified Dashboard | 7788 | HTTP + SSE |
+| Mission Control | 7788 | HTTP + SSE |
 
 ## CLI Commands
 
