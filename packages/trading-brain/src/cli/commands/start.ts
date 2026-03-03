@@ -10,7 +10,18 @@ const RESTART_WINDOW_MS = 5 * 60 * 1000;
 const BASE_BACKOFF_MS = 1000;
 
 function spawnDaemon(entryPoint: string, args: string[]): ChildProcess {
-  const child = spawn(process.execPath, [entryPoint, ...args], {
+  // If compiled JS doesn't exist, we're running from TS source — use tsx loader
+  const isTsSource = !fs.existsSync(entryPoint);
+  let cmdArgs: string[];
+
+  if (isTsSource) {
+    const tsEntry = entryPoint.replace(/\.js$/, '.ts');
+    cmdArgs = ['--import', 'tsx', tsEntry, ...args];
+  } else {
+    cmdArgs = [entryPoint, ...args];
+  }
+
+  const child = spawn(process.execPath, cmdArgs, {
     detached: true,
     stdio: 'ignore',
   });
