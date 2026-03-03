@@ -256,7 +256,7 @@ export class TradingCore {
     // 12g. Prediction Engine — Proactive Forecasting (2h horizon for trades)
     const predictionEngine = new PredictionEngine(this.db!, {
       brainName: 'trading-brain',
-      defaultHorizonMs: 7_200_000,
+      defaultHorizonMs: 1_200_000,
     });
     this.orchestrator.setPredictionEngine(predictionEngine);
     predictionEngine.start();

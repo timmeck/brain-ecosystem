@@ -288,7 +288,7 @@ export class BrainCore {
     services.dreamEngine = dreamEngine;
 
     // 11i. Prediction Engine — Proactive Forecasting
-    const predictionEngine = new PredictionEngine(this.db!, { brainName: 'brain' });
+    const predictionEngine = new PredictionEngine(this.db!, { brainName: 'brain', defaultHorizonMs: 600_000 });
     this.orchestrator.setPredictionEngine(predictionEngine);
     predictionEngine.start();
     services.predictionEngine = predictionEngine;

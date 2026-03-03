@@ -256,7 +256,7 @@ export class MarketingCore {
     // 10i. Prediction Engine — Proactive Forecasting (4h horizon for engagement)
     const predictionEngine = new PredictionEngine(this.db!, {
       brainName: 'marketing-brain',
-      defaultHorizonMs: 14_400_000,
+      defaultHorizonMs: 1_800_000,
     });
     this.orchestrator.setPredictionEngine(predictionEngine);
     predictionEngine.start();

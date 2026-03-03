@@ -752,6 +752,14 @@ export class ResearchOrchestrator {
       const responderStatus = this.autoResponder.getStatus();
       this.predictionEngine.recordMetric('auto_response_count', responderStatus.total_responses, 'metric');
       ts?.emit('orchestrator', 'perceiving', `Self-metrics recorded: ${anomalies.length} anomalies, ${insights.length} insights, ${cycleDuration}ms`);
+
+      // 11b. Re-resolve predictions now that fresh metrics are available
+      // (Step 9 resolves before metrics are recorded, so we re-check here)
+      const lateResolved = this.predictionEngine.resolveExpired();
+      if (lateResolved > 0) {
+        this.log.info(`[orchestrator] Late-resolved ${lateResolved} prediction(s) after metric recording`);
+        ts?.emit('prediction', 'discovering', `Resolved ${lateResolved} prediction(s) with fresh data`, 'notable');
+      }
     }
 
     // 12. Auto-Experiments: use AutoExperimentEngine if available, otherwise hardcoded fallback

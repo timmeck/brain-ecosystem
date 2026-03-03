@@ -88,8 +88,8 @@ export class PredictionEngine {
     this.db = db;
     this.config = {
       brainName: config.brainName,
-      defaultHorizonMs: config.defaultHorizonMs ?? 3_600_000,
-      expirationMs: config.expirationMs ?? 86_400_000,
+      defaultHorizonMs: config.defaultHorizonMs ?? 600_000,
+      expirationMs: config.expirationMs ?? 3_600_000,
       ewmaAlpha: config.ewmaAlpha ?? 0.3,
       trendBeta: config.trendBeta ?? 0.1,
       minDataPoints: config.minDataPoints ?? 5,
@@ -246,11 +246,13 @@ export class PredictionEngine {
     // 2. Resolve predictions past their horizon
     const resolvable = this.tracker.getPendingResolvable();
     for (const pred of resolvable) {
-      // Get the latest metric value after the prediction was made
+      // Get the average of the 10 most recent metric values recorded after the prediction was made
       const row = this.db.prepare(`
-        SELECT AVG(value) as avg_value FROM prediction_metrics
-        WHERE metric = ? AND timestamp > ?
-        ORDER BY timestamp DESC LIMIT 10
+        SELECT AVG(value) as avg_value FROM (
+          SELECT value FROM prediction_metrics
+          WHERE metric = ? AND timestamp > ?
+          ORDER BY timestamp DESC LIMIT 10
+        )
       `).get(pred.metric, pred.created_at) as { avg_value: number | null } | undefined;
 
       if (row?.avg_value != null) {
