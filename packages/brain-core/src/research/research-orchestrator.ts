@@ -70,6 +70,7 @@ export class ResearchOrchestrator {
   readonly journal: ResearchJournal;
   readonly autoResponder: AutoResponder;
   readonly hypothesisEngine: HypothesisEngine;
+  readonly causalGraph: CausalGraph | null;
 
   private dataMiner: DataMiner | null = null;
   private dreamEngine: DreamEngine | null = null;
@@ -117,12 +118,13 @@ export class ResearchOrchestrator {
     this.distillEvery = config.distillEvery ?? 5;
     this.agendaEvery = config.agendaEvery ?? 3;
     this.reflectEvery = config.reflectEvery ?? 10;
+    this.causalGraph = causalGraph ?? null;
 
     this.selfObserver = new SelfObserver(db, { brainName: config.brainName });
     this.adaptiveStrategy = new AdaptiveStrategyEngine(db, { brainName: config.brainName });
     this.experimentEngine = new ExperimentEngine(db, { brainName: config.brainName });
     this.crossDomain = new CrossDomainEngine(db);
-    this.counterfactual = new CounterfactualEngine(db, causalGraph ?? null);
+    this.counterfactual = new CounterfactualEngine(db, this.causalGraph);
     this.knowledgeDistiller = new KnowledgeDistiller(db, { brainName: config.brainName });
     this.researchAgenda = new ResearchAgendaEngine(db, { brainName: config.brainName });
     this.anomalyDetective = new AnomalyDetective(db, { brainName: config.brainName });

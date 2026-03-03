@@ -514,10 +514,10 @@ export class MarketingCore {
         try { return this.orchestrator!.knowledgeDistiller.getPrinciples(domain, limit ?? 200); } catch { return []; }
       },
       getCausalEdges: (minStrength) => {
-        try { return this.orchestrator!.causalGraph.getEdges(minStrength ?? 0.2); } catch { return []; }
+        try { return this.orchestrator!.causalGraph?.getEdges(minStrength ?? 0.2) ?? []; } catch { return []; }
       },
       getCausalEffects: (eventType) => {
-        try { return this.orchestrator!.causalGraph.getEffects(eventType); } catch { return []; }
+        try { return this.orchestrator!.causalGraph?.getEffects(eventType) ?? []; } catch { return []; }
       },
     });
     this.orchestrator.setReasoningEngine(reasoningEngine);
