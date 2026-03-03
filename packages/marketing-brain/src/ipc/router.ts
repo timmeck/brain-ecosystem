@@ -103,6 +103,7 @@ export interface Services {
   emotionalModel?: import('@timmeck/brain-core').EmotionalModel;
   selfScanner?: import('@timmeck/brain-core').SelfScanner;
   selfModificationEngine?: import('@timmeck/brain-core').SelfModificationEngine;
+  conceptAbstraction?: import('@timmeck/brain-core').ConceptAbstraction;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -668,6 +669,15 @@ export class IpcRouter {
       ['selfmod.reject',           (params) => { if (!s.selfModificationEngine) throw new Error('SelfModificationEngine not available'); return s.selfModificationEngine.rejectModification(p(params).id, p(params)?.notes); }],
       ['selfmod.scan',             () => { if (!s.selfScanner) throw new Error('SelfScanner not available'); return s.selfScanner.scan(s.selfModificationEngine?.getStatus()?.projectRoot || '.'); }],
       ['selfmod.propose',          (params) => { if (!s.selfModificationEngine) throw new Error('SelfModificationEngine not available'); return s.selfModificationEngine.proposeModification(p(params).title, p(params).problem, p(params).targetFiles, p(params)?.sourceEngine); }],
+
+      // Concept Abstraction
+      ['concept.status',           () => { if (!s.conceptAbstraction) throw new Error('ConceptAbstraction not available'); return s.conceptAbstraction.getStatus(); }],
+      ['concept.form',             () => { if (!s.conceptAbstraction) throw new Error('ConceptAbstraction not available'); return s.conceptAbstraction.formConcepts(); }],
+      ['concept.hierarchy',        (params) => { if (!s.conceptAbstraction) throw new Error('ConceptAbstraction not available'); return s.conceptAbstraction.getHierarchy(p(params).conceptId); }],
+      ['concept.members',          (params) => { if (!s.conceptAbstraction) throw new Error('ConceptAbstraction not available'); return s.conceptAbstraction.getMembers(p(params).conceptId); }],
+      ['concept.byLevel',          (params) => { if (!s.conceptAbstraction) throw new Error('ConceptAbstraction not available'); return s.conceptAbstraction.getConceptsByLevel(p(params).level ?? 0); }],
+      ['concept.transferable',     (params) => { if (!s.conceptAbstraction) throw new Error('ConceptAbstraction not available'); return s.conceptAbstraction.getTransferableConcepts(p(params)?.min ?? 0.3); }],
+      ['concept.register',         () => { if (!s.conceptAbstraction) throw new Error('ConceptAbstraction not available'); if (!s.memoryPalace) throw new Error('MemoryPalace not available'); return { registered: s.conceptAbstraction.registerInPalace(s.memoryPalace) }; }],
 
       ['status',               () => ({
         name: 'marketing-brain',

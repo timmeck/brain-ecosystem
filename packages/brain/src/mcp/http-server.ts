@@ -23,6 +23,10 @@ import { registerSelfawareToolsDirect } from './selfaware-tools.js';
 import { registerMemoryPalaceToolsDirect } from './memory-palace-tools.js';
 import { registerGoalToolsDirect } from './goal-tools.js';
 import { registerEvolutionToolsDirect } from './evolution-tools.js';
+import { registerReasoningToolsDirect } from './reasoning-tools.js';
+import { registerEmotionalToolsDirect } from './emotional-tools.js';
+import { registerSelfmodToolsDirect } from './selfmod-tools.js';
+import { registerConceptToolsDirect } from './concept-tools.js';
 import { registerPromptsDirect } from './prompts.js';
 
 export class McpHttpServer {
@@ -57,6 +61,10 @@ export class McpHttpServer {
         registerMemoryPalaceToolsDirect(server, router);
         registerGoalToolsDirect(server, router);
         registerEvolutionToolsDirect(server, router);
+        registerReasoningToolsDirect(server, router);
+        registerEmotionalToolsDirect(server, router);
+        registerSelfmodToolsDirect(server, router);
+        registerConceptToolsDirect(server, router);
         registerPromptsDirect(server, router);
       },
     );

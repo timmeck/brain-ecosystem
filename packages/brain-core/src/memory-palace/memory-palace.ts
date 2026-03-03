@@ -23,7 +23,8 @@ export type NodeType =
   | 'causal_edge'
   | 'emergence'
   | 'prediction'
-  | 'curiosity_gap';
+  | 'curiosity_gap'
+  | 'concept';
 
 export type RelationType =
   | 'derived_from'
@@ -33,7 +34,9 @@ export type RelationType =
   | 'tested_by'
   | 'related_to'
   | 'supersedes'
-  | 'references';
+  | 'references'
+  | 'abstracted_from'
+  | 'generalizes';
 
 export interface KnowledgeConnection {
   id?: number;

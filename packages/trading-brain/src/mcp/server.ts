@@ -21,6 +21,7 @@ import { registerEvolutionTools } from './evolution-tools.js';
 import { registerReasoningTools } from './reasoning-tools.js';
 import { registerEmotionalTools } from './emotional-tools.js';
 import { registerSelfmodTools } from './selfmod-tools.js';
+import { registerConceptTools } from './concept-tools.js';
 
 export async function startMcpServer(): Promise<void> {
   await coreStartMcpServer({
@@ -49,6 +50,7 @@ export async function startMcpServer(): Promise<void> {
       registerReasoningTools(server, ipc);
       registerEmotionalTools(server, ipc);
       registerSelfmodTools(server, ipc);
+      registerConceptTools(server, ipc);
     },
   });
 }

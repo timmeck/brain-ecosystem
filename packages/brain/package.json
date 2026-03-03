@@ -1,6 +1,6 @@
 {
   "name": "@timmeck/brain",
-  "version": "3.34.1",
+  "version": "3.35.0",
   "description": "Adaptive error memory and code intelligence system with Hebbian synapse network, hybrid search, and REST API",
   "type": "module",
   "main": "dist/index.js",

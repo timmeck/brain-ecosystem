@@ -332,6 +332,14 @@ export type {
   SelfModification, SelfModificationStatus,
 } from './self-modification/index.js';
 
+// ── Concept Abstraction ─────────────────────────────────
+export { ConceptAbstraction, runConceptAbstractionMigration } from './concept-abstraction/index.js';
+export type {
+  ConceptAbstractionConfig, ConceptDataSources,
+  AbstractConcept, ConceptMember, MemberType,
+  ConceptHistoryEntry, ConceptHierarchy, ConceptStatus,
+} from './concept-abstraction/index.js';
+
 // ── Scanner ──────────────────────────────────────────────
 export { SignalScanner, runScannerMigration } from './scanner/index.js';
 export { GitHubCollector } from './scanner/index.js';

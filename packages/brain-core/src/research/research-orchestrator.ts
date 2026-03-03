@@ -43,6 +43,7 @@ import type { EmotionalModel } from '../emotional/emotional-model.js';
 import type { SelfScanner } from '../self-scanner/self-scanner.js';
 import type { SelfModificationEngine } from '../self-modification/self-modification-engine.js';
 import type { BootstrapService } from './bootstrap-service.js';
+import type { ConceptAbstraction } from '../concept-abstraction/concept-abstraction.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -103,6 +104,7 @@ export class ResearchOrchestrator {
   private selfScanner: SelfScanner | null = null;
   private selfModificationEngine: SelfModificationEngine | null = null;
   private bootstrapService: BootstrapService | null = null;
+  private conceptAbstraction: ConceptAbstraction | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -253,6 +255,9 @@ export class ResearchOrchestrator {
 
   /** Set the BootstrapService — seeds initial data on first cycle. */
   setBootstrapService(service: BootstrapService): void { this.bootstrapService = service; }
+
+  /** Set the ConceptAbstraction — clusters knowledge into abstract concepts. */
+  setConceptAbstraction(engine: ConceptAbstraction): void { this.conceptAbstraction = engine; }
 
   /** Set the PredictionEngine — wires journal into it. */
   setPredictionEngine(engine: PredictionEngine): void {
@@ -1462,6 +1467,45 @@ export class ResearchOrchestrator {
           ts?.emit('self-modification', 'reflecting', `Step 40: ${pending.length} pending modification(s) awaiting review`, 'routine');
         }
       } catch (err) { this.log.warn(`[orchestrator] Step 40 error: ${(err as Error).message}`); }
+    }
+
+    // Step 41: ConceptAbstraction — cluster knowledge into abstract concepts (every 10 cycles)
+    if (this.conceptAbstraction && this.cycleCount % 10 === 0) {
+      try {
+        ts?.emit('concept_abstraction', 'analyzing', 'Step 41: Forming abstract concepts...', 'routine');
+        const result = this.conceptAbstraction.formConcepts();
+
+        if (result.totalConcepts > 0) {
+          this.journal.write({
+            title: `Concept Formation: ${result.totalConcepts} concepts across ${Object.keys(result.levels).length} levels`,
+            type: 'discovery',
+            content: `Formed ${result.totalConcepts} concepts (L0: ${result.levels[0] ?? 0}, L1: ${result.levels[1] ?? 0}, L2: ${result.levels[2] ?? 0})`,
+            tags: [this.brainName, 'concept-abstraction', 'knowledge-organization'],
+            references: [],
+            significance: result.newConcepts > 0 ? 'notable' : 'routine',
+            data: result,
+          });
+        }
+
+        // Register concepts in MemoryPalace
+        if (this.memoryPalace && result.totalConcepts > 0) {
+          try {
+            this.conceptAbstraction.registerInPalace(this.memoryPalace);
+          } catch (palaceErr) { this.log.warn(`[orchestrator] Step 41 palace registration error: ${(palaceErr as Error).message}`); }
+        }
+
+        // Feed transferable concepts into TransferEngine
+        if (this.transferEngine && result.totalConcepts > 0) {
+          try {
+            const transferable = this.conceptAbstraction.getTransferableConcepts(0.3);
+            if (transferable.length > 0) {
+              ts?.emit('concept_abstraction', 'discovering', `${transferable.length} cross-domain concepts available for transfer`, 'notable');
+            }
+          } catch { /* not critical */ }
+        }
+
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('concept_abstraction', this.cycleCount, { insights: result.newConcepts });
+      } catch (err) { this.log.warn(`[orchestrator] Step 41 error: ${(err as Error).message}`); }
     }
 
     const duration = Date.now() - start;
