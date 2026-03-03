@@ -99,6 +99,7 @@ export interface Services {
   memoryPalace?: import('@timmeck/brain-core').MemoryPalace;
   goalEngine?: import('@timmeck/brain-core').GoalEngine;
   evolutionEngine?: import('@timmeck/brain-core').EvolutionEngine;
+  reasoningEngine?: import('@timmeck/brain-core').ReasoningEngine;
 }
 
 type MethodHandler = (params: unknown) => unknown;
@@ -637,6 +638,15 @@ export class IpcRouter {
       ['evolution.run',            () => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); return s.evolutionEngine.runGeneration(); }],
       ['evolution.population',     (params) => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); return s.evolutionEngine.getPopulation(p(params)?.generation); }],
       ['evolution.activate',       (params) => { if (!s.evolutionEngine) throw new Error('EvolutionEngine not available'); s.evolutionEngine.activate(p(params).genome); return { activated: true }; }],
+
+      // ─── Reasoning Engine ──────────────────────────────────
+      ['reasoning.status',          () => { if (!s.reasoningEngine) throw new Error('ReasoningEngine not available'); return s.reasoningEngine.getStatus(); }],
+      ['reasoning.infer',           (params) => { if (!s.reasoningEngine) throw new Error('ReasoningEngine not available'); return s.reasoningEngine.infer(p(params).query); }],
+      ['reasoning.abduce',          (params) => { if (!s.reasoningEngine) throw new Error('ReasoningEngine not available'); return s.reasoningEngine.abduce(p(params).observation); }],
+      ['reasoning.temporal',        (params) => { if (!s.reasoningEngine) throw new Error('ReasoningEngine not available'); return s.reasoningEngine.temporalInfer(p(params).eventType); }],
+      ['reasoning.counterfactual',  (params) => { if (!s.reasoningEngine) throw new Error('ReasoningEngine not available'); return s.reasoningEngine.counterfactual(p(params).event); }],
+      ['reasoning.rules',           (params) => { if (!s.reasoningEngine) throw new Error('ReasoningEngine not available'); return s.reasoningEngine.getRules(p(params)?.limit ?? 50, p(params)?.minConfidence ?? 0); }],
+      ['reasoning.proof',           (params) => { if (!s.reasoningEngine) throw new Error('ReasoningEngine not available'); return s.reasoningEngine.getProofTree(p(params).chainId); }],
 
       ['status',               () => ({
         name: 'marketing-brain',

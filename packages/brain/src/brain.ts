@@ -65,7 +65,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
@@ -553,6 +553,26 @@ export class BrainCore {
     evolutionEngine.initializePopulation();
     this.orchestrator.setEvolutionEngine(evolutionEngine);
     services.evolutionEngine = evolutionEngine;
+
+    // ── Section 11j.19: ReasoningEngine ───────────────────
+    const reasoningEngine = new ReasoningEngine(this.db!, { brainName: 'brain' });
+    reasoningEngine.setThoughtStream(thoughtStream);
+    reasoningEngine.setDataSources({
+      getConfirmedHypotheses: () => {
+        try { return this.orchestrator!.hypothesisEngine.list('confirmed' as HypothesisStatus, 200); } catch { return []; }
+      },
+      getPrinciples: (domain, limit) => {
+        try { return this.orchestrator!.knowledgeDistiller.getPrinciples(domain, limit ?? 200); } catch { return []; }
+      },
+      getCausalEdges: (minStrength) => {
+        try { return this.orchestrator!.causalGraph.getEdges(minStrength ?? 0.2); } catch { return []; }
+      },
+      getCausalEffects: (eventType) => {
+        try { return this.orchestrator!.causalGraph.getEffects(eventType); } catch { return []; }
+      },
+    });
+    this.orchestrator.setReasoningEngine(reasoningEngine);
+    services.reasoningEngine = reasoningEngine;
 
     this.consciousnessServer = new ConsciousnessServer({
       port: 7784,

@@ -38,6 +38,7 @@ import type { SimulationEngine } from '../metacognition/simulation-engine.js';
 import type { MemoryPalace } from '../memory-palace/memory-palace.js';
 import type { GoalEngine } from '../goals/goal-engine.js';
 import type { EvolutionEngine } from '../metacognition/evolution-engine.js';
+import type { ReasoningEngine } from '../reasoning/reasoning-engine.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -92,6 +93,7 @@ export class ResearchOrchestrator {
   private memoryPalace: MemoryPalace | null = null;
   private goalEngine: GoalEngine | null = null;
   private evolutionEngine: EvolutionEngine | null = null;
+  private reasoningEngine: ReasoningEngine | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -228,6 +230,9 @@ export class ResearchOrchestrator {
 
   /** Set the EvolutionEngine — evolves parameter configurations via genetic algorithm. */
   setEvolutionEngine(engine: EvolutionEngine): void { this.evolutionEngine = engine; }
+
+  /** Set the ReasoningEngine — multi-step logical inference chains. */
+  setReasoningEngine(engine: ReasoningEngine): void { this.reasoningEngine = engine; }
 
   /** Set the PredictionEngine — wires journal into it. */
   setPredictionEngine(engine: PredictionEngine): void {
@@ -1298,6 +1303,47 @@ export class ResearchOrchestrator {
       } catch (err) { this.log.warn(`[orchestrator] Step 36 error: ${(err as Error).message}`); }
     }
 
+    // Step 37: ReasoningEngine — build rules + run inferences (every 5 cycles)
+    if (this.reasoningEngine && this.cycleCount % 5 === 0) {
+      try {
+        ts?.emit('reasoning', 'analyzing', 'Step 37: Building inference rules + reasoning...', 'routine');
+        this.reasoningEngine.buildRules();
+
+        // Infer on attention topics or anomalies
+        const topics = this.attentionEngine?.getTopTopics?.(3) ?? [];
+        const queries: string[] = topics.map((t: { topic: string }) => t.topic);
+        if (queries.length === 0) {
+          const anomalies = this.anomalyDetective.getAnomalies(undefined, 3);
+          for (const a of anomalies) queries.push(a.title);
+        }
+
+        let insights = 0;
+        for (const q of queries) {
+          const chain = this.reasoningEngine.infer(q);
+          if (chain && chain.steps.length > 1) {
+            this.journal.write({
+              type: 'discovery',
+              title: `Reasoning Chain: ${q}`,
+              content: chain.conclusion,
+              tags: [this.brainName, 'reasoning', 'inference'],
+              references: [],
+              significance: chain.final_confidence > 0.5 ? 'notable' : 'routine',
+              data: { chain },
+            });
+            insights++;
+          }
+
+          // Abduce on surprising observations
+          const explanations = this.reasoningEngine.abduce(q);
+          if (explanations.length > 0) {
+            insights++;
+          }
+        }
+
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('reasoning_engine', this.cycleCount, { insights });
+      } catch (err) { this.log.warn(`[orchestrator] Step 37 error: ${(err as Error).message}`); }
+    }
+
     const duration = Date.now() - start;
     ts?.emit('orchestrator', 'reflecting', `Feedback Cycle #${this.cycleCount} complete (${duration}ms)`);
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} complete (${duration}ms) ───`);
@@ -2075,6 +2121,7 @@ export class ResearchOrchestrator {
       simulation: this.simulationEngine?.getStatus() ?? null,
       memoryPalace: this.memoryPalace?.getStatus() ?? null,
       goals: this.goalEngine?.getStatus() ?? null,
+      reasoning: this.reasoningEngine?.getStatus() ?? null,
     };
   }
 }

@@ -289,6 +289,15 @@ export type {
   GoalForecast, GoalSuggestion, GoalEngineStatus,
 } from './goals/index.js';
 
+// ── Reasoning Engine ─────────────────────────────────────
+export { ReasoningEngine, runReasoningMigration } from './reasoning/index.js';
+export type {
+  ReasoningEngineConfig, ReasoningDataSources,
+  InferenceRule, InferenceStep, InferenceChain,
+  AbductiveExplanation, TemporalStep, TemporalChain,
+  CounterfactualResult, ReasoningStatus,
+} from './reasoning/index.js';
+
 // ── DataScout ──────────────────────────────────────────
 export { DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter } from './research/data-scout.js';
 export type { ScoutDiscovery, ScoutAdapter, DataScoutStatus } from './research/data-scout.js';

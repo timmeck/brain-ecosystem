@@ -23,6 +23,7 @@ import { registerSelfawareTools } from './selfaware-tools.js';
 import { registerMemoryPalaceTools } from './memory-palace-tools.js';
 import { registerGoalTools } from './goal-tools.js';
 import { registerEvolutionTools } from './evolution-tools.js';
+import { registerReasoningTools } from './reasoning-tools.js';
 import { registerPrompts } from './prompts.js';
 
 export async function startMcpServer(): Promise<void> {
@@ -54,6 +55,7 @@ export async function startMcpServer(): Promise<void> {
       registerMemoryPalaceTools(server, ipc);
       registerGoalTools(server, ipc);
       registerEvolutionTools(server, ipc);
+      registerReasoningTools(server, ipc);
     },
     registerPrompts,
   });

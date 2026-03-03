@@ -210,7 +210,7 @@ function registerScannerToolsWithCaller(server: McpServer, call: BrainCall): voi
   );
 
   server.tool(
-    'brain_import_reposignal',
+    'brain_import_reposignal_api',
     'Import all repos from the reposignal.dev API into the local scanner database. Fetches up to 50k repos with full metadata (github_id, stars, forks, signal scores, topics). Use this to bootstrap the scanner with the complete reposignal dataset.',
     {
       limit: z.number().optional().describe('Max repos to import (default: 50000)'),

@@ -65,7 +65,7 @@ import { createMarketingDashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, MarketingDataMinerAdapter, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine } from '@timmeck/brain-core';
 import type { HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
 
 export class MarketingCore {
@@ -502,6 +502,26 @@ export class MarketingCore {
     evolutionEngine.initializePopulation();
     this.orchestrator.setEvolutionEngine(evolutionEngine);
     services.evolutionEngine = evolutionEngine;
+
+    // ReasoningEngine — multi-step logical inference chains
+    const reasoningEngine = new ReasoningEngine(this.db!, { brainName: 'marketing-brain' });
+    reasoningEngine.setThoughtStream(thoughtStream);
+    reasoningEngine.setDataSources({
+      getConfirmedHypotheses: () => {
+        try { return this.orchestrator!.hypothesisEngine.list('confirmed' as HypothesisStatus, 200); } catch { return []; }
+      },
+      getPrinciples: (domain, limit) => {
+        try { return this.orchestrator!.knowledgeDistiller.getPrinciples(domain, limit ?? 200); } catch { return []; }
+      },
+      getCausalEdges: (minStrength) => {
+        try { return this.orchestrator!.causalGraph.getEdges(minStrength ?? 0.2); } catch { return []; }
+      },
+      getCausalEffects: (eventType) => {
+        try { return this.orchestrator!.causalGraph.getEffects(eventType); } catch { return []; }
+      },
+    });
+    this.orchestrator.setReasoningEngine(reasoningEngine);
+    services.reasoningEngine = reasoningEngine;
 
     logger.info('Research orchestrator started (9 engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active, Consciousness on :7786)');
 
