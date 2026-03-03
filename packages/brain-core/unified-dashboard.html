@@ -395,18 +395,16 @@ body::before{
       <div class="page active" id="page-overview">
         <div class="stat-grid" id="overviewStats"></div>
         <div class="brain-grid" id="brainCards"></div>
-        <div class="two-col">
-          <div>
-            <div class="section-title">Live Notifications</div>
-            <div class="glass"><div class="notif-feed" id="notifFeed"></div></div>
+        <div style="margin-bottom:16px">
+          <div class="section-title">Consciousness</div>
+          <div class="neural-wrap glass" style="padding:0;background:rgba(5,8,16,0.95);height:300px">
+            <canvas class="neural-canvas" id="entityPreviewCanvas" width="800" height="300"></canvas>
+            <div class="neural-info" id="entityMoodLabel">--</div>
           </div>
-          <div>
-            <div class="section-title">Consciousness</div>
-            <div class="neural-wrap glass" style="padding:0;background:rgba(5,8,16,0.95);height:280px">
-              <canvas class="neural-canvas" id="entityPreviewCanvas" width="400" height="280"></canvas>
-              <div class="neural-info" id="entityMoodLabel">--</div>
-            </div>
-          </div>
+        </div>
+        <div>
+          <div class="section-title">Live Notifications</div>
+          <div class="glass"><div class="notif-feed" id="notifFeed"></div></div>
         </div>
       </div>
 

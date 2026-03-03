@@ -63,7 +63,7 @@ All brains support MCP over HTTP with SSE transport:
 - **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle
 - **Mission Control Dashboard** — Unified 7-tab dashboard at http://localhost:7788 (Consciousness Entity, Thought Stream, CodeGen, Self-Mod, Engines, Intelligence)
 
-<p align="center"><img src="docs/assets/consciousness-entity.png" alt="Consciousness Entity — the brain visualizes its own emotional state" width="600"></p>
+<p align="center"><img src="docs/assets/mission-control.png" alt="Mission Control — the brain visualizes its own consciousness" width="700"></p>
 
 - **Prediction Engine** — Holt-Winters + EWMA forecasting, auto-calibration
 - **ReasoningEngine** — Forward chaining, abductive reasoning, temporal inference, counterfactuals

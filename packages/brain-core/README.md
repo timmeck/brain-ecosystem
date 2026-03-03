@@ -132,7 +132,7 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 |-----------|------|-------------|
 | **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Consciousness (Entity visualization), Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
 
-<p align="center"><img src="../../docs/assets/consciousness-entity.png" alt="Consciousness Entity" width="600"></p>
+<p align="center"><img src="../../docs/assets/mission-control.png" alt="Mission Control Dashboard" width="700"></p>
 
 ### Cross-Brain & Services
 

@@ -107,7 +107,7 @@ The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes, coordina
 
 ### Mission Control Dashboard (`:7788`)
 
-<p align="center"><img src="../../docs/assets/consciousness-entity.png" alt="Consciousness Entity" width="600"></p>
+<p align="center"><img src="../../docs/assets/mission-control.png" alt="Mission Control Dashboard" width="700"></p>
 
 - **7 Tabs** — Overview, Consciousness, Thoughts, CodeGen, Self-Mod, Engines, Intelligence
 - **Consciousness Entity** — Living animated visualization of the brain's emotional/consciousness state: pulsing orb colored by mood (flow=cyan, excited=gold, anxious=red, reflective=violet, bored=gray, determined=white), organic tentacles, 8-dimension ring, ambient particles, floating thoughts, inner eye tracking attention focus
