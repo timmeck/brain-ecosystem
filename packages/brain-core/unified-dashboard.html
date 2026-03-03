@@ -177,8 +177,8 @@ body::before{
 .notif-msg{flex:1;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── Neural Canvas ─────────────────────────────────── */
-.neural-wrap{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
-.neural-canvas{display:block;width:100%;background:transparent;cursor:grab}
+.neural-wrap{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);min-height:280px}
+.neural-canvas{display:block;width:100%;height:100%;background:transparent;cursor:grab}
 .neural-canvas:active{cursor:grabbing}
 .neural-controls{
   position:absolute;bottom:10px;right:10px;display:flex;gap:4px;
@@ -403,7 +403,7 @@ body::before{
           <div>
             <div class="section-title">Neural Preview</div>
             <div class="neural-wrap glass" style="padding:0">
-              <canvas class="neural-canvas" id="overviewCanvas" height="280"></canvas>
+              <canvas class="neural-canvas" id="overviewCanvas"></canvas>
               <div class="neural-info" id="overviewInfo">0 nodes, 0 edges</div>
             </div>
           </div>
@@ -1054,11 +1054,19 @@ function neuralReset() {
   neuralPanY = 0;
 }
 
+function getNeuralCenter() {
+  var canvas = document.getElementById('neuralCanvas') || document.getElementById('overviewCanvas');
+  if (canvas && canvas.width > 0) return { x: canvas.width / 2, y: canvas.height / 2 };
+  return { x: 400, y: 300 };
+}
+
 function updateNeuralNodes(network) {
   var existingMap = {};
   for (var i = 0; i < neuralNodes.length; i++) existingMap[neuralNodes[i].id] = neuralNodes[i];
   var newNodes = [];
   var nodes = network.nodes || [];
+  var center = getNeuralCenter();
+  var spread = Math.min(center.x, center.y) * 0.6;
 
   for (var j = 0; j < nodes.length; j++) {
     var n = nodes[j];
@@ -1070,12 +1078,12 @@ function updateNeuralNodes(network) {
       newNodes.push(existing);
     } else {
       var angle = (j / Math.max(1, nodes.length)) * Math.PI * 2;
-      var r = 150 + Math.random() * 100;
+      var r = spread * 0.5 + Math.random() * spread * 0.5;
       newNodes.push({
         id: n.id, label: n.label, type: n.type,
         importance: n.importance != null ? n.importance : 0.5,
-        x: 300 + Math.cos(angle) * r + (Math.random() - 0.5) * 50,
-        y: 250 + Math.sin(angle) * r + (Math.random() - 0.5) * 50,
+        x: center.x + Math.cos(angle) * r + (Math.random() - 0.5) * 50,
+        y: center.y + Math.sin(angle) * r + (Math.random() - 0.5) * 50,
         vx: 0, vy: 0,
         radius: 3 + (n.importance != null ? n.importance : 0.5) * 5,
         pinned: false,
@@ -1098,7 +1106,8 @@ function simulatePhysics() {
   var repulsion = 800;
   var damping = 0.92;
   var gravity = 0.01;
-  var cx = 300, cy = 250;
+  var center = getNeuralCenter();
+  var cx = center.x, cy = center.y;
 
   for (var i = 0; i < neuralNodes.length; i++) {
     for (var j = i + 1; j < neuralNodes.length; j++) {
@@ -1203,11 +1212,14 @@ function drawNeuralCanvas(canvasId, isOverview) {
 }
 
 function resizeNeuralCanvas() {
-  var canvas = document.getElementById('neuralCanvas');
-  if (!canvas) return;
-  var wrap = canvas.parentElement;
-  canvas.width = wrap.clientWidth;
-  canvas.height = wrap.clientHeight;
+  var ids = ['neuralCanvas', 'overviewCanvas'];
+  for (var i = 0; i < ids.length; i++) {
+    var canvas = document.getElementById(ids[i]);
+    if (!canvas) continue;
+    var wrap = canvas.parentElement;
+    if (wrap.clientWidth > 0) canvas.width = wrap.clientWidth;
+    if (wrap.clientHeight > 0) canvas.height = wrap.clientHeight;
+  }
 }
 
 function renderNetwork() {
@@ -1225,6 +1237,7 @@ function neuralLoop() {
   var oc = document.getElementById('overviewCanvas');
   if (oc) {
     if (oc.width !== oc.parentElement.clientWidth) oc.width = oc.parentElement.clientWidth;
+    if (oc.height !== oc.parentElement.clientHeight) oc.height = oc.parentElement.clientHeight;
     drawNeuralCanvas('overviewCanvas', true);
   }
 
@@ -1267,6 +1280,7 @@ setInterval(function() {
 // ═══ BOOT ═══
 initNeuralGraph('overviewCanvas');
 initNeuralGraph('neuralCanvas');
+resizeNeuralCanvas();
 window.addEventListener('resize', resizeNeuralCanvas);
 
 connect();
