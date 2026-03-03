@@ -172,6 +172,10 @@ export { DataMiner, runDataMinerMigration } from './research/data-miner.js';
 export type { DataMinerAdapter, DataMinerEngines, DataMinerState, MineResult, MinedObservation, MinedCausalEvent, MinedMetric, MinedHypothesisObservation, MinedCrossDomainEvent } from './research/data-miner.js';
 export { BrainDataMinerAdapter, TradingDataMinerAdapter, MarketingDataMinerAdapter, ScannerDataMinerAdapter } from './research/adapters/index.js';
 
+// ── Bootstrap ────────────────────────────────────────
+export { BootstrapService, runBootstrapMigration } from './research/bootstrap-service.js';
+export type { BootstrapConfig, BootstrapEngines, BootstrapState, BootstrapResult } from './research/bootstrap-service.js';
+
 // ── Dream Mode ──────────────────────────────────────
 export { DreamEngine, runDreamMigration } from './dream/index.js';
 export { DreamConsolidator } from './dream/index.js';

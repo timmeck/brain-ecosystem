@@ -42,6 +42,7 @@ import type { ReasoningEngine } from '../reasoning/reasoning-engine.js';
 import type { EmotionalModel } from '../emotional/emotional-model.js';
 import type { SelfScanner } from '../self-scanner/self-scanner.js';
 import type { SelfModificationEngine } from '../self-modification/self-modification-engine.js';
+import type { BootstrapService } from './bootstrap-service.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -101,6 +102,7 @@ export class ResearchOrchestrator {
   private emotionalModel: EmotionalModel | null = null;
   private selfScanner: SelfScanner | null = null;
   private selfModificationEngine: SelfModificationEngine | null = null;
+  private bootstrapService: BootstrapService | null = null;
 
   private brainName: string;
   private feedbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -249,6 +251,9 @@ export class ResearchOrchestrator {
   /** Set the SelfModificationEngine — generates and applies code changes autonomously. */
   setSelfModificationEngine(engine: SelfModificationEngine): void { this.selfModificationEngine = engine; }
 
+  /** Set the BootstrapService — seeds initial data on first cycle. */
+  setBootstrapService(service: BootstrapService): void { this.bootstrapService = service; }
+
   /** Set the PredictionEngine — wires journal into it. */
   setPredictionEngine(engine: PredictionEngine): void {
     this.predictionEngine = engine;
@@ -346,6 +351,19 @@ export class ResearchOrchestrator {
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} ───`);
 
     ts?.emit('orchestrator', 'perceiving', `Feedback Cycle #${this.cycleCount} starting...`);
+
+    // Bootstrap: seed initial data on first cycle so engines have something to work with
+    if (this.cycleCount === 1 && this.bootstrapService) {
+      try {
+        const result = this.bootstrapService.bootstrap();
+        if (!result.alreadyBootstrapped) {
+          ts?.emit('orchestrator', 'discovering', `Bootstrap seeded: ${result.observations} observations, ${result.journalEntries} journal, ${result.hypotheses} hypotheses, ${result.predictions} predictions, ${result.metrics} metrics`, 'notable');
+          this.log.info(`[orchestrator] Cold-start bootstrap complete — engines have initial data`);
+        }
+      } catch (err) {
+        this.log.error(`[orchestrator] Bootstrap error: ${(err as Error).message}`);
+      }
+    }
 
     // 0. DataMiner: mine new data from DB into engines
     if (this.dataMiner) {
@@ -586,6 +604,21 @@ export class ResearchOrchestrator {
       ts?.emit('journal', 'reflecting', 'Reflecting on recent journal entries...');
       this.journal.reflect();
       ts?.emit('journal', 'reflecting', 'Reflection complete', 'notable');
+    }
+
+    // 8b. Cycle-end journal entry — guarantees journal grows every cycle
+    {
+      const cycleDuration = Date.now() - start;
+      const journalStats = this.journal.getSummary();
+      this.journal.write({
+        type: 'insight',
+        title: `Cycle #${this.cycleCount} summary`,
+        content: `Completed feedback cycle #${this.cycleCount} in ${cycleDuration}ms. ${insights.length} insights, ${anomalies.length} anomalies detected. Journal now has ${(journalStats.total_entries as number) ?? 0} entries.`,
+        tags: [this.brainName, 'cycle-summary'],
+        references: [],
+        significance: 'routine',
+        data: { cycle: this.cycleCount, duration_ms: cycleDuration, insights: insights.length, anomalies: anomalies.length },
+      });
     }
 
     // 9. Prediction Engine: resolve pending + auto-predict

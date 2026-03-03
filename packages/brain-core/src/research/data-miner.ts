@@ -72,6 +72,7 @@ export interface DataMinerEngines {
 export interface DataMinerState {
   last_mined_at: number;
   bootstrap_complete: boolean;
+  bootstrap_attempts: number;
   total_observations_mined: number;
   total_causal_events_mined: number;
   total_metrics_mined: number;
@@ -85,6 +86,7 @@ export function runDataMinerMigration(db: Database.Database): void {
       id INTEGER PRIMARY KEY CHECK (id = 1),
       last_mined_at INTEGER NOT NULL DEFAULT 0,
       bootstrap_complete INTEGER NOT NULL DEFAULT 0,
+      bootstrap_attempts INTEGER NOT NULL DEFAULT 0,
       total_observations_mined INTEGER NOT NULL DEFAULT 0,
       total_causal_events_mined INTEGER NOT NULL DEFAULT 0,
       total_metrics_mined INTEGER NOT NULL DEFAULT 0,
@@ -92,6 +94,13 @@ export function runDataMinerMigration(db: Database.Database): void {
     );
     INSERT OR IGNORE INTO data_miner_state (id) VALUES (1);
   `);
+
+  // Graceful ALTER TABLE for existing DBs
+  try {
+    db.exec('ALTER TABLE data_miner_state ADD COLUMN bootstrap_attempts INTEGER NOT NULL DEFAULT 0');
+  } catch {
+    // Column already exists
+  }
 }
 
 // ── DataMiner ───────────────────────────────────────────
@@ -127,19 +136,26 @@ export class DataMiner {
     }
 
     const names = this.adapters.map(a => a.name).join(', ');
-    this.log.info(`[data-miner] Bootstrapping ${names} — scanning all historical data...`);
+    this.state.bootstrap_attempts++;
+    this.log.info(`[data-miner] Bootstrapping ${names} — attempt ${this.state.bootstrap_attempts}, scanning all historical data...`);
     const start = Date.now();
 
     // Mine everything from epoch
     const result = this.mineFrom(0);
 
-    this.state.bootstrap_complete = true;
+    // Only mark complete if we actually mined something, OR safety valve after 10 attempts
+    if (result.total > 0 || this.state.bootstrap_attempts >= 10) {
+      this.state.bootstrap_complete = true;
+      if (result.total === 0) {
+        this.log.info(`[data-miner] Safety valve: marking bootstrap complete after ${this.state.bootstrap_attempts} attempts with 0 items (BootstrapService will seed data instead)`);
+      }
+    }
     this.state.last_mined_at = Date.now();
     this.saveState();
 
     const duration = Date.now() - start;
     this.log.info(
-      `[data-miner] Bootstrap complete for ${names} in ${duration}ms — ` +
+      `[data-miner] Bootstrap ${this.state.bootstrap_complete ? 'complete' : 'incomplete (0 items)'} for ${names} in ${duration}ms — ` +
       `${result.observations} observations, ${result.causalEvents} causal events, ` +
       `${result.metrics} metrics, ${result.hypothesisObs} hypothesis observations, ` +
       `${result.crossDomain} cross-domain events`,
@@ -259,15 +275,16 @@ export class DataMiner {
 
   private loadState(): DataMinerState {
     const row = this.db.prepare('SELECT * FROM data_miner_state WHERE id = 1').get() as
-      { last_mined_at: number; bootstrap_complete: number; total_observations_mined: number; total_causal_events_mined: number; total_metrics_mined: number } | undefined;
+      { last_mined_at: number; bootstrap_complete: number; bootstrap_attempts: number; total_observations_mined: number; total_causal_events_mined: number; total_metrics_mined: number } | undefined;
 
     if (!row) {
-      return { last_mined_at: 0, bootstrap_complete: false, total_observations_mined: 0, total_causal_events_mined: 0, total_metrics_mined: 0 };
+      return { last_mined_at: 0, bootstrap_complete: false, bootstrap_attempts: 0, total_observations_mined: 0, total_causal_events_mined: 0, total_metrics_mined: 0 };
     }
 
     return {
       last_mined_at: row.last_mined_at,
       bootstrap_complete: row.bootstrap_complete === 1,
+      bootstrap_attempts: row.bootstrap_attempts ?? 0,
       total_observations_mined: row.total_observations_mined,
       total_causal_events_mined: row.total_causal_events_mined,
       total_metrics_mined: row.total_metrics_mined,
@@ -279,6 +296,7 @@ export class DataMiner {
       UPDATE data_miner_state SET
         last_mined_at = ?,
         bootstrap_complete = ?,
+        bootstrap_attempts = ?,
         total_observations_mined = ?,
         total_causal_events_mined = ?,
         total_metrics_mined = ?,
@@ -287,6 +305,7 @@ export class DataMiner {
     `).run(
       this.state.last_mined_at,
       this.state.bootstrap_complete ? 1 : 0,
+      this.state.bootstrap_attempts,
       this.state.total_observations_mined,
       this.state.total_causal_events_mined,
       this.state.total_metrics_mined,
