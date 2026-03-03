@@ -27,6 +27,8 @@ export interface UnifiedDashboardOptions {
   patternExtractor?: PatternExtractor | null;
   // Self-Modification
   selfModificationEngine?: SelfModificationEngine | null;
+  // Emotional (for Entity visualization)
+  getEmotionalStatus?: () => unknown;
 }
 
 // ── Server ───────────────────────────────────────────────
@@ -121,6 +123,14 @@ export class UnifiedDashboardServer {
       // ── Neural Graph ──────────────────────────────────
       if (url.pathname === '/api/network' && req.method === 'GET') {
         this.handleNetwork(res);
+        return;
+      }
+
+      // ── Emotional (Entity) ──────────────────────────────
+      if (url.pathname === '/api/emotional' && req.method === 'GET') {
+        const data = this.options.getEmotionalStatus?.() ?? { mood: 'reflective', score: 0.5, dimensions: {} };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(data));
         return;
       }
 

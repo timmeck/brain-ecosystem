@@ -61,7 +61,10 @@ All brains support MCP over HTTP with SSE transport:
 - **Persistent Memory** — Remember preferences, decisions, context, facts, goals, and lessons across sessions
 - **30+ Autonomous Engines** — SelfObserver, AnomalyDetective, HypothesisEngine, KnowledgeDistiller, CuriosityEngine, EmergenceEngine, DebateEngine, NarrativeEngine, ReasoningEngine, EmotionalModel, EvolutionEngine, GoalEngine, MemoryPalace, AttentionEngine, TransferEngine, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, SimulationEngine, DataScout, SelfScanner, SelfModificationEngine, and more
 - **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle
-- **Mission Control Dashboard** — Unified 7-tab dashboard at http://localhost:7788 (Neural Graph, Thought Stream, CodeGen, Self-Mod, Engines, Intelligence)
+- **Mission Control Dashboard** — Unified 7-tab dashboard at http://localhost:7788 (Consciousness Entity, Thought Stream, CodeGen, Self-Mod, Engines, Intelligence)
+
+<p align="center"><img src="docs/assets/consciousness-entity.png" alt="Consciousness Entity — the brain visualizes its own emotional state" width="600"></p>
+
 - **Prediction Engine** — Holt-Winters + EWMA forecasting, auto-calibration
 - **ReasoningEngine** — Forward chaining, abductive reasoning, temporal inference, counterfactuals
 - **EmotionalModel** — 8 emotion dimensions, 6 moods, mood-based behavior recommendations
@@ -192,7 +195,7 @@ Engine    Engine   (GitHub/HN)   Engine     (graph)   Engine    Engine
 | **BootstrapService** | Cold-start fix: seeds observations, journal, hypotheses, metrics on first cycle |
 | **DataMiner** | Bootstraps historical DB data into research engines, incremental mining |
 | **Dream Engine** | Offline consolidation — memory replay, synapse pruning, compression, decay |
-| **ThoughtStream + Consciousness** | Real-time thought capture + live neural dashboard with SSE |
+| **ThoughtStream + Consciousness** | Real-time thought capture + live Consciousness Entity visualization (mood-colored orb, emotional dimension ring, ambient particles, floating thoughts) |
 | **Prediction Engine** | Holt-Winters + EWMA forecasting with auto-calibration |
 | **AutoResponder** | Anomaly → automatic parameter adjustment, escalation, resolution |
 | **AttentionEngine** | Dynamic focus, context detection, engine weight allocation |
@@ -216,7 +219,7 @@ Engine    Engine   (GitHub/HN)   Engine     (graph)   Engine    Engine
 | **SelfScanner** | Indexes own source code for self-modification context |
 | **SelfModificationEngine** | Generates and tests code changes autonomously via Claude API |
 | **CodeGenerator + CodeMiner** | Code generation with brain context + GitHub repo mining |
-| **Mission Control** | Unified 7-tab dashboard: Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
+| **Mission Control** | Unified 7-tab dashboard: Overview, Consciousness (Entity visualization), Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
 | **Signal Scanner** | GitHub trending, Hacker News, crypto signal tracking |
 | **Webhook / Export / Backup** | HMAC webhooks, JSON/CSV export, SQLite backups |
 | **Memory System** | Persistent memory with categories, importance, FTS5 search |

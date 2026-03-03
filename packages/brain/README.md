@@ -106,8 +106,11 @@ The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes, coordina
 - **Triggers** — Every 20 cycles, after 5 minutes idle, or manually
 
 ### Mission Control Dashboard (`:7788`)
-- **7 Tabs** — Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence
-- **Neural Graph** — Force-directed visualization of the synapse network (Canvas 2D physics, zoom/pan/drag)
+
+<p align="center"><img src="../../docs/assets/consciousness-entity.png" alt="Consciousness Entity" width="600"></p>
+
+- **7 Tabs** — Overview, Consciousness, Thoughts, CodeGen, Self-Mod, Engines, Intelligence
+- **Consciousness Entity** — Living animated visualization of the brain's emotional/consciousness state: pulsing orb colored by mood (flow=cyan, excited=gold, anxious=red, reflective=violet, bored=gray, determined=white), organic tentacles, 8-dimension ring, ambient particles, floating thoughts, inner eye tracking attention focus
 - **Thought Stream** — Real-time feed of every engine's activity with significance filtering
 - **CodeGen** — Generate, review, approve/reject code with syntax highlighting
 - **Self-Mod** — Pending modifications with side-by-side diff viewer
@@ -139,7 +142,7 @@ The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes, coordina
 
 | Dashboard | Port | What It Shows |
 |-----------|------|--------------|
-| **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
+| **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Consciousness (Entity visualization), Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
 
 ## Architecture
 

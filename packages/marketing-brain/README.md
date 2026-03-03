@@ -51,7 +51,7 @@ Same full engine suite as Brain, fed with post/engagement history via DataMiner:
 
 ### Dream Mode & Consciousness
 - **Dream Engine** — Offline consolidation: memory replay, synapse pruning, compression, importance decay
-- **Mission Control Dashboard** — Unified dashboard at http://localhost:7788 (Neural Graph, Thoughts, Engines, Intelligence)
+- **Mission Control Dashboard** — Unified dashboard at http://localhost:7788 (Consciousness Entity, Thoughts, Engines, Intelligence)
 - **Prediction Engine** — Holt-Winters forecasting for engagement rates and post performance
 - **AutoResponder** — Automatically adjusts marketing parameters when anomalies detected
 - **Self-Improvement Loop** — Generates improvement suggestions
@@ -69,7 +69,7 @@ Same full engine suite as Brain, fed with post/engagement history via DataMiner:
 | Dashboard | Port | What It Shows |
 |-----------|------|--------------|
 | **Marketing Dashboard** | 7783 | Interactive synapse graph, platform charts, top posts, insights |
-| **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
+| **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Consciousness (Entity visualization), Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
 
 ### Universal Access
 - **MCP Server** — Stdio transport for Claude Code

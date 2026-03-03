@@ -112,7 +112,8 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 | **DreamEngine** | Offline memory consolidation — replay, prune, compress, decay |
 | **DreamConsolidator** | 4 phases: Memory Replay, Synapse Pruning, Compression, Importance Decay |
 | **ThoughtStream** | Circular buffer capturing every engine's thoughts in real-time |
-| **ConsciousnessServer** | HTTP + SSE server with live neural dashboard (legacy — now part of Mission Control) |
+| **ConsciousnessServer** | HTTP + SSE server with live Consciousness Entity visualization (legacy — now part of Mission Control) |
+| **Consciousness Entity** | Animated Canvas 2D visualization: mood-colored pulsing orb, organic tentacles, 8-dimension ring, ambient particles, floating thoughts, inner eye tracking attention. 6 moods (flow/excited/anxious/reflective/bored/determined). Data from EmotionalModel via `/api/emotional` |
 
 ### Code Generation & Mining
 
@@ -129,7 +130,9 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 
 | Dashboard | Port | Description |
 |-----------|------|-------------|
-| **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Neural Graph, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
+| **Mission Control** | 7788 | Unified 7-tab dashboard: Overview, Consciousness (Entity visualization), Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
+
+<p align="center"><img src="../../docs/assets/consciousness-entity.png" alt="Consciousness Entity" width="600"></p>
 
 ### Cross-Brain & Services
 
@@ -187,7 +190,7 @@ dreamEngine.start();
 // 4. Consciousness
 const thoughtStream = new ThoughtStream();
 orchestrator.setThoughtStream(thoughtStream);
-// Unified Mission Control dashboard (includes Neural Graph, Thoughts, CodeGen, Self-Mod, Engines)
+// Unified Mission Control dashboard (includes Consciousness Entity, Thoughts, CodeGen, Self-Mod, Engines)
 const dashboard = new UnifiedDashboardServer({ port: 7790, thoughtStream, ... });
 dashboard.start();
 

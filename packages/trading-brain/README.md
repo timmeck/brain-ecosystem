@@ -50,7 +50,7 @@ Same full engine suite as Brain, fed with trade history via DataMiner:
 
 ### Dream Mode & Consciousness
 - **Dream Engine** — Offline consolidation: memory replay, synapse pruning, compression, importance decay
-- **Mission Control Dashboard** — Unified dashboard at http://localhost:7788 (Neural Graph, Thoughts, Engines, Intelligence)
+- **Mission Control Dashboard** — Unified dashboard at http://localhost:7788 (Consciousness Entity, Thoughts, Engines, Intelligence)
 - **Prediction Engine** — Holt-Winters forecasting for win rates and PnL with auto-calibration
 - **AutoResponder** — Automatically adjusts trading parameters when anomalies detected
 - **Self-Improvement Loop** — Generates improvement suggestions

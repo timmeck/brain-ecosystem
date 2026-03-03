@@ -795,6 +795,7 @@ export class BrainCore {
       codeMiner: (services.codeMiner as CodeMiner) ?? null,
       patternExtractor: (patternExtractor as PatternExtractor) ?? null,
       selfModificationEngine: (services.selfModificationEngine as SelfModificationEngine) ?? null,
+      getEmotionalStatus: () => (services.emotionalModel as EmotionalModel)?.getMood?.() ?? null,
     });
     this.unifiedServer.start();
     services.unifiedServer = this.unifiedServer;

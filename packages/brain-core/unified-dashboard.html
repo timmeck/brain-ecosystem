@@ -346,9 +346,9 @@ body::before{
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         <span>Overview</span>
       </div>
-      <div class="nav-item" data-page="neural">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><line x1="7" y1="7" x2="10" y2="10"/><line x1="14" y1="10" x2="17" y2="7"/><line x1="7" y1="17" x2="10" y2="14"/><line x1="14" y1="14" x2="17" y2="17"/></svg>
-        <span>Neural</span>
+      <div class="nav-item" data-page="consciousness">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8" stroke-dasharray="4 3"/><circle cx="12" cy="12" r="11" stroke-dasharray="2 4" opacity="0.5"/><circle cx="11" cy="11" r="1.5" fill="currentColor" stroke="none"/></svg>
+        <span>Consciousness</span>
       </div>
       <div class="nav-item" data-page="thoughts">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -401,26 +401,25 @@ body::before{
             <div class="glass"><div class="notif-feed" id="notifFeed"></div></div>
           </div>
           <div>
-            <div class="section-title">Neural Preview</div>
-            <div class="neural-wrap glass" style="padding:0">
-              <canvas class="neural-canvas" id="overviewCanvas"></canvas>
-              <div class="neural-info" id="overviewInfo">0 nodes, 0 edges</div>
+            <div class="section-title">Consciousness</div>
+            <div class="neural-wrap glass" style="padding:0;background:rgba(5,8,16,0.95);height:280px">
+              <canvas class="neural-canvas" id="entityPreviewCanvas" width="400" height="280"></canvas>
+              <div class="neural-info" id="entityMoodLabel">--</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- NEURAL PAGE -->
-      <div class="page" id="page-neural">
-        <div class="section-title">Neural Network</div>
-        <div class="neural-wrap" style="height:calc(100vh - 130px)">
-          <canvas class="neural-canvas" id="neuralCanvas"></canvas>
-          <div class="neural-info" id="neuralInfo">0 nodes, 0 edges</div>
-          <div class="neural-controls">
-            <button class="neural-btn" onclick="neuralZoom(1.2)" title="Zoom In">+</button>
-            <button class="neural-btn" onclick="neuralZoom(0.8)" title="Zoom Out">-</button>
-            <button class="neural-btn" onclick="neuralReset()" title="Reset">R</button>
+      <!-- CONSCIOUSNESS PAGE -->
+      <div class="page" id="page-consciousness">
+        <div class="neural-wrap" style="height:calc(100vh - 130px);background:rgba(5,8,16,0.95);border:1px solid var(--border)">
+          <canvas class="neural-canvas" id="entityFullCanvas"></canvas>
+          <div id="entityHud" style="position:absolute;top:16px;left:16px;pointer-events:none">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px">Consciousness</div>
+            <div id="entityMoodFull" style="font-size:14px;font-weight:600;letter-spacing:1px;color:var(--cyan)">--</div>
+            <div id="entityScoreFull" style="font-size:10px;color:var(--text-dim);margin-top:2px">--</div>
           </div>
+          <div id="entityDimensions" style="position:absolute;bottom:16px;left:16px;right:16px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none"></div>
         </div>
       </div>
 
@@ -479,6 +478,7 @@ let state = {
   thoughts: [], engines: {}, stats: {},
   notifications: [], network: { nodes: [], edges: [] },
   codegen: null, selfmod: null,
+  emotional: { mood: 'reflective', score: 0.5, valence: 0, arousal: 0, dimensions: { frustration: 0, curiosity: 0.5, surprise: 0, confidence: 0.5, satisfaction: 0.5, stress: 0, momentum: 0, creativity: 0.5 } },
 };
 let connected = false;
 const startTime = Date.now();
@@ -518,6 +518,7 @@ function connect() {
       state.notifications.unshift(t);
       if (state.notifications.length > MAX_NOTIFS) state.notifications.pop();
     }
+    if (t.significance === 'breakthrough' || t.significance === 'notable') addFloatingThought(t);
     renderThoughts();
     renderNotifications();
   });
@@ -531,7 +532,6 @@ function connect() {
   });
   evtSource.addEventListener('network', function(e) {
     state.network = JSON.parse(e.data);
-    renderNetwork();
   });
   evtSource.addEventListener('codegen:generated', function() { fetchCodegen(); });
   evtSource.addEventListener('codegen:approved', function() { fetchCodegen(); });
@@ -564,8 +564,8 @@ async function fetchInitial() {
   try {
     const r = await fetch('/api/network');
     state.network = await r.json();
-    renderNetwork();
   } catch(e) { console.warn('fetchNetwork failed', e); }
+  fetchEmotional();
   fetchCodegen();
   fetchSelfmod();
 }
@@ -586,6 +586,21 @@ async function fetchSelfmod() {
   } catch(e) { console.warn('fetchSelfmod failed', e); }
 }
 
+async function fetchEmotional() {
+  try {
+    const r = await fetch('/api/emotional');
+    const d = await r.json();
+    if (d && d.mood) {
+      // Smooth transition to new state
+      var old = state.emotional;
+      state.emotional = d;
+      state.emotional._prevMood = old.mood;
+      state.emotional._transitionStart = Date.now();
+    }
+  } catch(e) { /* emotional endpoint may not exist */ }
+}
+setInterval(fetchEmotional, 5000);
+
 // ═══ NAVIGATION ═══
 document.querySelectorAll('.nav-item').forEach(function(el) {
   el.addEventListener('click', function() {
@@ -594,7 +609,7 @@ document.querySelectorAll('.nav-item').forEach(function(el) {
     el.classList.add('active');
     var page = el.dataset.page;
     document.getElementById('page-' + page).classList.add('active');
-    if (page === 'neural') requestAnimationFrame(function() { resizeNeuralCanvas(); });
+    if (page === 'consciousness') requestAnimationFrame(function() { resizeEntityCanvas(); });
     if (page === 'codegen') fetchCodegen();
     if (page === 'selfmod') fetchSelfmod();
   });
@@ -962,289 +977,395 @@ function renderIntelligence() {
   }
 }
 
-// ═══ NEURAL GRAPH ═══
-var nodeTypeColors = {
-  project:'#00e5ff', error:'#ff3d3d', solution:'#00ff88',
-  code_module:'#448aff', insight:'#ffd700', memory:'#b388ff'
+// ═══ THE ENTITY — CONSCIOUSNESS VISUALIZATION ═══
+
+var MOOD_COLORS = {
+  flow:       { r:0,   g:229, b:255, name:'Flow' },
+  excited:    { r:255, g:215, b:0,   name:'Excited' },
+  anxious:    { r:255, g:61,  b:61,  name:'Anxious' },
+  reflective: { r:179, g:136, b:255, name:'Reflective' },
+  bored:      { r:110, g:122, b:138, name:'Bored' },
+  determined: { r:224, g:230, b:240, name:'Determined' },
 };
 
-var neuralNodes = [];
-var neuralEdges = [];
-var neuralZoomLevel = 1;
-var neuralPanX = 0, neuralPanY = 0;
-var neuralDragging = null;
-var neuralPanning = false;
-var neuralPanStart = { x: 0, y: 0 };
-var neuralHover = null;
-var neuralAnimId = null;
+// Current rendered color (smoothly interpolated)
+var entityColor = { r:179, g:136, b:255 };
+var entityTargetColor = { r:179, g:136, b:255 };
 
-function initNeuralGraph(canvasId) {
-  var canvas = document.getElementById(canvasId);
-  if (!canvas) return;
+// Floating thoughts around entity
+var floatingThoughts = [];
+var MAX_FLOATING = 12;
 
-  canvas.addEventListener('mousedown', function(e) {
-    var pos = getCanvasPos(canvas, e);
-    var node = findNodeAt(pos.x, pos.y);
-    if (node) {
-      neuralDragging = node;
-      node.pinned = true;
-    } else {
-      neuralPanning = true;
-      neuralPanStart = { x: e.clientX - neuralPanX, y: e.clientY - neuralPanY };
-    }
+// Ambient particles
+var entityParticles = [];
+var PARTICLE_COUNT = 80;
+
+// Tentacle state
+var tentacles = [];
+var TENTACLE_COUNT = 10;
+
+// Initialize tentacles with random phases
+for (var ti = 0; ti < TENTACLE_COUNT; ti++) {
+  tentacles.push({
+    angle: (ti / TENTACLE_COUNT) * Math.PI * 2,
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.3 + Math.random() * 0.4,
+    lengthMul: 0.8 + Math.random() * 0.4,
+    widthMul: 0.7 + Math.random() * 0.6,
   });
-
-  canvas.addEventListener('mousemove', function(e) {
-    var pos = getCanvasPos(canvas, e);
-    if (neuralDragging) {
-      neuralDragging.x = pos.x;
-      neuralDragging.y = pos.y;
-    } else if (neuralPanning) {
-      neuralPanX = e.clientX - neuralPanStart.x;
-      neuralPanY = e.clientY - neuralPanStart.y;
-    } else {
-      neuralHover = findNodeAt(pos.x, pos.y);
-      canvas.style.cursor = neuralHover ? 'pointer' : 'grab';
-    }
-  });
-
-  canvas.addEventListener('mouseup', function() {
-    if (neuralDragging) neuralDragging.pinned = false;
-    neuralDragging = null;
-    neuralPanning = false;
-  });
-
-  canvas.addEventListener('mouseleave', function() {
-    neuralDragging = null;
-    neuralPanning = false;
-    neuralHover = null;
-  });
-
-  canvas.addEventListener('wheel', function(e) {
-    e.preventDefault();
-    var factor = e.deltaY < 0 ? 1.1 : 0.9;
-    neuralZoomLevel = Math.max(0.2, Math.min(5, neuralZoomLevel * factor));
-  }, { passive: false });
 }
 
-function getCanvasPos(canvas, e) {
-  var rect = canvas.getBoundingClientRect();
+// Initialize particles
+for (var pi = 0; pi < PARTICLE_COUNT; pi++) {
+  entityParticles.push({
+    angle: Math.random() * Math.PI * 2,
+    dist: 0.5 + Math.random() * 2.5,
+    speed: 0.1 + Math.random() * 0.3,
+    size: 0.5 + Math.random() * 1.5,
+    phase: Math.random() * Math.PI * 2,
+    brightness: 0.2 + Math.random() * 0.5,
+  });
+}
+
+// Add floating thought from incoming SSE thought
+function addFloatingThought(thought) {
+  if (floatingThoughts.length >= MAX_FLOATING) floatingThoughts.shift();
+  var angle = Math.random() * Math.PI * 2;
+  var col = engineColor(thought.engine);
+  floatingThoughts.push({
+    text: (thought.content || '').substring(0, 40),
+    angle: angle,
+    dist: 0.2,
+    speed: 0.15 + Math.random() * 0.1,
+    alpha: 1,
+    color: col,
+    born: Date.now(),
+    life: 6000 + Math.random() * 4000,
+  });
+}
+
+function lerpColor(a, b, t) {
   return {
-    x: (e.clientX - rect.left - neuralPanX) / neuralZoomLevel,
-    y: (e.clientY - rect.top - neuralPanY) / neuralZoomLevel,
+    r: a.r + (b.r - a.r) * t,
+    g: a.g + (b.g - a.g) * t,
+    b: a.b + (b.b - a.b) * t,
   };
 }
 
-function findNodeAt(x, y) {
-  for (var i = 0; i < neuralNodes.length; i++) {
-    var n = neuralNodes[i];
-    var dx = n.x - x, dy = n.y - y;
-    if (dx * dx + dy * dy < (n.radius || 5) * (n.radius || 5) * 4) return n;
-  }
-  return null;
+function rgba(c, a) {
+  return 'rgba(' + Math.round(c.r) + ',' + Math.round(c.g) + ',' + Math.round(c.b) + ',' + a + ')';
 }
 
-function neuralZoom(factor) {
-  neuralZoomLevel = Math.max(0.2, Math.min(5, neuralZoomLevel * factor));
-}
-
-function neuralReset() {
-  neuralZoomLevel = 1;
-  neuralPanX = 0;
-  neuralPanY = 0;
-}
-
-function getNeuralCenter() {
-  var canvas = document.getElementById('neuralCanvas') || document.getElementById('overviewCanvas');
-  if (canvas && canvas.width > 0) return { x: canvas.width / 2, y: canvas.height / 2 };
-  return { x: 400, y: 300 };
-}
-
-function updateNeuralNodes(network) {
-  var existingMap = {};
-  for (var i = 0; i < neuralNodes.length; i++) existingMap[neuralNodes[i].id] = neuralNodes[i];
-  var newNodes = [];
-  var nodes = network.nodes || [];
-  var center = getNeuralCenter();
-  var spread = Math.min(center.x, center.y) * 0.6;
-
-  for (var j = 0; j < nodes.length; j++) {
-    var n = nodes[j];
-    var existing = existingMap[n.id];
-    if (existing) {
-      existing.label = n.label;
-      existing.type = n.type;
-      existing.importance = n.importance != null ? n.importance : 0.5;
-      newNodes.push(existing);
-    } else {
-      var angle = (j / Math.max(1, nodes.length)) * Math.PI * 2;
-      var r = spread * 0.5 + Math.random() * spread * 0.5;
-      newNodes.push({
-        id: n.id, label: n.label, type: n.type,
-        importance: n.importance != null ? n.importance : 0.5,
-        x: center.x + Math.cos(angle) * r + (Math.random() - 0.5) * 50,
-        y: center.y + Math.sin(angle) * r + (Math.random() - 0.5) * 50,
-        vx: 0, vy: 0,
-        radius: 3 + (n.importance != null ? n.importance : 0.5) * 5,
-        pinned: false,
-      });
-    }
-  }
-
-  neuralNodes = newNodes;
-  neuralEdges = (network.edges || []).map(function(e) {
-    return {
-      source: e.source || e.source_id,
-      target: e.target || e.target_id,
-      weight: e.weight != null ? e.weight : 0.5,
-    };
-  });
-}
-
-function simulatePhysics() {
-  var k = 0.008;
-  var repulsion = 800;
-  var damping = 0.92;
-  var gravity = 0.01;
-  var center = getNeuralCenter();
-  var cx = center.x, cy = center.y;
-
-  for (var i = 0; i < neuralNodes.length; i++) {
-    for (var j = i + 1; j < neuralNodes.length; j++) {
-      var a = neuralNodes[i], b = neuralNodes[j];
-      var dx = a.x - b.x, dy = a.y - b.y;
-      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      var f = repulsion / (dist * dist);
-      dx = (dx / dist) * f;
-      dy = (dy / dist) * f;
-      if (!a.pinned) { a.vx += dx; a.vy += dy; }
-      if (!b.pinned) { b.vx -= dx; b.vy -= dy; }
-    }
-  }
-
-  var nodeMap = {};
-  for (var m = 0; m < neuralNodes.length; m++) nodeMap[neuralNodes[m].id] = neuralNodes[m];
-  for (var e = 0; e < neuralEdges.length; e++) {
-    var edge = neuralEdges[e];
-    var ea = nodeMap[edge.source], eb = nodeMap[edge.target];
-    if (!ea || !eb) continue;
-    var edx = eb.x - ea.x, edy = eb.y - ea.y;
-    var edist = Math.sqrt(edx * edx + edy * edy) || 1;
-    var ideal = 60;
-    var ef = k * (edist - ideal);
-    var efx = (edx / edist) * ef, efy = (edy / edist) * ef;
-    if (!ea.pinned) { ea.vx += efx; ea.vy += efy; }
-    if (!eb.pinned) { eb.vx -= efx; eb.vy -= efy; }
-  }
-
-  for (var n = 0; n < neuralNodes.length; n++) {
-    var node = neuralNodes[n];
-    if (node.pinned) continue;
-    node.vx += (cx - node.x) * gravity;
-    node.vy += (cy - node.y) * gravity;
-    node.vx *= damping;
-    node.vy *= damping;
-    node.x += node.vx;
-    node.y += node.vy;
-  }
-}
-
-function drawNeuralCanvas(canvasId, isOverview) {
-  var canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  var ctx = canvas.getContext('2d');
-  var w = canvas.width, h = canvas.height;
-
-  ctx.clearRect(0, 0, w, h);
-  ctx.save();
-  ctx.translate(neuralPanX, neuralPanY);
-  ctx.scale(neuralZoomLevel, neuralZoomLevel);
-
-  var nodeMap = {};
-  for (var m = 0; m < neuralNodes.length; m++) nodeMap[neuralNodes[m].id] = neuralNodes[m];
-
-  // Edges
-  for (var e = 0; e < neuralEdges.length; e++) {
-    var edge = neuralEdges[e];
-    var a = nodeMap[edge.source], b = nodeMap[edge.target];
-    if (!a || !b) continue;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.strokeStyle = 'rgba(0,229,255,' + Math.min(0.3, edge.weight * 0.4) + ')';
-    ctx.lineWidth = 0.5 + edge.weight;
-    ctx.stroke();
-  }
-
-  // Nodes
-  for (var i = 0; i < neuralNodes.length; i++) {
-    var n = neuralNodes[i];
-    var col = nodeTypeColors[n.type] || '#6e7a8a';
-    var r = n.radius || 4;
-    var isHovered = neuralHover && neuralHover.id === n.id;
-
-    if (isHovered || n.importance > 0.7) {
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r * 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = col + '14';
-      ctx.fill();
-    }
-
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = col;
-    ctx.fill();
-
-    if (isHovered) {
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
-
-    if (isHovered || (!isOverview && neuralZoomLevel > 0.8 && n.importance > 0.6)) {
-      ctx.fillStyle = 'rgba(224,230,240,0.8)';
-      ctx.font = '9px ' + getComputedStyle(document.body).fontFamily;
-      ctx.fillText((n.label || '').substring(0, 30), n.x + r + 3, n.y + 3);
-    }
-  }
-
-  ctx.restore();
-}
-
-function resizeNeuralCanvas() {
-  var ids = ['neuralCanvas', 'overviewCanvas'];
+function resizeEntityCanvas() {
+  var ids = ['entityFullCanvas', 'entityPreviewCanvas'];
   for (var i = 0; i < ids.length; i++) {
     var canvas = document.getElementById(ids[i]);
     if (!canvas) continue;
     var wrap = canvas.parentElement;
-    if (wrap.clientWidth > 0) canvas.width = wrap.clientWidth;
-    if (wrap.clientHeight > 0) canvas.height = wrap.clientHeight;
+    var dpr = window.devicePixelRatio || 1;
+    var w = wrap.clientWidth, h = wrap.clientHeight;
+    if (w > 0 && h > 0) {
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      canvas.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
   }
 }
 
-function renderNetwork() {
-  updateNeuralNodes(state.network);
-  var txt = neuralNodes.length + ' nodes, ' + neuralEdges.length + ' edges';
-  var info1 = document.getElementById('overviewInfo');
-  var info2 = document.getElementById('neuralInfo');
-  if (info1) info1.textContent = txt;
-  if (info2) info2.textContent = txt;
-}
+function drawEntity(canvasId, compact) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
 
-function neuralLoop() {
-  simulatePhysics();
+  // Ensure canvas is sized to its container
+  var wrap = canvas.parentElement;
+  var dpr = window.devicePixelRatio || 1;
+  var ww = wrap ? wrap.clientWidth : 0;
+  var wh = wrap ? wrap.clientHeight : 0;
+  if (ww < 20 || wh < 20) return;
 
-  var oc = document.getElementById('overviewCanvas');
-  if (oc) {
-    if (oc.width !== oc.parentElement.clientWidth) oc.width = oc.parentElement.clientWidth;
-    if (oc.height !== oc.parentElement.clientHeight) oc.height = oc.parentElement.clientHeight;
-    drawNeuralCanvas('overviewCanvas', true);
+  // Auto-resize if needed
+  if (Math.abs(canvas.width - ww * dpr) > 2 || Math.abs(canvas.height - wh * dpr) > 2) {
+    canvas.width = ww * dpr;
+    canvas.height = wh * dpr;
+    canvas.style.width = ww + 'px';
+    canvas.style.height = wh + 'px';
   }
 
-  var nc = document.getElementById('neuralCanvas');
-  if (nc && nc.offsetParent !== null) drawNeuralCanvas('neuralCanvas', false);
+  var ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var w = ww, h = wh;
 
-  neuralAnimId = requestAnimationFrame(neuralLoop);
+  var cx = w / 2, cy = h / 2;
+  var time = Date.now() / 1000;
+  var em = state.emotional || {};
+  var dim = em.dimensions || {};
+
+  // Update target color from mood
+  var mc = MOOD_COLORS[em.mood] || MOOD_COLORS.reflective;
+  entityTargetColor = { r: mc.r, g: mc.g, b: mc.b };
+  entityColor = lerpColor(entityColor, entityTargetColor, 0.03);
+
+  // Clear
+  ctx.clearRect(0, 0, w, h);
+
+  // --- Breathing ---
+  var breathSpeed = 0.4 + (dim.stress || 0) * 1.2;
+  var breathAmp = 0.06 + (dim.curiosity || 0) * 0.04;
+  var breath = 1 + Math.sin(time * breathSpeed) * breathAmp;
+
+  // Base radius — compact is bigger relative since canvas is smaller
+  var minDim = Math.min(w, h);
+  var baseR = compact ? minDim * 0.28 : minDim * 0.13;
+  var activity = Math.min(1, (state.thoughts.length || 0) / 80);
+  var entityR = baseR * breath * (0.85 + activity * 0.15);
+
+  // --- Background nebula (full only) ---
+  if (!compact) {
+    var nebula = ctx.createRadialGradient(cx, cy, entityR * 0.5, cx, cy, minDim * 0.45);
+    nebula.addColorStop(0, rgba(entityColor, 0.04));
+    nebula.addColorStop(0.4, rgba(entityColor, 0.015));
+    nebula.addColorStop(1, 'rgba(5,8,16,0)');
+    ctx.fillStyle = nebula;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // --- Tentacles (full only) ---
+  if (!compact) {
+    var curiosity = dim.curiosity || 0.5;
+    var creativity = dim.creativity || 0.5;
+    var stress = dim.stress || 0;
+    var tentacleLen = entityR * (1.5 + curiosity * 2.0 + creativity * 0.8);
+    var tentacleAlpha = 0.12 + (1 - stress) * 0.15;
+
+    for (var t = 0; t < tentacles.length; t++) {
+      var ten = tentacles[t];
+      var baseAngle = ten.angle + Math.sin(time * ten.speed + ten.phase) * 0.3;
+      var len = tentacleLen * ten.lengthMul;
+      var wid = (3 + creativity * 4) * ten.widthMul;
+
+      // Start point on orb surface
+      var sx = cx + Math.cos(baseAngle) * entityR * 0.9;
+      var sy = cy + Math.sin(baseAngle) * entityR * 0.9;
+
+      // Control points with organic wave
+      var wave1 = Math.sin(time * 0.7 + ten.phase * 2) * 0.4;
+      var wave2 = Math.cos(time * 0.5 + ten.phase * 3) * 0.5;
+      var cp1x = cx + Math.cos(baseAngle + wave1) * (entityR + len * 0.35);
+      var cp1y = cy + Math.sin(baseAngle + wave1) * (entityR + len * 0.35);
+      var cp2x = cx + Math.cos(baseAngle + wave2) * (entityR + len * 0.7);
+      var cp2y = cy + Math.sin(baseAngle + wave2) * (entityR + len * 0.7);
+      var ex = cx + Math.cos(baseAngle + wave1 * 0.5 + wave2 * 0.3) * (entityR + len);
+      var ey = cy + Math.sin(baseAngle + wave1 * 0.5 + wave2 * 0.3) * (entityR + len);
+
+      // Draw tentacle with gradient
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey);
+      var grad = ctx.createLinearGradient(sx, sy, ex, ey);
+      grad.addColorStop(0, rgba(entityColor, tentacleAlpha));
+      grad.addColorStop(0.6, rgba(entityColor, tentacleAlpha * 0.4));
+      grad.addColorStop(1, rgba(entityColor, 0));
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = wid;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Thin inner glow line
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey);
+      ctx.strokeStyle = rgba({ r: 255, g: 255, b: 255 }, tentacleAlpha * 0.3);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  // --- Dimension Ring (full only) ---
+  if (!compact) {
+    var ringR = entityR * 2.8;
+    var dimNames = ['frustration','curiosity','surprise','confidence','satisfaction','stress','momentum','creativity'];
+    var dimColors = ['#ff3d3d','#40c4ff','#ffab40','#00ff88','#69f0ae','#ff6e40','#b2ff59','#ea80fc'];
+    var arcLen = (Math.PI * 2) / dimNames.length;
+    var gap = 0.08;
+
+    for (var di = 0; di < dimNames.length; di++) {
+      var dimVal = dim[dimNames[di]] || 0;
+      var startA = di * arcLen - Math.PI / 2 + gap / 2;
+      var endA = startA + arcLen - gap;
+      var alpha = 0.08 + dimVal * 0.25;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR, startA, endA);
+      ctx.strokeStyle = dimColors[di] + Math.round(alpha * 255).toString(16).padStart(2, '0');
+      ctx.lineWidth = 2 + dimVal * 4;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Dimension label
+      if (dimVal > 0.3) {
+        var labelAngle = (startA + endA) / 2;
+        var labelR = ringR + 14;
+        var lx = cx + Math.cos(labelAngle) * labelR;
+        var ly = cy + Math.sin(labelAngle) * labelR;
+        ctx.fillStyle = dimColors[di] + '80';
+        ctx.font = '8px ' + getComputedStyle(document.body).fontFamily;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(dimNames[di].substring(0, 4).toUpperCase(), lx, ly);
+      }
+    }
+  }
+
+  // --- Particles ---
+  var particleDensity = compact ? 0.3 : 1;
+  var momentum = dim.momentum || 0;
+  for (var p = 0; p < entityParticles.length; p++) {
+    if (p > entityParticles.length * particleDensity) break;
+    var part = entityParticles[p];
+    part.angle += (part.speed * (0.5 + momentum)) * 0.016;
+    var pdist = entityR * part.dist + Math.sin(time * 0.5 + part.phase) * entityR * 0.2;
+    var px = cx + Math.cos(part.angle) * pdist;
+    var py = cy + Math.sin(part.angle) * pdist;
+    var pAlpha = part.brightness * (0.3 + Math.sin(time * 0.8 + part.phase) * 0.2);
+
+    ctx.beginPath();
+    ctx.arc(px, py, part.size, 0, Math.PI * 2);
+    ctx.fillStyle = rgba(entityColor, pAlpha);
+    ctx.fill();
+  }
+
+  // --- Outer Glow ---
+  var glowR = entityR * (compact ? 2.5 : 3.5);
+  var outerGlow = ctx.createRadialGradient(cx, cy, entityR * 0.5, cx, cy, glowR);
+  outerGlow.addColorStop(0, rgba(entityColor, 0.35));
+  outerGlow.addColorStop(0.2, rgba(entityColor, 0.15));
+  outerGlow.addColorStop(0.5, rgba(entityColor, 0.05));
+  outerGlow.addColorStop(1, rgba(entityColor, 0));
+  ctx.beginPath();
+  ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
+  ctx.fillStyle = outerGlow;
+  ctx.fill();
+
+  // --- Main Orb ---
+  // Layered gradients for depth
+  var orbGrad = ctx.createRadialGradient(
+    cx - entityR * 0.25, cy - entityR * 0.25, entityR * 0.05,
+    cx, cy, entityR
+  );
+  orbGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+  orbGrad.addColorStop(0.1, rgba({ r: Math.min(255, entityColor.r + 100), g: Math.min(255, entityColor.g + 100), b: Math.min(255, entityColor.b + 100) }, 0.9));
+  orbGrad.addColorStop(0.4, rgba(entityColor, 0.85));
+  orbGrad.addColorStop(0.7, rgba(entityColor, 0.6));
+  orbGrad.addColorStop(1, rgba(entityColor, 0.2));
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, entityR, 0, Math.PI * 2);
+  ctx.fillStyle = orbGrad;
+  ctx.fill();
+
+  // Subtle edge ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, entityR, 0, Math.PI * 2);
+  ctx.strokeStyle = rgba(entityColor, 0.3);
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // --- Inner Eye / Nucleus ---
+  // Shifts toward attention focus direction
+  var att = state.attention;
+  var eyeOffsetX = 0, eyeOffsetY = 0;
+  if (att && att.topTopics && att.topTopics.length > 0) {
+    // Use top topic index to determine direction
+    var focusAngle = (att.topTopics.length > 1)
+      ? (att.topTopics[0].score / (att.topTopics[0].score + att.topTopics[1].score)) * Math.PI * 2 + time * 0.05
+      : time * 0.1;
+    var focusStr = Math.min(1, (att.topTopics[0].score || 0) / 10);
+    eyeOffsetX = Math.cos(focusAngle) * entityR * 0.15 * focusStr;
+    eyeOffsetY = Math.sin(focusAngle) * entityR * 0.15 * focusStr;
+  }
+
+  var eyeR = entityR * 0.2;
+  var eyeGrad = ctx.createRadialGradient(
+    cx + eyeOffsetX, cy + eyeOffsetY, 0,
+    cx + eyeOffsetX, cy + eyeOffsetY, eyeR
+  );
+  eyeGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+  eyeGrad.addColorStop(0.4, 'rgba(255,255,255,0.5)');
+  eyeGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath();
+  ctx.arc(cx + eyeOffsetX, cy + eyeOffsetY, eyeR, 0, Math.PI * 2);
+  ctx.fillStyle = eyeGrad;
+  ctx.fill();
+
+  // --- Floating Thoughts (full only) ---
+  if (!compact) {
+    var now = Date.now();
+    for (var fi = floatingThoughts.length - 1; fi >= 0; fi--) {
+      var ft = floatingThoughts[fi];
+      var age = now - ft.born;
+      if (age > ft.life) {
+        floatingThoughts.splice(fi, 1);
+        continue;
+      }
+      ft.dist += ft.speed * 0.016;
+      var progress = age / ft.life;
+      ft.alpha = progress < 0.15 ? progress / 0.15 : progress > 0.7 ? (1 - progress) / 0.3 : 1;
+      ft.alpha *= 0.7;
+
+      var ftx = cx + Math.cos(ft.angle) * entityR * (1.5 + ft.dist * 2);
+      var fty = cy + Math.sin(ft.angle) * entityR * (1.5 + ft.dist * 2);
+
+      ctx.fillStyle = ft.color + Math.round(ft.alpha * 180).toString(16).padStart(2, '0');
+      ctx.font = '9px ' + getComputedStyle(document.body).fontFamily;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ft.text, ftx, fty);
+    }
+  }
+
+  // --- Labels ---
+  var moodInfo = MOOD_COLORS[em.mood] || MOOD_COLORS.reflective;
+  if (compact) {
+    var label = document.getElementById('entityMoodLabel');
+    if (label) label.textContent = moodInfo.name + ' (' + Math.round((em.score || 0.5) * 100) + '%)';
+  } else {
+    var moodEl = document.getElementById('entityMoodFull');
+    var scoreEl = document.getElementById('entityScoreFull');
+    if (moodEl) { moodEl.textContent = moodInfo.name; moodEl.style.color = rgba(entityColor, 1); }
+    if (scoreEl) scoreEl.textContent = 'Score: ' + Math.round((em.score || 0.5) * 100) + '%  |  Valence: ' + (em.valence || 0).toFixed(2) + '  |  Arousal: ' + (em.arousal || 0).toFixed(2);
+
+    // Dimension chips
+    var DIM_NAMES = ['frustration','curiosity','surprise','confidence','satisfaction','stress','momentum','creativity'];
+    var DIM_COLS = ['#ff3d3d','#40c4ff','#ffab40','#00ff88','#69f0ae','#ff6e40','#b2ff59','#ea80fc'];
+    var dimEl = document.getElementById('entityDimensions');
+    if (dimEl && dimEl.childElementCount === 0) {
+      var chipHtml = '';
+      for (var ci = 0; ci < DIM_NAMES.length; ci++) {
+        chipHtml += '<div style="background:rgba(10,14,26,0.7);border:1px solid ' + DIM_COLS[ci] + '30;border-radius:6px;padding:4px 10px;font-size:9px;display:flex;gap:6px;align-items:center">' +
+          '<span style="color:' + DIM_COLS[ci] + ';text-transform:uppercase;letter-spacing:1px">' + DIM_NAMES[ci].substring(0, 5) + '</span>' +
+          '<span id="dim-' + DIM_NAMES[ci] + '" style="color:var(--text-dim)">0%</span></div>';
+      }
+      dimEl.innerHTML = chipHtml;
+    }
+    // Update dimension values
+    for (var ui = 0; ui < DIM_NAMES.length; ui++) {
+      var dv = document.getElementById('dim-' + DIM_NAMES[ui]);
+      if (dv) dv.textContent = Math.round((dim[DIM_NAMES[ui]] || 0) * 100) + '%';
+    }
+  }
+}
+
+function entityLoop() {
+  // Draw preview (always visible on overview)
+  drawEntity('entityPreviewCanvas', true);
+
+  // Draw full (only when consciousness page visible)
+  var fc = document.getElementById('entityFullCanvas');
+  if (fc && fc.offsetParent !== null) drawEntity('entityFullCanvas', false);
+
+  requestAnimationFrame(entityLoop);
 }
 
 // ═══ SYNTAX HIGHLIGHTING ═══
@@ -1278,14 +1399,12 @@ setInterval(function() {
 }, 10000);
 
 // ═══ BOOT ═══
-initNeuralGraph('overviewCanvas');
-initNeuralGraph('neuralCanvas');
-resizeNeuralCanvas();
-window.addEventListener('resize', resizeNeuralCanvas);
+resizeEntityCanvas();
+window.addEventListener('resize', resizeEntityCanvas);
 
 connect();
 fetchInitial();
-neuralLoop();
+entityLoop();
 </script>
 </body>
 </html>
