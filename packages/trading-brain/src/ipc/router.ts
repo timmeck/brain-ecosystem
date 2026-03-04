@@ -104,7 +104,7 @@ export interface Services {
   llmService?: import('@timmeck/brain-core').LLMService;
 }
 
-type MethodHandler = (params: unknown) => unknown;
+type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
 
 export class IpcRouter {
   private methods: Map<string, MethodHandler>;
@@ -146,7 +146,7 @@ export class IpcRouter {
     });
   }
 
-  handle(method: string, params: unknown): unknown {
+  handle(method: string, params: unknown): unknown | Promise<unknown> {
     const handler = this.methods.get(method);
     if (!handler) {
       throw new Error(`Unknown method: ${method}`);
@@ -452,8 +452,8 @@ export class IpcRouter {
       ['transfer.analyze',        () => { if (!s.transferEngine) throw new Error('TransferEngine not available'); return s.transferEngine.analyze(); }],
 
       // ─── Narrative Engine ───────────────────────────────────
-      ['narrative.explain',       (params) => { if (!s.narrativeEngine) throw new Error('NarrativeEngine not available'); return s.narrativeEngine.explain(p(params).topic); }],
-      ['narrative.ask',           (params) => { if (!s.narrativeEngine) throw new Error('NarrativeEngine not available'); return s.narrativeEngine.ask(p(params).question); }],
+      ['narrative.explain',       (params) => { if (!s.narrativeEngine) throw new Error('NarrativeEngine not available'); return s.narrativeEngine.explainAsync(p(params).topic); }],
+      ['narrative.ask',           (params) => { if (!s.narrativeEngine) throw new Error('NarrativeEngine not available'); return s.narrativeEngine.askAsync(p(params).question); }],
       ['narrative.contradictions',() => { if (!s.narrativeEngine) throw new Error('NarrativeEngine not available'); return s.narrativeEngine.findContradictions(); }],
       ['narrative.digest',        (params) => { if (!s.narrativeEngine) throw new Error('NarrativeEngine not available'); return s.narrativeEngine.generateDigest(p(params)?.days ?? 7); }],
       ['narrative.confidence',    (params) => { if (!s.narrativeEngine) throw new Error('NarrativeEngine not available'); return s.narrativeEngine.getConfidenceReport(p(params).topic); }],
@@ -483,7 +483,7 @@ export class IpcRouter {
       ['debate.start',              (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.startDebate(p(params).question); }],
       ['debate.perspective',        (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.generatePerspective(p(params).question); }],
       ['debate.add',                (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); s.debateEngine.addPerspective(p(params).debateId, p(params).perspective); return { added: true }; }],
-      ['debate.synthesize',         (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.synthesize(p(params).debateId); }],
+      ['debate.synthesize',         (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.synthesizeAsync(p(params).debateId); }],
       ['debate.get',                (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.getDebate(p(params).debateId); }],
       ['debate.list',               (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.listDebates(p(params)?.limit ?? 20); }],
       ['debate.status',             () => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.getStatus(); }],
@@ -514,7 +514,7 @@ export class IpcRouter {
       ['metatrend.seasonal',      () => { if (!s.metaCognitionLayer) throw new Error('MetaCognitionLayer not available'); return s.metaCognitionLayer.detectSeasonalPatterns(); }],
 
       // ─── Creative Hypotheses ──────────────────────────────────
-      ['hypothesis.creative',     (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.generateCreative(p(params)?.count); }],
+      ['hypothesis.creative',     (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.generateCreativeLLM(p(params)?.count); }],
       ['hypothesis.creative_stats', () => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.getCreativeStats(); }],
 
       // ─── Challenges (Advocatus Diaboli) ─────────────────────

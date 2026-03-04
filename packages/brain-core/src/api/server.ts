@@ -173,16 +173,16 @@ export class BaseApiServer {
 
       // Batch RPC support
       if (Array.isArray(parsed)) {
-        const results = parsed.map((call: { method: string; params?: unknown; id?: string | number }) => {
+        const results = await Promise.all(parsed.map(async (call: { method: string; params?: unknown; id?: string | number }) => {
           try {
             const validated = validateParams(call.params);
-            const result = this.options.router.handle(call.method, validated);
+            const result = await this.options.router.handle(call.method, validated);
             return { id: call.id, result };
           } catch (err) {
             const code = err instanceof ValidationError ? 'VALIDATION_ERROR' : 'ERROR';
             return { id: call.id, error: err instanceof Error ? err.message : String(err), code };
           }
-        });
+        }));
         this.json(res, 200, results);
         return;
       }
@@ -194,7 +194,7 @@ export class BaseApiServer {
 
       try {
         const validated = validateParams(parsed.params);
-        const result = this.options.router.handle(parsed.method, validated);
+        const result = await this.options.router.handle(parsed.method, validated);
         this.json(res, 200, { result });
       } catch (err) {
         const status = err instanceof ValidationError ? 400 : 400;
@@ -226,7 +226,7 @@ export class BaseApiServer {
 
       try {
         const params = route.extractParams(match, query, body);
-        const result = this.options.router.handle(route.ipcMethod, params);
+        const result = await this.options.router.handle(route.ipcMethod, params);
         this.json(res, method === 'POST' ? 201 : 200, { result });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

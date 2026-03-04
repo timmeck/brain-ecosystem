@@ -8,7 +8,7 @@ import { IpcClient } from './client.js';
 import { getPipeName } from '../utils/paths.js';
 
 export interface IpcRouter {
-  handle(method: string, params: unknown): unknown;
+  handle(method: string, params: unknown): unknown | Promise<unknown>;
   listMethods(): string[];
 }
 
@@ -118,21 +118,29 @@ export class IpcServer {
   private handleMessage(_clientId: string, msg: IpcMessage, socket: net.Socket): void {
     if (msg.type !== 'request' || !msg.method) return;
 
-    try {
-      const result = this.router.handle(msg.method, msg.params);
-      const response: IpcMessage = {
-        id: msg.id,
-        type: 'response',
-        result,
-      };
+    const sendResult = (result: unknown): void => {
+      const response: IpcMessage = { id: msg.id, type: 'response', result };
       socket.write(encodeMessage(response));
-    } catch (err) {
+    };
+
+    const sendError = (err: unknown): void => {
       const response: IpcMessage = {
         id: msg.id,
         type: 'response',
         error: { code: -1, message: err instanceof Error ? err.message : String(err) },
       };
       socket.write(encodeMessage(response));
+    };
+
+    try {
+      const result = this.router.handle(msg.method, msg.params);
+      if (result instanceof Promise) {
+        result.then(sendResult, sendError);
+      } else {
+        sendResult(result);
+      }
+    } catch (err) {
+      sendError(err);
     }
   }
 
