@@ -5,6 +5,7 @@ import type { ChainRepository } from '../db/repositories/chain.repository.js';
 import type { CalibrationRepository } from '../db/repositories/calibration.repository.js';
 import type { SynapseManager } from '../synapses/synapse-manager.js';
 import type { TradeRepository } from '../db/repositories/trade.repository.js';
+import { getCurrentVersion } from '../cli/update-check.js';
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -53,7 +54,7 @@ export function renderDashboard(template: string, services: DashboardServices): 
   html = html.replace(/\{\{ACTIVITY\}\}/g, String(activity));
 
   // Version
-  html = html.replace('{{VERSION}}', '1.0.0');
+  html = html.replace('{{VERSION}}', getCurrentVersion());
 
   // Recent trades
   const recent = services.tradeRepo.getRecent(10);

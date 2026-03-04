@@ -64,7 +64,7 @@ export function dashboardCommand(): Command {
            (s.network?.synapses ?? 0) * 2) / 2
         ));
         html = html.replace(/\{\{ACTIVITY\}\}/g, String(activity));
-        html = html.replace('{{VERSION}}', '1.0.0');
+        html = html.replace('{{VERSION}}', (await import('../../cli/update-check.js')).getCurrentVersion());
 
         // Recent trades
         const trades = Array.isArray(recentTrades) ? recentTrades : [];

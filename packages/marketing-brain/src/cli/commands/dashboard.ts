@@ -56,7 +56,7 @@ export function dashboardCommand(): Command {
         html = html.replace(/\{\{ACTIVITY\}\}/g, String(activity));
 
         // Version
-        html = html.replace('{{VERSION}}', '0.1.0');
+        html = html.replace('{{VERSION}}', (await import('../../cli/update-check.js')).getCurrentVersion());
 
         // Platform chart
         const platforms = s.posts?.byPlatform ?? {};

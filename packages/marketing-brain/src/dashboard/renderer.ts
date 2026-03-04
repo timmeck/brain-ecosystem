@@ -2,6 +2,7 @@ import type { AnalyticsService } from '../services/analytics.service.js';
 import type { InsightService } from '../services/insight.service.js';
 import type { RuleService } from '../services/rule.service.js';
 import type { SynapseService } from '../services/synapse.service.js';
+import { getCurrentVersion } from '../cli/update-check.js';
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -46,7 +47,7 @@ export function renderDashboard(template: string, services: DashboardServices): 
   html = html.replace(/\{\{ACTIVITY\}\}/g, String(activity));
 
   // Version
-  html = html.replace('{{VERSION}}', '0.1.0');
+  html = html.replace('{{VERSION}}', getCurrentVersion());
 
   // Platform chart
   const platforms = s.posts?.byPlatform ?? {};
