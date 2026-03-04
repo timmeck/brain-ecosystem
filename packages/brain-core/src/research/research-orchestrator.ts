@@ -815,11 +815,11 @@ export class ResearchOrchestrator {
           VALUES (?, ?, ?, ?, 'orchestrator_feed', ?, 1)
         `);
         for (const p of principles) {
-          insertMemory.run('principle', `principle:${p.id ?? p.statement.substring(0, 50)}`, p.statement, Math.min(1, (p.confidence ?? 0.5) + 0.3), JSON.stringify(['principle', this.brainName]));
+          insertMemory.run('principle', `principle:${p.id ?? p.statement.substring(0, 50)}`, p.statement, Math.round(Math.min(10, ((p.confidence ?? 0.5) + 0.3) * 10)), JSON.stringify(['principle', this.brainName]));
         }
         for (const j of journalEntries) {
           if (j.significance === 'breakthrough' || j.significance === 'notable') {
-            insertMemory.run('journal', `journal:${j.id ?? j.title.substring(0, 50)}`, `${j.title}: ${j.content?.substring(0, 200) ?? ''}`, j.significance === 'breakthrough' ? 0.9 : 0.6, JSON.stringify(['journal', j.type, this.brainName]));
+            insertMemory.run('journal', `journal:${j.id ?? j.title.substring(0, 50)}`, `${j.title}: ${j.content?.substring(0, 200) ?? ''}`, j.significance === 'breakthrough' ? 9 : 6, JSON.stringify(['journal', j.type, this.brainName]));
           }
         }
         ts?.emit('dream', 'dreaming', `Fed ${principles.length} principles + ${journalEntries.filter(j => j.significance === 'breakthrough' || j.significance === 'notable').length} journal entries into memories`);

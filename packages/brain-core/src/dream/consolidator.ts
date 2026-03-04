@@ -12,6 +12,24 @@ import type {
 
 const log = getLogger();
 
+/** Bigram Dice coefficient for text-based similarity (fallback when no embeddings). */
+function textSimilarity(a: string, b: string): number {
+  const bg = (s: string): Set<string> => {
+    const words = s.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const set = new Set<string>();
+    for (const w of words) {
+      for (let i = 0; i < w.length - 1; i++) set.add(w.slice(i, i + 2));
+    }
+    return set;
+  };
+  const aBg = bg(a);
+  const bBg = bg(b);
+  if (aBg.size === 0 || bBg.size === 0) return 0;
+  let intersection = 0;
+  for (const x of aBg) { if (bBg.has(x)) intersection++; }
+  return (2 * intersection) / (aBg.size + bBg.size);
+}
+
 // ── Pure logic class — no timers, no DB ownership ──────
 
 export class DreamConsolidator {
@@ -132,14 +150,12 @@ export class DreamConsolidator {
       clusters: [],
     };
 
-    if (!embeddingEngine) return result;
-
-    // Fetch active memories with embeddings
+    // Fetch active memories (with or without embeddings)
     let memories: Array<{ id: string; content: string; category: string; importance: number; embedding: Buffer | null }>;
     try {
       memories = db.prepare(`
         SELECT id, content, category, importance, embedding FROM memories
-        WHERE active = 1 AND embedding IS NOT NULL
+        WHERE active = 1
         ORDER BY importance DESC
         LIMIT 200
       `).all() as typeof memories;
@@ -149,36 +165,44 @@ export class DreamConsolidator {
 
     if (memories.length < config.minClusterSize) return result;
 
-    // Deserialize embeddings
-    const memWithVec = memories
-      .filter(m => m.embedding !== null)
-      .map(m => ({
-        ...m,
-        vector: BaseEmbeddingEngine.deserialize(m.embedding!),
-      }));
+    // Use embeddings if available, otherwise fall back to text similarity
+    const useEmbeddings = embeddingEngine !== null && memories.some(m => m.embedding !== null);
 
-    if (memWithVec.length < config.minClusterSize) return result;
+    type MemEntry = { id: string; content: string; category: string; importance: number; vector: Float32Array | null };
+    const memEntries: MemEntry[] = memories.map(m => ({
+      id: String(m.id),
+      content: m.content,
+      category: m.category,
+      importance: m.importance,
+      vector: (useEmbeddings && m.embedding) ? BaseEmbeddingEngine.deserialize(m.embedding) : null,
+    }));
 
-    // Greedy cosine clustering
+    // Similarity function: embedding cosine if available, else text bigram Dice
+    const sim = (a: MemEntry, b: MemEntry): number => {
+      if (a.vector && b.vector) return BaseEmbeddingEngine.similarity(a.vector, b.vector);
+      return textSimilarity(a.content, b.content);
+    };
+
+    // Adjust threshold for text similarity (bigram Dice scores lower than cosine)
+    const threshold = useEmbeddings ? config.clusterSimilarityThreshold : Math.min(config.clusterSimilarityThreshold, 0.45);
+
+    // Greedy clustering
     const used = new Set<string>();
-    const clusters: Array<{ centroid: typeof memWithVec[0]; members: typeof memWithVec }> = [];
     let consolidationsLeft = config.maxConsolidationsPerCycle;
 
-    for (const candidate of memWithVec) {
-      if (used.has(String(candidate.id)) || consolidationsLeft <= 0) continue;
+    for (const candidate of memEntries) {
+      if (used.has(candidate.id) || consolidationsLeft <= 0) continue;
 
       const cluster = [candidate];
-      for (const other of memWithVec) {
-        if (String(other.id) === String(candidate.id) || used.has(String(other.id))) continue;
-        const sim = BaseEmbeddingEngine.similarity(candidate.vector, other.vector);
-        if (sim >= config.clusterSimilarityThreshold) {
+      for (const other of memEntries) {
+        if (other.id === candidate.id || used.has(other.id)) continue;
+        if (sim(candidate, other) >= threshold) {
           cluster.push(other);
         }
       }
 
       if (cluster.length >= config.minClusterSize) {
-        // Mark all as used
-        for (const m of cluster) used.add(String(m.id));
+        for (const m of cluster) used.add(m.id);
 
         // Pick highest-importance as centroid
         cluster.sort((a, b) => b.importance - a.importance);
@@ -187,9 +211,7 @@ export class DreamConsolidator {
 
         // Calculate average similarity
         let simSum = 0;
-        for (const m of members) {
-          simSum += BaseEmbeddingEngine.similarity(centroid.vector, m.vector);
-        }
+        for (const m of members) { simSum += sim(centroid, m); }
         const avgSim = members.length > 0 ? simSum / members.length : 1;
 
         // Consolidate: boost centroid importance, supersede others
@@ -205,13 +227,10 @@ export class DreamConsolidator {
             WHERE id = ?
           `).run(consolidatedImportance, consolidatedContent, centroid.id);
 
-          // Supersede members (set active=0, add superseded_by)
           const supersedeStmt = db.prepare(`
             UPDATE memories SET active = 0, updated_at = datetime('now') WHERE id = ?
           `);
-          for (const m of members) {
-            supersedeStmt.run(m.id);
-          }
+          for (const m of members) { supersedeStmt.run(m.id); }
         } catch (err) {
           log.warn(`[dream] Compression error: ${(err as Error).message}`);
           continue;
@@ -220,8 +239,8 @@ export class DreamConsolidator {
         result.memoriesConsolidated++;
         result.memoriesSuperseded += members.length;
         result.clusters.push({
-          centroidId: String(centroid.id),
-          memberIds: members.map(m => String(m.id)),
+          centroidId: centroid.id,
+          memberIds: members.map(m => m.id),
           avgSimilarity: avgSim,
           consolidatedTitle: centroid.content.slice(0, 80),
         });
@@ -230,7 +249,7 @@ export class DreamConsolidator {
     }
 
     result.clustersFound = result.clusters.length;
-    const originalCount = memWithVec.length;
+    const originalCount = memEntries.length;
     const afterCount = originalCount - result.memoriesSuperseded;
     result.compressionRatio = afterCount > 0 ? originalCount / afterCount : 1;
 
