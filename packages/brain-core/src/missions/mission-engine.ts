@@ -5,7 +5,7 @@ import type { LLMService } from '../llm/llm-service.js';
 import type { BraveSearchAdapter, JinaReaderAdapter } from '../research/adapters/web-research-adapter.js';
 import type { KnowledgeDistiller } from '../research/knowledge-distiller.js';
 import type { HypothesisEngine } from '../hypothesis/engine.js';
-import type { Journal } from '../research/journal.js';
+import type { ResearchJournal } from '../research/journal.js';
 
 // ── Types ───────────────────────────────────────────────
 
@@ -106,7 +106,7 @@ export class ResearchMissionEngine {
   private jinaReader: JinaReaderAdapter | null = null;
   private knowledgeDistiller: KnowledgeDistiller | null = null;
   private hypothesisEngine: HypothesisEngine | null = null;
-  private journal: Journal | null = null;
+  private journal: ResearchJournal | null = null;
   private running = false;
   private config: Required<MissionEngineConfig>;
 
@@ -154,7 +154,7 @@ export class ResearchMissionEngine {
   setDataSources(sources: {
     knowledgeDistiller?: KnowledgeDistiller;
     hypothesisEngine?: HypothesisEngine;
-    journal?: Journal;
+    journal?: ResearchJournal;
   }): void {
     this.knowledgeDistiller = sources.knowledgeDistiller ?? null;
     this.hypothesisEngine = sources.hypothesisEngine ?? null;
@@ -291,7 +291,7 @@ export class ResearchMissionEngine {
 
   private async phaseDecompose(missionId: number, topic: string, maxQuestions: number): Promise<string[]> {
     const phaseId = this.startPhase(missionId, 'decompose');
-    this.thoughtStream?.emit('mission_engine', 'reasoning', `Decomposing: "${topic}"`, 'routine');
+    this.thoughtStream?.emit('mission_engine', 'analyzing', `Decomposing: "${topic}"`, 'routine');
 
     let subQuestions: string[];
 
@@ -403,7 +403,7 @@ export class ResearchMissionEngine {
       try {
         const principles = this.knowledgeDistiller.getPrinciples(undefined, 100);
         for (const p of principles) {
-          const text = ((p as Record<string, unknown>).text ?? (p as Record<string, unknown>).content ?? '') as string;
+          const text = ((p as unknown as Record<string, unknown>).text ?? (p as unknown as Record<string, unknown>).content ?? '') as string;
           const matches = keywords.filter(k => text.toLowerCase().includes(k)).length;
           if (matches > 0) {
             const source: MissionSource = {
@@ -425,7 +425,7 @@ export class ResearchMissionEngine {
     // Search journal
     if (this.journal) {
       try {
-        const entries = this.journal.getEntries(undefined, 100) as Array<Record<string, unknown>>;
+        const entries = this.journal.getEntries(undefined, 100) as unknown as Array<Record<string, unknown>>;
         for (const e of entries) {
           const title = (e.title ?? '') as string;
           const content = (e.content ?? '') as string;
@@ -455,7 +455,7 @@ export class ResearchMissionEngine {
 
   private async phaseHypothesize(missionId: number, topic: string, sources: MissionSource[]): Promise<void> {
     const phaseId = this.startPhase(missionId, 'hypothesize');
-    this.thoughtStream?.emit('mission_engine', 'reasoning', `Forming hypotheses about: "${topic}"`, 'routine');
+    this.thoughtStream?.emit('mission_engine', 'analyzing', `Forming hypotheses about: "${topic}"`, 'routine');
 
     const sourceContext = sources.slice(0, 10).map(s => `[${s.title}]: ${s.content.substring(0, 300)}`).join('\n\n');
 
@@ -476,10 +476,13 @@ export class ResearchMissionEngine {
             const parsed = JSON.parse(response.text.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
             if (Array.isArray(parsed)) {
               for (const h of parsed.slice(0, 3)) {
-                this.hypothesisEngine.create(
-                  h.hypothesis ?? h.title ?? String(h),
-                  `Mission #${missionId}: ${topic}`,
-                );
+                this.hypothesisEngine.propose({
+                  statement: h.hypothesis ?? h.title ?? String(h),
+                  type: 'creative',
+                  source: `mission:${missionId}`,
+                  variables: [],
+                  condition: { type: 'correlation', params: { strategy: 'mission', topic } },
+                });
               }
             }
           } catch { /* hypothesis text stored in phase result */ }
@@ -497,7 +500,7 @@ export class ResearchMissionEngine {
 
   private async phaseAnalyze(missionId: number, topic: string, sources: MissionSource[]): Promise<void> {
     const phaseId = this.startPhase(missionId, 'analyze');
-    this.thoughtStream?.emit('mission_engine', 'reasoning', `Analyzing evidence for: "${topic}"`, 'routine');
+    this.thoughtStream?.emit('mission_engine', 'analyzing', `Analyzing evidence for: "${topic}"`, 'routine');
 
     const sourceContext = sources.slice(0, 8).map(s => `[${s.sourceType}] ${s.title}: ${s.content.substring(0, 200)}`).join('\n');
 
