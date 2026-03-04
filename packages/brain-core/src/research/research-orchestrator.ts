@@ -137,7 +137,7 @@ export class ResearchOrchestrator {
     this.experimentEngine = new ExperimentEngine(db, { brainName: config.brainName });
     this.crossDomain = new CrossDomainEngine(db);
     this.counterfactual = new CounterfactualEngine(db, this.causalGraph);
-    this.knowledgeDistiller = new KnowledgeDistiller(db, { brainName: config.brainName, minEvidence: 3, minSuccessRate: 0.6, minFailureRate: 0.5 });
+    this.knowledgeDistiller = new KnowledgeDistiller(db, { brainName: config.brainName, minEvidence: 2, minSuccessRate: 0.5, minFailureRate: 0.4 });
     this.researchAgenda = new ResearchAgendaEngine(db, { brainName: config.brainName });
     this.anomalyDetective = new AnomalyDetective(db, { brainName: config.brainName });
     this.journal = new ResearchJournal(db, { brainName: config.brainName });
@@ -660,6 +660,35 @@ export class ResearchOrchestrator {
         }
       } catch (err) {
         this.log.error(`[orchestrator] Transfer analysis error: ${(err as Error).message}`);
+      }
+    }
+
+    // 6c. Transfer adoption: apply pending transfers automatically
+    if (this.transferEngine && this.cycleCount % this.distillEvery === 0) {
+      try {
+        const pending = this.transferEngine.getPendingTransfers();
+        let applied = 0;
+        for (const transfer of pending.slice(0, 3)) {
+          if (transfer.id) {
+            this.transferEngine.applyTransfer(transfer.id);
+            applied++;
+            this.journal.write({
+              type: 'insight',
+              title: `Adopted knowledge from ${transfer.source_brain}: ${transfer.statement.substring(0, 80)}`,
+              content: `${transfer.knowledge_type}: ${transfer.statement}`,
+              tags: [this.brainName, 'transfer', 'adopted', transfer.source_brain],
+              references: [],
+              significance: transfer.transfer_confidence > 0.7 ? 'notable' : 'routine',
+              data: { transferId: transfer.id, confidence: transfer.transfer_confidence },
+            });
+          }
+        }
+        if (applied > 0) {
+          ts?.emit('transfer', 'discovering', `Adopted ${applied} knowledge transfer(s) from peers`, 'notable');
+          this.log.info(`[orchestrator] Transfers adopted: ${applied}`);
+        }
+      } catch (err) {
+        this.log.warn(`[orchestrator] Transfer adoption error: ${(err as Error).message}`);
       }
     }
 

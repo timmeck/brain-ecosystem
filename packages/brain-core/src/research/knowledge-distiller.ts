@@ -414,6 +414,36 @@ export class KnowledgeDistiller {
       }
     } catch { /* research_discoveries table might not exist */ }
 
+    // Extract from notable/breakthrough journal discoveries (reliable early knowledge source)
+    try {
+      const journalEntries = this.db.prepare(`
+        SELECT title, content, significance, type
+        FROM journal
+        WHERE significance IN ('breakthrough', 'notable') AND type = 'discovery'
+        ORDER BY timestamp DESC LIMIT 30
+      `).all() as Array<Record<string, unknown>>;
+
+      for (const j of journalEntries) {
+        const title = j.title as string;
+        if (title.length < 10) continue; // Skip trivial entries
+        const id = `journal-${this.hashString(title)}`;
+        const existing = this.db.prepare(`SELECT id FROM knowledge_principles WHERE id = ?`).get(id);
+        if (existing) continue; // Already extracted
+        const principle: Principle = {
+          id,
+          domain: this.config.brainName,
+          statement: title,
+          success_rate: j.significance === 'breakthrough' ? 0.9 : 0.75,
+          sample_size: 1,
+          confidence: j.significance === 'breakthrough' ? 0.85 : 0.65,
+          source: 'journal_discovery',
+        };
+
+        this.upsertPrinciple(principle);
+        principles.push(principle);
+      }
+    } catch { /* journal table might not exist */ }
+
     return principles;
   }
 
