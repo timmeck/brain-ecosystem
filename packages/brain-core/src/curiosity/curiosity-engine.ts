@@ -313,7 +313,8 @@ export class CuriosityEngine {
           // Update existing gap
           const id = existing.id as number;
           const explorationCount = (existing.exploration_count as number) || 0;
-          this.stmtUpdateGap.run(attentionScore, knowledgeScore, gapScore, gapType, JSON.stringify(questions), explorationCount, null, id);
+          const existingAddressedAt = (existing.addressed_at as string | null) ?? null;
+          this.stmtUpdateGap.run(attentionScore, knowledgeScore, gapScore, gapType, JSON.stringify(questions), explorationCount, existingAddressedAt, id);
           gaps.push(this.toGap({ ...existing, attention_score: attentionScore, knowledge_score: knowledgeScore, gap_score: gapScore, gap_type: gapType, questions: JSON.stringify(questions), exploration_count: explorationCount }));
         } else {
           // Insert new gap

@@ -1415,7 +1415,13 @@ export class ResearchOrchestrator {
             explained++;
           }
         }
-        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('emergence_explain', this.cycleCount, { insights: explained });
+        if (this.metaCognitionLayer) {
+          this.metaCognitionLayer.recordStep('emergence_explain', this.cycleCount, {
+            insights: explained,
+            predictions: events.length,
+            journal_entries: events.filter(e => e.id && !this.emergenceEngine!.getExplanation(e.id)).length,
+          });
+        }
       } catch (err) { this.log.warn(`[orchestrator] Step 30 error: ${(err as Error).message}`); }
     }
 
