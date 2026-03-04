@@ -1,4 +1,5 @@
 import { getLogger } from '../utils/logger.js';
+import { getCurrentVersion } from '../cli/update-check.js';
 
 const logger = getLogger();
 import type { ErrorService } from '../services/error.service.js';
@@ -788,7 +789,7 @@ export class IpcRouter {
       // Status (cross-brain)
       ['status',                  () => ({
         name: 'brain',
-        version: '3.18.0',
+        version: getCurrentVersion(),
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

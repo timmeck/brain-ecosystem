@@ -1,5 +1,6 @@
 import { startMcpServer as coreStartMcpServer } from '@timmeck/brain-core';
 import path from 'node:path';
+import { getCurrentVersion } from '../cli/update-check.js';
 import { registerTools } from './tools.js';
 import { registerResearchTools } from './research-tools.js';
 import { registerAdvancedResearchTools } from './advanced-research-tools.js';
@@ -34,7 +35,7 @@ import { registerPrompts } from './prompts.js';
 export async function startMcpServer(): Promise<void> {
   await coreStartMcpServer({
     name: 'brain',
-    version: '3.32.0',
+    version: getCurrentVersion(),
     entryPoint: path.resolve(import.meta.dirname, '../index.ts'),
     registerTools: (server, ipc) => {
       registerTools(server, ipc);

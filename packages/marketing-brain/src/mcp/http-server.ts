@@ -1,4 +1,5 @@
 import { McpHttpServer as CoreMcpHttpServer } from '@timmeck/brain-core';
+import { getCurrentVersion } from '../cli/update-check.js';
 import type { IpcRouter } from '../ipc/router.js';
 import { registerToolsDirect } from './tools.js';
 import { registerResearchToolsDirect } from './research-tools.js';
@@ -29,7 +30,7 @@ export class McpHttpServer {
     this.inner = new CoreMcpHttpServer(
       port,
       router,
-      { name: 'marketing-brain', version: '1.22.0' },
+      { name: 'marketing-brain', version: getCurrentVersion() },
       (server, _r) => {
         registerToolsDirect(server, router);
         registerResearchToolsDirect(server, router);

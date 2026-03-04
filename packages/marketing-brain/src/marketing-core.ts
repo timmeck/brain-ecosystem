@@ -5,6 +5,7 @@ import { loadConfig } from './config.js';
 import type { MarketingBrainConfig } from './types/config.types.js';
 import { createLogger, getLogger } from './utils/logger.js';
 import { getEventBus } from './utils/events.js';
+import { getCurrentVersion } from './cli/update-check.js';
 import { createConnection } from '@timmeck/brain-core';
 import { runMigrations } from './db/migrations/index.js';
 
@@ -605,7 +606,7 @@ export class MarketingCore {
       brainName: 'marketing-brain',
       engineCount: 30,
       mcpToolCount: 128,
-      version: '1.29.0',
+      version: getCurrentVersion(),
     });
     bootstrapService.setEngines({
       selfObserver: this.orchestrator.selfObserver,

@@ -1,4 +1,5 @@
 import { getLogger } from '../utils/logger.js';
+import { getCurrentVersion } from '../cli/update-check.js';
 
 const logger = getLogger();
 import type { PostService } from '../services/post.service.js';
@@ -693,7 +694,7 @@ export class IpcRouter {
 
       ['status',               () => ({
         name: 'marketing-brain',
-        version: '1.14.0',
+        version: getCurrentVersion(),
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

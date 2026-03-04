@@ -5,6 +5,7 @@ import { loadConfig } from './config.js';
 import type { BrainConfig } from './types/config.types.js';
 import { createLogger, getLogger } from './utils/logger.js';
 import { getEventBus } from './utils/events.js';
+import { getCurrentVersion } from './cli/update-check.js';
 import { createConnection } from '@timmeck/brain-core';
 import { runMigrations } from './db/migrations/index.js';
 
@@ -690,7 +691,7 @@ export class BrainCore {
       brainName: 'brain',
       engineCount: 30,
       mcpToolCount: 134,
-      version: '3.33.0',
+      version: getCurrentVersion(),
     });
     bootstrapService.setEngines({
       selfObserver: this.orchestrator.selfObserver,

@@ -1,4 +1,5 @@
 import { getLogger } from '../utils/logger.js';
+import { getCurrentVersion } from '../cli/update-check.js';
 import type { TradeService } from '../services/trade.service.js';
 import type { SignalService } from '../services/signal.service.js';
 import type { StrategyService } from '../services/strategy.service.js';
@@ -645,7 +646,7 @@ export class IpcRouter {
 
       ['status', () => ({
         name: 'trading-brain',
-        version: '2.13.0',
+        version: getCurrentVersion(),
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
         methods: this.listMethods().length,

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { getDataDir } from '../../utils/paths.js';
 import { withIpc } from '../ipc-helper.js';
 import { c, icons, header, keyValue, divider } from '../colors.js';
+import { getCurrentVersion } from '../update-check.js';
 
 export function statusCommand(): Command {
   return new Command('status')
@@ -25,7 +26,7 @@ export function statusCommand(): Command {
         return;
       }
 
-      console.log(header('Trading Brain Status v1.0.0', icons.trade));
+      console.log(header(`Trading Brain Status v${getCurrentVersion()}`, icons.trade));
       console.log(`  ${c.green(`${icons.dot} RUNNING`)} ${c.dim(`(PID ${pid})`)}`);
 
        
