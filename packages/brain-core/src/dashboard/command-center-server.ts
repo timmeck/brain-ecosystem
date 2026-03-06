@@ -132,7 +132,7 @@ export class CommandCenterServer {
     this.timers.push(setInterval(() => {
       if (this.clients.size === 0) return;
       this.options.ecosystemService.getStatus()
-        .then(status => this.broadcast('ecosystem', status))
+        .then(status => { this.ensureSelfInBrains(status); this.broadcast('ecosystem', status); })
         .catch(() => {});
     }, 10_000));
 
@@ -209,6 +209,26 @@ export class CommandCenterServer {
 
   // ── Route Handlers ──────────────────────────────────────
 
+  /** Ensure the brain running this server appears in the brains list. */
+  private ensureSelfInBrains(ecosystem: { brains: Array<{ name: string; available?: boolean; version?: string; uptime?: number; pid?: number; methods?: number }> }): void {
+    const selfName = this.options.selfName;
+    const existing = ecosystem.brains.find(b => b.name === selfName);
+    if (!existing) {
+      // Self is always available (we're serving this request)
+      ecosystem.brains.unshift({
+        name: selfName,
+        available: true,
+        uptime: process.uptime(),
+        pid: process.pid,
+      });
+    } else if (!existing.available) {
+      // Self was marked unavailable because broadcast doesn't include self
+      existing.available = true;
+      existing.uptime = existing.uptime ?? process.uptime();
+      existing.pid = existing.pid ?? process.pid;
+    }
+  }
+
   private async handleState(res: http.ServerResponse): Promise<void> {
     try {
       const [ecosystem, engineResults, analytics] = await Promise.all([
@@ -216,6 +236,7 @@ export class CommandCenterServer {
         this.options.crossBrain.broadcast('consciousness.engines'),
         this.options.ecosystemService.getAggregatedAnalytics(),
       ]);
+      this.ensureSelfInBrains(ecosystem);
       const watchdog = this.options.watchdog?.getStatus() ?? [];
       const plugins = this.options.pluginRegistry?.list() ?? [];
       const borg = this.options.borgSync ? {
@@ -233,6 +254,7 @@ export class CommandCenterServer {
   private async handleEcosystem(res: http.ServerResponse): Promise<void> {
     try {
       const status = await this.options.ecosystemService.getStatus();
+      this.ensureSelfInBrains(status);
       this.json(res, status);
     } catch (err) {
       this.json(res, { error: (err as Error).message }, 500);
