@@ -66,7 +66,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
@@ -95,6 +95,7 @@ export class BrainCore {
   private emergenceEngine: EmergenceEngine | null = null;
   private debateEngine: DebateEngine | null = null;
   private peerNetwork: PeerNetwork | null = null;
+  private pluginRegistry: PluginRegistry | null = null;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   private config: BrainConfig | null = null;
   private configPath?: string;
@@ -996,7 +997,12 @@ export class BrainCore {
     const watchdog = new WatchdogService(watchdogConfig);
     services.watchdog = watchdog;
 
-    // 11d. Command Center Dashboard
+    // 11d. Plugin Registry (created synchronously, loadAll is async — runs after IPC setup)
+    const pluginDir = path.join(config.dataDir, 'plugins');
+    this.pluginRegistry = new PluginRegistry(pluginDir);
+    services.pluginRegistry = this.pluginRegistry;
+
+    // 11e. Command Center Dashboard
     this.commandCenter = new CommandCenterServer({
       port: 7790,
       selfName: 'brain',
@@ -1004,6 +1010,7 @@ export class BrainCore {
       ecosystemService: this.ecosystemService!,
       correlator: this.correlator!,
       watchdog,
+      pluginRegistry: this.pluginRegistry,
       thoughtStream,
       getLLMStats: () => services.llmService?.getStats() ?? null,
       getLLMHistory: (hours: number) => services.llmService?.getUsageHistory(hours) ?? [],
@@ -1052,7 +1059,32 @@ export class BrainCore {
     // Wire subscription manager into IPC router
     router.setSubscriptionManager(this.subscriptionManager, this.ipcServer);
 
-    // 12b. PeerNetwork — UDP multicast auto-discovery
+    // 12c. Plugin Registry — load community plugins (registry created at 11d)
+    this.pluginRegistry!.loadAll((name) => ({
+      dataDir: path.join(config.dataDir, 'plugins', name),
+      log: {
+        info: (msg: string) => logger.info(`[plugin:${name}] ${msg}`),
+        warn: (msg: string) => logger.warn(`[plugin:${name}] ${msg}`),
+        error: (msg: string) => logger.error(`[plugin:${name}] ${msg}`),
+        debug: (msg: string) => logger.debug(`[plugin:${name}] ${msg}`),
+      },
+      callBrain: async (method: string, params?: unknown) => router.handle(method, params),
+      notify: async (event: string, data: unknown) => {
+        this.crossBrain?.broadcast('cross-brain.notify', { source: `plugin:${name}`, event, data });
+      },
+    })).then(() => {
+      // Register plugin IPC routes dynamically
+      for (const route of this.pluginRegistry!.getRoutes()) {
+        router.registerMethod(`plugin.${route.plugin}.${route.method}`, route.handler);
+      }
+      if (this.pluginRegistry!.size > 0) {
+        logger.info(`Plugins: ${this.pluginRegistry!.size} loaded, ${this.pluginRegistry!.getRoutes().length} routes, ${this.pluginRegistry!.getTools().length} tools`);
+      }
+    }).catch((err) => {
+      logger.error(`Plugin loading failed: ${(err as Error).message}`);
+    });
+
+    // 12d. PeerNetwork — UDP multicast auto-discovery
     this.peerNetwork = new PeerNetwork({
       brainName: 'brain',
       httpPort: config.api.port,
@@ -1156,6 +1188,12 @@ export class BrainCore {
     }
 
     this.peerNetwork?.stopDiscovery();
+    // Unload all plugins gracefully
+    if (this.pluginRegistry?.size) {
+      for (const p of this.pluginRegistry.list()) {
+        this.pluginRegistry.unloadPlugin(p.name).catch(() => {});
+      }
+    }
     this.subscriptionManager?.disconnectAll();
     this.attentionEngine?.stop();
     this.commandCenter?.stop();
@@ -1188,6 +1226,7 @@ export class BrainCore {
     this.ecosystemService = null;
     this.researchScheduler = null;
     this.peerNetwork = null;
+    this.pluginRegistry = null;
   }
 
   restart(): void {

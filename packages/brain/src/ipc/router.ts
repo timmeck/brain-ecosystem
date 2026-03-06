@@ -124,6 +124,7 @@ export interface Services {
   llmService?: import('@timmeck/brain-core').LLMService;
   missionEngine?: import('@timmeck/brain-core').ResearchMissionEngine;
   watchdog?: import('@timmeck/brain-core').WatchdogService;
+  pluginRegistry?: import('@timmeck/brain-core').PluginRegistry;
   projectScanner?: ProjectScanner;
   reposignalImporter?: ReposignalImporter;
 }
@@ -180,6 +181,11 @@ export class IpcRouter {
     const result = handler(params);
     logger.debug(`IPC: ${method} → done`);
     return result;
+  }
+
+  /** Register a dynamic route (e.g. from plugins). */
+  registerMethod(method: string, handler: MethodHandler): void {
+    this.methods.set(method, handler);
   }
 
   listMethods(): string[] {
@@ -860,6 +866,12 @@ export class IpcRouter {
       // ─── Watchdog ──────────────────────────────────────────
       ['watchdog.status',         () => s.watchdog?.getStatus() ?? []],
       ['watchdog.restart',        (params) => s.watchdog?.restartDaemon(p(params).name) ?? false],
+
+      // ─── Plugin Registry ──────────────────────────────────
+      ['plugin.list',             () => s.pluginRegistry?.list() ?? []],
+      ['plugin.get',              (params) => { const pl = s.pluginRegistry?.get(p(params).name); return pl ? { name: pl.name, version: pl.version, description: pl.description } : null; }],
+      ['plugin.routes',           () => s.pluginRegistry?.getRoutes().map(r => ({ plugin: r.plugin, method: r.method })) ?? []],
+      ['plugin.tools',            () => s.pluginRegistry?.getTools().map(t => ({ plugin: t.plugin, name: t.name, description: t.description })) ?? []],
 
       // Status (cross-brain)
       ['status',                  () => ({
