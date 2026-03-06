@@ -1698,6 +1698,12 @@ export class ResearchOrchestrator {
               suggestion.problem,
               suggestion.targetFiles,
               'orchestrator',
+              {
+                hypothesis: `Improving ${suggestion.title.replace('Improve ', '')} based on diagnostic: ${suggestion.problem.slice(0, 200)}`,
+                risk_level: suggestion.targetFiles.length > 1 ? 'medium' : 'low',
+                expected_impact: [{ metric: 'engine_effectiveness', direction: 'increase', target: '+10%' }],
+                acceptance_criteria: ['Build passes', 'All tests pass', 'No regressions in related engines'],
+              },
             );
             ts?.emit('self-modification', 'discovering', `Self-modification proposed: ${mod.title}`, 'notable');
 

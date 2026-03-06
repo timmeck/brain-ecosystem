@@ -334,7 +334,7 @@ export type {
 export { SelfModificationEngine, runSelfModificationMigration } from './self-modification/index.js';
 export type {
   SelfModificationConfig, ModificationStatus, FileDiff,
-  SelfModification, SelfModificationStatus,
+  SelfModification, SelfModificationStatus, ProposalMeta,
 } from './self-modification/index.js';
 
 // ── Concept Abstraction ─────────────────────────────────

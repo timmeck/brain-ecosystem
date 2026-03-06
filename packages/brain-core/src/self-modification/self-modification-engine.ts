@@ -19,6 +19,17 @@ export interface SelfModificationConfig {
   projectRoot?: string;
 }
 
+/** Structured proposal metadata for experiment tracking. */
+export interface ProposalMeta {
+  hypothesis?: string;
+  risk_level?: 'low' | 'medium' | 'high';
+  expected_impact?: Array<{ metric: string; direction: 'increase' | 'decrease' | 'no_regression'; target: string }>;
+  acceptance_criteria?: string[];
+  reason_code?: string;
+  metrics_before?: Record<string, number>;
+  metrics_after?: Record<string, number>;
+}
+
 export type ModificationStatus =
   | 'proposed'
   | 'generating'
@@ -52,6 +63,14 @@ export interface SelfModification {
   model_used: string;
   generation_time_ms: number;
   created_at: string;
+  // Experiment ledger fields
+  hypothesis: string | null;
+  risk_level: string | null;
+  expected_impact: ProposalMeta['expected_impact'] | null;
+  acceptance_criteria: string[] | null;
+  reason_code: string | null;
+  metrics_before: Record<string, number> | null;
+  metrics_after: Record<string, number> | null;
 }
 
 export interface SelfModificationStatus {
@@ -105,6 +124,25 @@ export function runSelfModificationMigration(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_selfmod_status ON self_modifications(status);
   `);
+
+  // Experiment ledger columns (safe ADD COLUMN — no-op if they already exist)
+  const ledgerColumns = [
+    ['hypothesis', 'TEXT'],
+    ['risk_level', 'TEXT'],
+    ['expected_impact', 'TEXT'],
+    ['acceptance_criteria', 'TEXT'],
+    ['reason_code', 'TEXT'],
+    ['metrics_before', 'TEXT'],
+    ['metrics_after', 'TEXT'],
+  ] as const;
+
+  for (const [col, type] of ledgerColumns) {
+    try {
+      db.exec(`ALTER TABLE self_modifications ADD COLUMN ${col} ${type}`);
+    } catch {
+      // Column already exists — expected on subsequent runs
+    }
+  }
 }
 
 // ── SelfModificationEngine ───────────────────────────────
@@ -171,8 +209,8 @@ export class SelfModificationEngine {
   setSelfScanner(scanner: SelfScanner): void { this.selfScanner = scanner; }
   setThoughtStream(ts: ThoughtStream): void { this.ts = ts; }
 
-  /** Propose a new self-modification. */
-  proposeModification(title: string, problem: string, targetFiles: string[], sourceEngine = 'orchestrator'): SelfModification {
+  /** Propose a new self-modification with optional structured metadata. */
+  proposeModification(title: string, problem: string, targetFiles: string[], sourceEngine = 'orchestrator', meta?: ProposalMeta): SelfModification {
     // Validate paths
     for (const f of targetFiles) {
       if (!isPathAllowed(f)) {
@@ -182,7 +220,13 @@ export class SelfModificationEngine {
 
     const result = this.stmtInsert.run(title, problem, sourceEngine, JSON.stringify(targetFiles));
     const id = result.lastInsertRowid as number;
-    this.log.info(`[self-mod] Proposed modification #${id}: ${title}`);
+
+    // Store structured proposal metadata if provided
+    if (meta) {
+      this.updateProposalMeta(id, meta);
+    }
+
+    this.log.info(`[self-mod] Proposed modification #${id}: ${title}${meta?.risk_level ? ` [risk: ${meta.risk_level}]` : ''}`);
     this.ts?.emit('self-modification', 'analyzing', `Proposed: ${title}`, 'notable');
 
     return this.getModification(id)!;
@@ -553,8 +597,8 @@ export class SelfModificationEngine {
     return this.applyModification(modificationId);
   }
 
-  /** Reject a modification. */
-  rejectModification(modificationId: number, notes?: string): SelfModification {
+  /** Reject a modification with optional reason code. */
+  rejectModification(modificationId: number, notes?: string, reasonCode?: string): SelfModification {
     const mod = this.getModification(modificationId);
     if (!mod) throw new Error(`Modification #${modificationId} not found`);
 
@@ -563,7 +607,11 @@ export class SelfModificationEngine {
       test_output: notes ? `Rejected: ${notes}` : mod.test_output,
     });
 
-    this.log.info(`[self-mod] Rejected modification #${modificationId}${notes ? ': ' + notes : ''}`);
+    if (reasonCode) {
+      this.updateProposalMeta(modificationId, { reason_code: reasonCode });
+    }
+
+    this.log.info(`[self-mod] Rejected modification #${modificationId}${reasonCode ? ` [${reasonCode}]` : ''}${notes ? ': ' + notes : ''}`);
     return this.getModification(modificationId)!;
   }
 
@@ -598,6 +646,31 @@ export class SelfModificationEngine {
       lastModification: last?.created_at ?? null,
       projectRoot: this.config.projectRoot || null,
     };
+  }
+
+  /** Record before/after metrics for an experiment iteration. */
+  recordMetrics(modificationId: number, phase: 'before' | 'after', metrics: Record<string, number>): void {
+    const key = phase === 'before' ? 'metrics_before' : 'metrics_after';
+    this.updateProposalMeta(modificationId, { [key]: metrics });
+  }
+
+  /** Update structured proposal metadata fields. */
+  private updateProposalMeta(id: number, meta: Partial<ProposalMeta>): void {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+
+    if (meta.hypothesis !== undefined) { fields.push('hypothesis = ?'); values.push(meta.hypothesis); }
+    if (meta.risk_level !== undefined) { fields.push('risk_level = ?'); values.push(meta.risk_level); }
+    if (meta.expected_impact !== undefined) { fields.push('expected_impact = ?'); values.push(JSON.stringify(meta.expected_impact)); }
+    if (meta.acceptance_criteria !== undefined) { fields.push('acceptance_criteria = ?'); values.push(JSON.stringify(meta.acceptance_criteria)); }
+    if (meta.reason_code !== undefined) { fields.push('reason_code = ?'); values.push(meta.reason_code); }
+    if (meta.metrics_before !== undefined) { fields.push('metrics_before = ?'); values.push(JSON.stringify(meta.metrics_before)); }
+    if (meta.metrics_after !== undefined) { fields.push('metrics_after = ?'); values.push(JSON.stringify(meta.metrics_after)); }
+
+    if (fields.length > 0) {
+      values.push(id);
+      this.db.prepare(`UPDATE self_modifications SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    }
   }
 
   // ── Private Helpers ────────────────────────────────────
@@ -716,6 +789,14 @@ interface RawModification {
   model_used: string;
   generation_time_ms: number;
   created_at: string;
+  // Experiment ledger fields
+  hypothesis: string | null;
+  risk_level: string | null;
+  expected_impact: string | null;
+  acceptance_criteria: string | null;
+  reason_code: string | null;
+  metrics_before: string | null;
+  metrics_after: string | null;
 }
 
 function deserialize(row: RawModification): SelfModification {
@@ -735,5 +816,13 @@ function deserialize(row: RawModification): SelfModification {
     model_used: row.model_used,
     generation_time_ms: row.generation_time_ms,
     created_at: row.created_at,
+    // Experiment ledger fields
+    hypothesis: row.hypothesis ?? null,
+    risk_level: row.risk_level ?? null,
+    expected_impact: row.expected_impact ? JSON.parse(row.expected_impact) : null,
+    acceptance_criteria: row.acceptance_criteria ? JSON.parse(row.acceptance_criteria) : null,
+    reason_code: row.reason_code ?? null,
+    metrics_before: row.metrics_before ? JSON.parse(row.metrics_before) : null,
+    metrics_after: row.metrics_after ? JSON.parse(row.metrics_after) : null,
   };
 }

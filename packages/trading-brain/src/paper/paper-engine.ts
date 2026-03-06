@@ -110,7 +110,9 @@ export class PaperEngine {
         }
       }
 
-      // 3. Mark-to-market
+      // 3. Update trade count for cold-start logic + Mark-to-market
+      const perf = this.portfolio.getPerformanceSummary();
+      this.decision.setTradeCount(perf.totalTrades);
       this.portfolio.updatePositionPrices(prices);
 
       // 4. Check exits

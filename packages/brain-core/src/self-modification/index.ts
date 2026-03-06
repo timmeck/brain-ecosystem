@@ -5,4 +5,5 @@ export type {
   FileDiff,
   SelfModification,
   SelfModificationStatus,
+  ProposalMeta,
 } from './self-modification-engine.js';

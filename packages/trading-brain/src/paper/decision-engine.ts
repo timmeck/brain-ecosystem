@@ -22,11 +22,17 @@ export interface ExitSignal {
 
 export class DecisionEngine {
   private logger = getLogger();
+  private totalClosedTrades = 0;
 
   constructor(
     private config: PaperConfig,
     private signalService: SignalService,
   ) {}
+
+  /** Update closed trade count for cold-start logic. */
+  setTradeCount(count: number): void {
+    this.totalClosedTrades = count;
+  }
 
   /**
    * Detect market regime from indicators.
@@ -149,24 +155,32 @@ export class DecisionEngine {
     // Don't enter in bearish regime
     if (regime === 'bearish_trend') return false;
 
+    // Cold-start mode: relaxed thresholds when Brain has <20 closed trades
+    const coldStart = this.totalClosedTrades < 20;
+    const confThreshold = coldStart ? 0.0 : this.config.confidenceThreshold;
+
     // Confidence threshold
-    if (confidence < this.config.confidenceThreshold) {
-      // Still allow if strong technical signal
+    if (confidence < confThreshold) {
       const hasBullishDiv = indicators.rsi14 < 30 && indicators.macd.line > 0;
       const hasStrongTrend = indicators.trendScore > 2 && indicators.volatility < 60;
-
       if (!hasBullishDiv && !hasStrongTrend) return false;
     }
 
-    // Score threshold (if brain has enough data)
-    if (score > 0 && score < this.config.scoreThreshold) {
-      // Allow entry if very strong technical signal
+    // Score threshold (skip during cold-start — no learned data yet)
+    if (!coldStart && score > 0 && score < this.config.scoreThreshold) {
       const hasBullishDiv = indicators.rsi14 < 30 && indicators.macd.line > 0;
       if (!hasBullishDiv) return false;
     }
 
     // At least one bullish condition must be true
-    const conditions = [
+    // During cold-start, conditions are more relaxed to collect training data
+    const conditions = coldStart ? [
+      indicators.rsi14 < 45 && indicators.macd.line > 0,              // Moderate RSI + MACD positive
+      indicators.trendScore > 1 && indicators.volatility < 80,        // Mild trend, not too volatile
+      indicators.rsi14 < 35 && indicators.trendScore > 0,             // Low RSI + any uptrend
+      indicators.macd.histogram > 0 && indicators.trendScore > 0,     // MACD bullish + trend
+      indicators.rsi14 < 50 && indicators.trendScore > 2,             // Normal RSI + strong trend
+    ] : [
       indicators.rsi14 < 30 && indicators.macd.line > 0,              // Bullish divergence
       indicators.trendScore > 2 && indicators.volatility < 60,        // Strong trend, low vol
       indicators.rsi14 < 40 && indicators.trendScore > 1,             // Low RSI + uptrend
