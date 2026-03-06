@@ -66,7 +66,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
@@ -217,11 +217,10 @@ export class BrainCore {
 
     // Expose learning engine + cross-brain to IPC
     services.learning = this.learningEngine;
-    services.crossBrain = this.crossBrain ?? undefined;
-
     // 11. Cross-Brain Client + Notifier
     this.crossBrain = new CrossBrainClient('brain');
     this.notifier = new CrossBrainNotifier(this.crossBrain, 'brain');
+    services.crossBrain = this.crossBrain;
 
     // 11b. Cross-Brain Correlator + Ecosystem Service
     this.correlator = new CrossBrainCorrelator();
@@ -317,17 +316,28 @@ export class BrainCore {
     this.transferEngine = transferEngine;
     services.transferEngine = transferEngine;
 
-    // 11j.6b LLMService — central Claude API wrapper for intelligent features
+    // 11j.6b LLMService — multi-provider (Anthropic Cloud + optional Ollama local)
     const llmService = new LLMService(this.db!, {
       apiKey: process.env.ANTHROPIC_API_KEY,
       maxCallsPerHour: 30,
       tokenBudgetPerHour: 100_000,
       tokenBudgetPerDay: 500_000,
+      preferLocal: true,
     });
+
+    // Register Ollama if reachable (optional — install from https://ollama.com)
+    const ollamaProvider = new OllamaProvider();
+    ollamaProvider.isAvailable().then(available => {
+      if (available) {
+        llmService.registerProvider(ollamaProvider);
+        logger.info('Ollama provider registered — local AI for simple tasks');
+      }
+    }).catch(() => { /* Ollama not available, that's fine */ });
+
     this.orchestrator.setLLMService(llmService);
     services.llmService = llmService;
     if (llmService.isAvailable()) {
-      logger.info('LLMService activated (ANTHROPIC_API_KEY set) — engines will use Claude for reasoning');
+      logger.info('LLMService activated — engines will use multi-provider routing');
     }
 
     // 11j.7 Narrative Engine — brain explains itself in natural language
@@ -722,6 +732,18 @@ export class BrainCore {
       logger.info('MissionEngine: Brave Search enabled');
     }
     missionEngine.setJinaReader(new JinaReaderAdapter());
+    // Advanced web research adapters (optional)
+    const playwrightAdapter = new PlaywrightAdapter();
+    playwrightAdapter.checkAvailable().then(ok => {
+      if (ok) {
+        missionEngine.setPlaywrightAdapter(playwrightAdapter);
+        logger.info('MissionEngine: Playwright JS-rendering enabled');
+      }
+    }).catch(() => {});
+    if (process.env.FIRECRAWL_API_KEY) {
+      missionEngine.setFirecrawlAdapter(new FirecrawlAdapter({ apiKey: process.env.FIRECRAWL_API_KEY }));
+      logger.info('MissionEngine: Firecrawl cloud scraping enabled');
+    }
     missionEngine.setDataSources({
       knowledgeDistiller: this.orchestrator.knowledgeDistiller,
       hypothesisEngine: this.orchestrator.hypothesisEngine,
@@ -739,6 +761,43 @@ export class BrainCore {
       signalScanner.start();
       services.signalScanner = signalScanner;
       logger.info(`Signal scanner started (interval: ${config.scanner.scanIntervalMs}ms, token: ${config.scanner.githubToken ? 'yes' : 'NO — set GITHUB_TOKEN'})`);
+    }
+
+    // 11k2. TechRadar Engine — daily tech trend scanning + relevance analysis
+    try {
+      runTechRadarMigration(this.db!);
+      const techRadar = new TechRadarEngine(this.db!, {
+        githubToken: config.scanner.githubToken,
+      });
+      if (llmService) techRadar.setLLMService(llmService);
+      techRadar.start();
+      services.techRadar = techRadar;
+      logger.info('TechRadar engine started');
+    } catch (err) {
+      logger.warn(`TechRadar setup failed (non-critical): ${(err as Error).message}`);
+    }
+
+    // 11k3. NotificationService — multi-channel notifications
+    try {
+      runNotificationMigration(this.db!);
+      const notificationService = new MultiChannelNotificationService(this.db!);
+      // Auto-register available providers
+      const discordProvider = new DiscordProvider();
+      const telegramProvider = new TelegramProvider();
+      const emailProvider = new EmailProvider();
+      discordProvider.isAvailable().then(ok => {
+        if (ok) { notificationService.registerProvider(discordProvider); logger.info('Discord notification provider registered'); }
+      }).catch(() => {});
+      telegramProvider.isAvailable().then(ok => {
+        if (ok) { notificationService.registerProvider(telegramProvider); logger.info('Telegram notification provider registered'); }
+      }).catch(() => {});
+      emailProvider.isAvailable().then(ok => {
+        if (ok) { notificationService.registerProvider(emailProvider); logger.info('Email notification provider registered'); }
+      }).catch(() => {});
+      services.multiChannelNotifications = notificationService;
+      logger.info('NotificationService initialized');
+    } catch (err) {
+      logger.warn(`NotificationService setup failed (non-critical): ${(err as Error).message}`);
     }
 
     // 11l. CodeMiner — mine repo contents from GitHub (needs GITHUB_TOKEN)

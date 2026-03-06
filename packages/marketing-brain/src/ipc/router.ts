@@ -107,6 +107,7 @@ export interface Services {
   conceptAbstraction?: import('@timmeck/brain-core').ConceptAbstraction;
   peerNetwork?: import('@timmeck/brain-core').PeerNetwork;
   llmService?: import('@timmeck/brain-core').LLMService;
+  socialService?: import('../social/social-service.js').SocialService;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -691,6 +692,23 @@ export class IpcRouter {
       ['llm.status',               () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getStats(); }],
       ['llm.history',              (p: unknown) => { if (!s.llmService) throw new Error('LLMService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.llmService.getUsageHistory((params.hours as number) ?? 24); }],
       ['llm.byTemplate',           () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getUsageByTemplate(); }],
+      ['llm.providers',            async () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getProviderStatus(); }],
+      ['llm.ollamaStatus',         async () => {
+        if (!s.llmService) throw new Error('LLMService not available');
+        const ollamaProvider = s.llmService.getProviders().find((p: any) => p.name === 'ollama');
+        if (!ollamaProvider || !('getStatus' in ollamaProvider)) {
+          return { available: false, host: 'http://localhost:11434', chatModel: '-', embedModel: '-', installedModels: [], runningModels: [] };
+        }
+        return (ollamaProvider as any).getStatus();
+      }],
+
+      // Social Service
+      ['social.providers',         async () => { if (!s.socialService) throw new Error('SocialService not available'); return s.socialService.getProviderStatus(); }],
+      ['social.publish',           async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.publish(params.provider as string, params.post as any); }],
+      ['social.publishAll',        async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.publishAll(params.post as any); }],
+      ['social.readFeed',          async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.readFeed(params.provider as string | undefined, params.options as any); }],
+      ['social.search',            async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.search(params.query as string, params.provider as string | undefined, params.options as any); }],
+      ['social.engagement',        async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.getEngagement(params.provider as string, params.postId as string); }],
 
       ['status',               () => ({
         name: 'marketing-brain',

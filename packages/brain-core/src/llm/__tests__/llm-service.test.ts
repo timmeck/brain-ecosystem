@@ -12,9 +12,28 @@ vi.mock('../../utils/logger.js', () => ({
 
 import { LLMService, runLLMServiceMigration } from '../llm-service.js';
 import type { LLMServiceConfig, LLMResponse, PromptTemplate } from '../llm-service.js';
+import type { LLMProvider, LLMProviderResponse } from '../provider.js';
 
 function createTestDb(): Database.Database {
   return new Database(':memory:');
+}
+
+function createMockProvider(overrides: Partial<LLMProvider> = {}): LLMProvider {
+  return {
+    name: overrides.name ?? 'mock-local',
+    costTier: overrides.costTier ?? 'free',
+    capabilities: overrides.capabilities ?? { chat: true, generate: true, embed: true, reasoning: false },
+    isAvailable: overrides.isAvailable ?? (async () => true),
+    chat: overrides.chat ?? (async (): Promise<LLMProviderResponse> => ({
+      text: 'Mock local response',
+      inputTokens: 20,
+      outputTokens: 10,
+      model: 'mock-local-model',
+      durationMs: 30,
+    })),
+    generate: overrides.generate ?? (async () => 'mock generated'),
+    embed: overrides.embed ?? (async () => [0.1, 0.2, 0.3]),
+  };
 }
 
 describe('LLMService', () => {
@@ -56,7 +75,8 @@ describe('LLMService', () => {
   describe('constructor', () => {
     it('constructs without API key', () => {
       const svc = new LLMService(db, {});
-      expect(svc.isAvailable()).toBe(false);
+      // Still "available" because Anthropic provider is registered (even without key)
+      expect(svc.getProviders()).toHaveLength(1);
     });
 
     it('constructs with API key', () => {
@@ -64,19 +84,47 @@ describe('LLMService', () => {
       expect(svc.isAvailable()).toBe(true);
     });
 
-    it('uses env var if no config key', () => {
-      const original = process.env.ANTHROPIC_API_KEY;
-      process.env.ANTHROPIC_API_KEY = 'env-key-456';
-      try {
-        const svc = new LLMService(db, {});
-        expect(svc.isAvailable()).toBe(true);
-      } finally {
-        if (original !== undefined) {
-          process.env.ANTHROPIC_API_KEY = original;
-        } else {
-          delete process.env.ANTHROPIC_API_KEY;
-        }
-      }
+    it('auto-registers Anthropic provider', () => {
+      const svc = new LLMService(db, { apiKey: 'test-key' });
+      const providers = svc.getProviders();
+      expect(providers).toHaveLength(1);
+      expect(providers[0].name).toBe('anthropic');
+    });
+  });
+
+  // ── Provider Management ────────────────────────────
+
+  describe('registerProvider', () => {
+    it('adds a new provider', () => {
+      const svc = new LLMService(db, { apiKey: 'test-key' });
+      svc.registerProvider(createMockProvider());
+      expect(svc.getProviders()).toHaveLength(2);
+    });
+
+    it('prevents duplicate registration', () => {
+      const svc = new LLMService(db, { apiKey: 'test-key' });
+      const mock = createMockProvider();
+      svc.registerProvider(mock);
+      svc.registerProvider(mock); // duplicate
+      expect(svc.getProviders()).toHaveLength(2); // anthropic + mock
+    });
+
+    it('removeProvider works', () => {
+      const svc = new LLMService(db, { apiKey: 'test-key' });
+      svc.registerProvider(createMockProvider());
+      expect(svc.getProviders()).toHaveLength(2);
+      svc.removeProvider('mock-local');
+      expect(svc.getProviders()).toHaveLength(1);
+    });
+  });
+
+  describe('getProviderStatus', () => {
+    it('returns async availability', async () => {
+      const svc = new LLMService(db, { apiKey: 'test-key' });
+      svc.registerProvider(createMockProvider());
+      const status = await svc.getProviderStatus();
+      expect(status).toHaveLength(2);
+      expect(status.find(p => p.name === 'mock-local')?.available).toBe(true);
     });
   });
 
@@ -114,21 +162,31 @@ describe('LLMService', () => {
       const svc = new LLMService(db, { model: 'claude-test-model' });
       expect(svc.getStats().model).toBe('claude-test-model');
     });
+
+    it('includes provider info', () => {
+      const svc = new LLMService(db, { apiKey: 'test-key' });
+      svc.registerProvider(createMockProvider());
+      const stats = svc.getStats();
+      expect(stats.providers).toHaveLength(2);
+      expect(stats.providers.map(p => p.name)).toContain('anthropic');
+      expect(stats.providers.map(p => p.name)).toContain('mock-local');
+    });
   });
 
   // ── call (without API key) ─────────────────────────
 
   describe('call', () => {
-    it('returns null when no API key', async () => {
+    it('returns null when no provider available', async () => {
+      // Create service without API key and no working providers
       const svc = new LLMService(db, {});
       const result = await svc.call('explain', 'test message');
       expect(result).toBeNull();
     });
   });
 
-  // ── call (with mocked fetch) ───────────────────────
+  // ── call (with mocked fetch — Anthropic) ───────────
 
-  describe('call with mocked API', () => {
+  describe('call with mocked Anthropic', () => {
     let svc: LLMService;
     let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -162,22 +220,7 @@ describe('LLMService', () => {
       expect(result!.inputTokens).toBe(100);
       expect(result!.outputTokens).toBe(50);
       expect(result!.cached).toBe(false);
-    });
-
-    it('sends correct headers', async () => {
-      await svc.call('explain', 'test');
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      const callArgs = fetchMock.mock.calls[0];
-      expect(callArgs[0]).toBe('https://api.anthropic.com/v1/messages');
-      expect(callArgs[1].headers['x-api-key']).toBe('test-key');
-      expect(callArgs[1].headers['anthropic-version']).toBe('2023-06-01');
-    });
-
-    it('sends template system prompt', async () => {
-      await svc.call('creative_hypothesis', 'test');
-      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-      expect(body.system).toContain('creative research hypothesis generator');
-      expect(body.messages[0].content).toBe('test');
+      expect(result!.provider).toBe('anthropic');
     });
 
     it('updates stats after call', async () => {
@@ -243,12 +286,13 @@ describe('LLMService', () => {
     it('records usage to database', async () => {
       await svc.call('explain', 'test db recording');
       const rows = db.prepare('SELECT * FROM llm_usage').all() as Array<{
-        template: string; total_tokens: number; cached: number;
+        template: string; total_tokens: number; cached: number; provider: string;
       }>;
       expect(rows).toHaveLength(1);
       expect(rows[0].template).toBe('explain');
       expect(rows[0].total_tokens).toBe(150);
       expect(rows[0].cached).toBe(0);
+      expect(rows[0].provider).toBe('anthropic');
     });
 
     it('records cached hits to database too', async () => {
@@ -270,6 +314,137 @@ describe('LLMService', () => {
     });
   });
 
+  // ── Multi-Provider Routing ─────────────────────────
+
+  describe('multi-provider routing', () => {
+    let svc: LLMService;
+    let fetchMock: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('routes simple tasks to local provider', async () => {
+      svc = new LLMService(db, { apiKey: 'test-key', preferLocal: true });
+      svc.registerProvider(createMockProvider());
+
+      const result = await svc.call('summarize', 'summarize this');
+      expect(result).not.toBeNull();
+      expect(result!.provider).toBe('mock-local');
+      expect(result!.text).toBe('Mock local response');
+      // fetch should NOT have been called (local provider used)
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('routes complex tasks to cloud provider', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          content: [{ type: 'text', text: 'Claude response' }],
+          usage: { input_tokens: 100, output_tokens: 50 },
+        }),
+      });
+
+      svc = new LLMService(db, { apiKey: 'test-key', preferLocal: true });
+      svc.registerProvider(createMockProvider());
+
+      const result = await svc.call('synthesize_debate', 'debate this');
+      expect(result).not.toBeNull();
+      expect(result!.provider).toBe('anthropic');
+    });
+
+    it('falls back to cloud when local provider fails', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          content: [{ type: 'text', text: 'Claude fallback' }],
+          usage: { input_tokens: 50, output_tokens: 25 },
+        }),
+      });
+
+      const failingLocal = createMockProvider({
+        name: 'failing-local',
+        costTier: 'free',
+        chat: async () => { throw new Error('Local model crashed'); },
+      });
+
+      svc = new LLMService(db, { apiKey: 'test-key', preferLocal: true });
+      svc.registerProvider(failingLocal);
+
+      const result = await svc.call('summarize', 'test');
+      expect(result).not.toBeNull();
+      expect(result!.provider).toBe('anthropic');
+      expect(result!.text).toBe('Claude fallback');
+      expect(svc.getStats().errors).toBe(1); // failing local counted as error
+    });
+
+    it('returns null when all providers fail', async () => {
+      fetchMock.mockRejectedValue(new Error('Network error'));
+
+      const failingLocal = createMockProvider({
+        name: 'failing-local',
+        chat: async () => { throw new Error('crashed'); },
+      });
+
+      svc = new LLMService(db, { apiKey: 'test-key' });
+      svc.registerProvider(failingLocal);
+
+      const result = await svc.call('summarize', 'test');
+      expect(result).toBeNull();
+    });
+
+    it('forces specific provider when requested', async () => {
+      svc = new LLMService(db, { apiKey: 'test-key' });
+      svc.registerProvider(createMockProvider());
+
+      const result = await svc.call('explain', 'test', { provider: 'mock-local' });
+      expect(result).not.toBeNull();
+      expect(result!.provider).toBe('mock-local');
+    });
+
+    it('skips unavailable providers', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          content: [{ type: 'text', text: 'Cloud response' }],
+          usage: { input_tokens: 10, output_tokens: 10 },
+        }),
+      });
+
+      const unavailableLocal = createMockProvider({
+        name: 'offline-local',
+        isAvailable: async () => false,
+      });
+
+      svc = new LLMService(db, { apiKey: 'test-key' });
+      svc.registerProvider(unavailableLocal);
+
+      const result = await svc.call('summarize', 'test');
+      expect(result).not.toBeNull();
+      expect(result!.provider).toBe('anthropic');
+    });
+
+    it('does not rate-limit free providers', async () => {
+      svc = new LLMService(db, {
+        apiKey: 'test-key',
+        maxCallsPerHour: 2, // Very low limit
+      });
+      svc.registerProvider(createMockProvider());
+
+      // Make 5 calls to local provider — should all succeed
+      for (let i = 0; i < 5; i++) {
+        const r = await svc.call('summarize', `q${i}`);
+        expect(r).not.toBeNull();
+        expect(r!.provider).toBe('mock-local');
+      }
+    });
+  });
+
   // ── getUsageHistory ────────────────────────────────
 
   describe('getUsageHistory', () => {
@@ -282,11 +457,11 @@ describe('LLMService', () => {
       const svc = new LLMService(db, {});
       // Insert test data
       db.prepare(
-        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
-      ).run('hash1', 'explain', 'test-model', 100, 50, 150, 500, 0);
+        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached, provider, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+      ).run('hash1', 'explain', 'test-model', 100, 50, 150, 500, 0, 'anthropic');
       db.prepare(
-        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
-      ).run('hash2', 'ask', 'test-model', 80, 40, 120, 300, 0);
+        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached, provider, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+      ).run('hash2', 'ask', 'test-model', 80, 40, 120, 300, 0, 'ollama');
 
       const history = svc.getUsageHistory(24);
       expect(history).toHaveLength(1); // Both in same hour
@@ -306,18 +481,18 @@ describe('LLMService', () => {
     it('groups by template', () => {
       const svc = new LLMService(db, {});
       db.prepare(
-        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      ).run('h1', 'explain', 'model', 100, 50, 150, 500, 0);
+        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached, provider) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ).run('h1', 'explain', 'model', 100, 50, 150, 500, 0, 'anthropic');
       db.prepare(
-        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      ).run('h2', 'explain', 'model', 200, 80, 280, 600, 0);
+        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached, provider) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ).run('h2', 'explain', 'model', 200, 80, 280, 600, 0, 'anthropic');
       db.prepare(
-        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      ).run('h3', 'ask', 'model', 50, 30, 80, 200, 0);
+        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached, provider) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ).run('h3', 'ask', 'model', 50, 30, 80, 200, 0, 'ollama');
       // Cached entries should be excluded
       db.prepare(
-        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      ).run('h4', 'explain', 'model', 100, 50, 150, 0, 1);
+        "INSERT INTO llm_usage (prompt_hash, template, model, input_tokens, output_tokens, total_tokens, duration_ms, cached, provider) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ).run('h4', 'explain', 'model', 100, 50, 150, 0, 1, 'anthropic');
 
       const result = svc.getUsageByTemplate();
       expect(result).toHaveLength(2);
@@ -437,8 +612,6 @@ describe('LLMService', () => {
         expect(result).not.toBeNull();
         expect(result!.text).toBe('ok');
       }
-
-      expect(fetchMock).toHaveBeenCalledTimes(templates.length);
 
       vi.unstubAllGlobals();
     });

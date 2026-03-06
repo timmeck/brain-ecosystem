@@ -314,6 +314,9 @@ export type {
 export { DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter } from './research/data-scout.js';
 export type { ScoutDiscovery, ScoutAdapter, DataScoutStatus } from './research/data-scout.js';
 export { BraveSearchAdapter, JinaReaderAdapter } from './research/adapters/web-research-adapter.js';
+export { PlaywrightAdapter } from './research/adapters/playwright-adapter.js';
+export { FirecrawlAdapter } from './research/adapters/firecrawl-adapter.js';
+export type { FirecrawlConfig } from './research/adapters/firecrawl-adapter.js';
 
 // ── Research Missions ─────────────────────────────────
 export { ResearchMissionEngine, runMissionMigration } from './missions/mission-engine.js';
@@ -351,7 +354,13 @@ export type { PeerInfo, PeerNetworkConfig, PeerNetworkStatus } from './peer-netw
 
 // ── LLM Service ──────────────────────────────────────────
 export { LLMService, runLLMServiceMigration } from './llm/index.js';
-export type { LLMServiceConfig, LLMResponse, LLMUsageStats, PromptTemplate } from './llm/index.js';
+export { TaskRouter, AnthropicProvider, OllamaProvider, OllamaEmbeddingProvider } from './llm/index.js';
+export type {
+  LLMServiceConfig, LLMResponse, LLMUsageStats, PromptTemplate, ProviderInfo,
+  LLMProvider, LLMMessage, LLMCallOptions, LLMProviderResponse, RoutingTier,
+  AnthropicProviderConfig, OllamaProviderConfig, OllamaStatus, OllamaModelInfo, OllamaRunningModel,
+  OllamaEmbeddingConfig,
+} from './llm/index.js';
 
 // ── Scanner ──────────────────────────────────────────────
 export { SignalScanner, runScannerMigration } from './scanner/index.js';
@@ -365,3 +374,19 @@ export type {
   GitHubSearchResult, GitHubRepo, HnSearchResult, HnHit,
   CoinGeckoMarket, CoinGeckoTrending,
 } from './scanner/index.js';
+
+// TechRadar
+export { TechRadarEngine, runTechRadarMigration, RepoWatcher, RelevanceScorer, DigestGenerator } from './techradar/index.js';
+export type {
+  TechRadarConfig, TechRadarEntry, TechRadarScanResult, TechRadarSource,
+  TechRadarCategory, TechRadarRing, TechRadarAction,
+  WatchedRepo, RepoRelease, DailyDigest, DigestEntry, DigestOpportunity, DigestActionItem,
+} from './techradar/index.js';
+
+// Notifications
+export { NotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider } from './notifications/index.js';
+export type {
+  NotificationProvider, Notification, NotificationResult, NotificationPriority,
+  NotificationEvent, NotificationProviderStatus,
+  DiscordProviderConfig, TelegramProviderConfig, EmailProviderConfig,
+} from './notifications/index.js';

@@ -97,8 +97,9 @@ describe('PaperEngine', () => {
       const portfolio = new PortfolioManager(mockConfig, repo as any);
 
       const equity = portfolio.calcEquity(9000);
-      // existingPosition: usdtAmount=500, pnlPct=5 → unrealized = 500 * 0.05 = 25
-      expect(equity).toBe(9025);
+      // existingPosition: usdtAmount=500, pnlPct=5 → position value = 500 * 1.05 = 525
+      // equity = balance + position value = 9000 + 525 = 9525
+      expect(equity).toBe(9525);
     });
   });
 

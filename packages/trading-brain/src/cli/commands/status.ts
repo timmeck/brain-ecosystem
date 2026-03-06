@@ -34,6 +34,13 @@ export function statusCommand(): Command {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const summary: any = await client.request('analytics.summary', {});
 
+        // Paper trading status
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let paperStatus: any = null;
+        try {
+          paperStatus = await client.request('paper.status', {});
+        } catch { /* paper engine may not be available */ }
+
         const dbPath = path.join(getDataDir(), 'trading-brain.db');
         let dbSize = '?';
         try {
@@ -44,7 +51,29 @@ export function statusCommand(): Command {
         console.log(keyValue('Database', `${dbPath} (${dbSize})`));
         console.log();
 
-        console.log(`  ${icons.trade}  ${c.green.bold('Trade Brain')}`);
+        // Paper Trading Section
+        if (paperStatus?.enabled) {
+          const bal = paperStatus.balance ?? 0;
+          const eq = paperStatus.equity ?? 0;
+          const startBal = paperStatus.startingBalance ?? 10000;
+          const positions = paperStatus.openPositions ?? 0;
+          const closedTrades = paperStatus.closedTrades ?? 0;
+          const totalPnl = eq - startBal;
+          const pnlColor = totalPnl >= 0 ? c.green : c.red;
+
+          console.log(`  ${icons.trade}  ${c.green.bold('Paper Trading')}`);
+          console.log(`     ${c.label('Balance:')}    $${bal.toFixed(2)} | Equity: $${eq.toFixed(2)}`);
+          console.log(`     ${c.label('PnL:')}        ${pnlColor(`${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)} (${((totalPnl / startBal) * 100).toFixed(2)}%)`)}`);
+          console.log(`     ${c.label('Positions:')}  ${c.value(positions)} open, ${c.value(closedTrades)} closed`);
+          if (paperStatus.paused) {
+            console.log(`     ${c.label('Status:')}     ${c.orange('PAUSED')}`);
+          } else {
+            console.log(`     ${c.label('Cycles:')}     ${c.value(paperStatus.cycleCount ?? 0)} | Last: ${c.dim(paperStatus.lastCycleAt ?? 'never')}`);
+          }
+          console.log();
+        }
+
+        console.log(`  ${icons.trade}  ${c.green.bold('Signal Learning')}`);
         console.log(`     ${c.label('Trades:')}     ${c.value(summary.trades?.total ?? 0)} total, ${c.cyan(`${summary.trades?.recentWinRate ?? 0}%`)} recent win-rate`);
         console.log(`     ${c.label('Rules:')}      ${c.green(summary.rules?.total ?? 0)} learned`);
         console.log();

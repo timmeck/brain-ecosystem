@@ -30,6 +30,8 @@ import { registerSelfmodToolsDirect } from './selfmod-tools.js';
 import { registerConceptToolsDirect } from './concept-tools.js';
 import { registerPeerToolsDirect } from './peer-tools.js';
 import { registerLLMToolsDirect } from './llm-tools.js';
+import { registerMissionToolsDirect } from './mission-tools.js';
+import { registerTechRadarToolsDirect } from './techradar-tools.js';
 import { registerPromptsDirect } from './prompts.js';
 
 export class McpHttpServer {
@@ -70,6 +72,8 @@ export class McpHttpServer {
         registerConceptToolsDirect(server, router);
         registerPeerToolsDirect(server, router);
         registerLLMToolsDirect(server, router);
+        registerMissionToolsDirect(server, router);
+        registerTechRadarToolsDirect(server, router);
         registerPromptsDirect(server, router);
       },
     );

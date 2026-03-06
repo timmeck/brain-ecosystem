@@ -53,7 +53,8 @@ export class BaseEmbeddingEngine {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let env: any;
       try {
-        const transformers = await import('@huggingface/transformers');
+        const hfPath = '@huggingface/transformers';
+        const transformers = await import(/* webpackIgnore: true */ hfPath);
         pipelineFn = transformers.pipeline;
         env = transformers.env;
       } catch {

@@ -42,6 +42,8 @@ import type { ThoughtStream, ConsciousnessServer } from '@timmeck/brain-core';
 import type { PredictionEngine } from '@timmeck/brain-core';
 import type { ResearchOrchestrator } from '@timmeck/brain-core';
 import type { SignalScanner } from '@timmeck/brain-core';
+import type { TechRadarEngine } from '@timmeck/brain-core';
+import type { NotificationService as MultiChannelNotificationService } from '@timmeck/brain-core';
 import type { CodeGenerator } from '@timmeck/brain-core';
 import type { CodeMiner } from '@timmeck/brain-core';
 import type { PatternExtractor } from '@timmeck/brain-core';
@@ -90,6 +92,8 @@ export interface Services {
   predictionEngine?: PredictionEngine;
   orchestrator?: ResearchOrchestrator;
   signalScanner?: SignalScanner;
+  techRadar?: TechRadarEngine;
+  multiChannelNotifications?: MultiChannelNotificationService;
   codeGenerator?: CodeGenerator;
   codeMiner?: CodeMiner;
   patternExtractor?: PatternExtractor;
@@ -623,6 +627,22 @@ export class IpcRouter {
       ['scanner.config',         (params) => { if (!s.signalScanner) throw new Error('Signal scanner not available'); if (p(params) && Object.keys(p(params)).length > 0) return s.signalScanner.updateConfig(p(params)); return s.signalScanner.getConfig(); }],
       ['scanner.import.api',     async (params) => { if (!s.signalScanner) throw new Error('Signal scanner not available'); return s.signalScanner.importFromApi(p(params)?.url, { limit: p(params)?.limit, level: p(params)?.level, adminKey: p(params)?.adminKey }); }],
 
+      // ─── TechRadar ──────────────────────────────────────────
+      ['techradar.scan',          async () => { if (!s.techRadar) throw new Error('TechRadar not available'); return s.techRadar.scan(); }],
+      ['techradar.digest',        (params) => { if (!s.techRadar) throw new Error('TechRadar not available'); return s.techRadar.getDigest(p(params)?.date); }],
+      ['techradar.generateDigest', async (params) => { if (!s.techRadar) throw new Error('TechRadar not available'); return s.techRadar.generateDigest(p(params)?.date); }],
+      ['techradar.entries',       (params) => { if (!s.techRadar) throw new Error('TechRadar not available'); return s.techRadar.getEntries({ minScore: p(params)?.minScore, source: p(params)?.source, ring: p(params)?.ring, limit: p(params)?.limit }); }],
+      ['techradar.stats',         () => { if (!s.techRadar) throw new Error('TechRadar not available'); return s.techRadar.getStats(); }],
+      ['techradar.repos.list',    () => { if (!s.techRadar) throw new Error('TechRadar not available'); return s.techRadar.getWatchedRepos(); }],
+      ['techradar.repos.add',     (params) => { if (!s.techRadar) throw new Error('TechRadar not available'); s.techRadar.addWatchedRepo(p(params).repo, p(params)?.reason); return { added: true }; }],
+      ['techradar.repos.remove',  (params) => { if (!s.techRadar) throw new Error('TechRadar not available'); s.techRadar.removeWatchedRepo(p(params).repo); return { removed: true }; }],
+
+      // ─── Multi-Channel Notifications ─────────────────────────
+      ['notifications.send',      async (params) => { if (!s.multiChannelNotifications) throw new Error('NotificationService not available'); return s.multiChannelNotifications.notify(p(params)); }],
+      ['notifications.providers',  async () => { if (!s.multiChannelNotifications) throw new Error('NotificationService not available'); return s.multiChannelNotifications.getProviderStatus(); }],
+      ['notifications.history',   (params) => { if (!s.multiChannelNotifications) throw new Error('NotificationService not available'); return s.multiChannelNotifications.getHistory({ event: p(params)?.event, limit: p(params)?.limit }); }],
+      ['notifications.routing',   () => { if (!s.multiChannelNotifications) throw new Error('NotificationService not available'); return s.multiChannelNotifications.getEventRouting(); }],
+
       // ─── Reposignal Import ──────────────────────────────────
       ['import.reposignal',       (params) => { if (!s.reposignalImporter) throw new Error('Reposignal importer not available'); return s.reposignalImporter.import(p(params).dbPath, p(params).options); }],
       ['import.reposignal.status', () => { if (!s.reposignalImporter) throw new Error('Reposignal importer not available'); return s.reposignalImporter.getLastResult(); }],
@@ -786,6 +806,33 @@ export class IpcRouter {
       ['llm.status',               () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getStats(); }],
       ['llm.history',              (p) => { if (!s.llmService) throw new Error('LLMService not available'); const { hours } = (p ?? {}) as { hours?: number }; return s.llmService.getUsageHistory(hours); }],
       ['llm.byTemplate',           () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getUsageByTemplate(); }],
+      ['llm.providers',            async () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getProviderStatus(); }],
+      ['llm.routing',              (p) => {
+        if (!s.llmService) throw new Error('LLMService not available');
+        const { template } = (p ?? {}) as { template?: string };
+        const router = s.llmService.getRouter();
+        if (template) {
+          const tier = router.getTier(template as import('@timmeck/brain-core').PromptTemplate);
+          const providers = s.llmService.getProviders();
+          const chain = router.route(template as import('@timmeck/brain-core').PromptTemplate, providers).map(p => p.name);
+          return { template, tier, chain };
+        }
+        const table = router.getRoutingTable();
+        const providers = s.llmService.getProviders();
+        const routes = table.map(r => ({
+          ...r,
+          chain: router.route(r.template, providers).map(p => p.name),
+        }));
+        return { routes };
+      }],
+      ['llm.ollamaStatus',         async () => {
+        if (!s.llmService) throw new Error('LLMService not available');
+        const ollamaProvider = s.llmService.getProviders().find(p => p.name === 'ollama');
+        if (!ollamaProvider || !('getStatus' in ollamaProvider)) {
+          return { available: false, host: 'http://localhost:11434', chatModel: '-', embedModel: '-', installedModels: [], runningModels: [] };
+        }
+        return (ollamaProvider as any).getStatus();
+      }],
 
       // Research Missions
       ['mission.create',           (params) => { if (!s.missionEngine) throw new Error('MissionEngine not available'); const { topic, depth } = (params ?? {}) as { topic: string; depth?: string }; return s.missionEngine.createMission(topic, (depth ?? 'standard') as 'quick' | 'standard' | 'deep'); }],

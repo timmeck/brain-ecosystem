@@ -48,6 +48,11 @@ import { PaperEngine } from './paper/paper-engine.js';
 import { PaperService } from './paper/paper.service.js';
 import { PaperRepository } from './db/repositories/paper.repository.js';
 
+// Market Data
+import { MarketDataService } from './market/market-data-service.js';
+import { CoinGeckoProvider } from './market/coingecko-provider.js';
+import { YahooProvider } from './market/yahoo-provider.js';
+
 // IPC
 import { IpcRouter, type Services } from './ipc/router.js';
 import { IpcServer } from '@timmeck/brain-core';
@@ -57,7 +62,7 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider } from '@timmeck/brain-core';
 import type { HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
 
 export class TradingCore {
@@ -196,14 +201,20 @@ export class TradingCore {
       logger.info(`Paper trading engine started (interval: ${config.paper.intervalMs}ms)`);
     }
 
+    // Market Data Service
+    const marketDataService = new MarketDataService();
+    marketDataService.registerProvider(new CoinGeckoProvider());
+    marketDataService.registerProvider(new YahooProvider());
+    services.marketData = marketDataService;
+    logger.info('MarketDataService initialized (CoinGecko + Yahoo)');
+
     // Expose engines + cross-brain to IPC
     services.learning = this.learningEngine;
     services.research = this.researchEngine;
-    services.crossBrain = this.crossBrain ?? undefined;
-
     // 12. Cross-Brain Client + Notifier
     this.crossBrain = new CrossBrainClient('trading-brain');
     this.notifier = new CrossBrainNotifier(this.crossBrain, 'trading-brain');
+    services.crossBrain = this.crossBrain;
 
     // 12b. Cross-Brain Correlator
     this.correlator = new CrossBrainCorrelator();
@@ -299,13 +310,24 @@ export class TradingCore {
     this.orchestrator.setTransferEngine(this.transferEngine);
     services.transferEngine = this.transferEngine;
 
-    // 12j.6b LLMService — central Claude API wrapper for intelligent features
+    // 12j.6b LLMService — multi-provider (Anthropic Cloud + optional Ollama local)
     const llmService = new LLMService(this.db!, {
       apiKey: process.env.ANTHROPIC_API_KEY,
       maxCallsPerHour: 30,
       tokenBudgetPerHour: 100_000,
       tokenBudgetPerDay: 500_000,
+      preferLocal: true,
     });
+
+    // Register Ollama if reachable (optional — install from https://ollama.com)
+    const ollamaProvider = new OllamaProvider();
+    ollamaProvider.isAvailable().then(available => {
+      if (available) {
+        llmService.registerProvider(ollamaProvider);
+        logger.info('Ollama provider registered — local AI for simple tasks');
+      }
+    }).catch(() => { /* Ollama not available, that's fine */ });
+
     this.orchestrator.setLLMService(llmService);
     services.llmService = llmService;
 

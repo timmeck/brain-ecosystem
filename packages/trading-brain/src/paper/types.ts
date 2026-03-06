@@ -75,7 +75,9 @@ export interface PaperStatus {
   lastCycleAt: string | null;
   balance: number;
   equity: number;
+  startingBalance: number;
   openPositions: number;
+  closedTrades: number;
   totalTrades: number;
   winRate: number;
   totalPnl: number;

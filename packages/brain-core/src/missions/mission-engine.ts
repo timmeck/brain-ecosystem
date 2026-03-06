@@ -104,6 +104,8 @@ export class ResearchMissionEngine {
   private llm: LLMService | null = null;
   private braveSearch: BraveSearchAdapter | null = null;
   private jinaReader: JinaReaderAdapter | null = null;
+  private playwrightAdapter: import('../research/adapters/playwright-adapter.js').PlaywrightAdapter | null = null;
+  private firecrawlAdapter: import('../research/adapters/firecrawl-adapter.js').FirecrawlAdapter | null = null;
   private knowledgeDistiller: KnowledgeDistiller | null = null;
   private hypothesisEngine: HypothesisEngine | null = null;
   private journal: ResearchJournal | null = null;
@@ -150,6 +152,8 @@ export class ResearchMissionEngine {
   setLLMService(llm: LLMService): void { this.llm = llm; }
   setBraveSearch(adapter: BraveSearchAdapter): void { this.braveSearch = adapter; }
   setJinaReader(adapter: JinaReaderAdapter): void { this.jinaReader = adapter; }
+  setPlaywrightAdapter(adapter: import('../research/adapters/playwright-adapter.js').PlaywrightAdapter): void { this.playwrightAdapter = adapter; }
+  setFirecrawlAdapter(adapter: import('../research/adapters/firecrawl-adapter.js').FirecrawlAdapter): void { this.firecrawlAdapter = adapter; }
 
   setDataSources(sources: {
     knowledgeDistiller?: KnowledgeDistiller;
@@ -361,15 +365,31 @@ export class ResearchMissionEngine {
             if (allSources.some(s => s.url === result.url)) continue;
 
             let content = result.description;
-            // Try to extract full content via Jina
-            if (this.jinaReader && result.url) {
-              try {
-                await this.sleep(1000);
-                const extracted = await this.jinaReader.extract(result.url);
-                if (extracted) {
-                  content = extracted.content.substring(0, 5000); // Limit to 5KB per source
-                }
-              } catch { /* Use description as fallback */ }
+            // Try to extract full content: Jina → Playwright → Firecrawl
+            if (result.url) {
+              let extracted: { content: string } | null = null;
+              // 1. Jina Reader (fast, free, no JS rendering)
+              if (!extracted && this.jinaReader) {
+                try {
+                  await this.sleep(1000);
+                  extracted = await this.jinaReader.extract(result.url);
+                } catch { /* fallback to next */ }
+              }
+              // 2. Playwright (local, JS rendering)
+              if (!extracted && this.playwrightAdapter) {
+                try {
+                  extracted = await this.playwrightAdapter.extract(result.url);
+                } catch { /* fallback to next */ }
+              }
+              // 3. Firecrawl (cloud, LLM-ready)
+              if (!extracted && this.firecrawlAdapter?.isEnabled()) {
+                try {
+                  extracted = await this.firecrawlAdapter.scrape(result.url);
+                } catch { /* use description as final fallback */ }
+              }
+              if (extracted) {
+                content = extracted.content.substring(0, 5000); // Limit to 5KB per source
+              }
             }
 
             const source: MissionSource = {

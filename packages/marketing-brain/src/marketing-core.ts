@@ -54,6 +54,11 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { DashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
+// Social
+import { SocialService } from './social/social-service.js';
+import { BlueskyProvider } from './social/bluesky-provider.js';
+import { RedditProvider } from './social/reddit-provider.js';
+
 // Cross-Brain
 import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine } from '@timmeck/brain-core';
 
@@ -167,13 +172,30 @@ export class MarketingCore {
       logger.warn(`TransferEngine setup failed (non-critical): ${(err as Error).message}`);
     }
 
+    // 9c. SocialService — auto-register available providers
+    const socialService = new SocialService();
+    const blueskyProvider = new BlueskyProvider();
+    const redditProvider = new RedditProvider();
+    blueskyProvider.isAvailable().then(ok => {
+      if (ok) {
+        socialService.registerProvider(blueskyProvider);
+        logger.info('Bluesky provider registered');
+      }
+    }).catch(() => { /* Bluesky not configured, fine */ });
+    redditProvider.isAvailable().then(ok => {
+      if (ok) {
+        socialService.registerProvider(redditProvider);
+        logger.info('Reddit provider registered');
+      }
+    }).catch(() => { /* Reddit not configured, fine */ });
+    services.socialService = socialService;
+
     // Expose learning engine + cross-brain to IPC
     services.learning = this.learningEngine;
-    services.crossBrain = this.crossBrain ?? undefined;
-
     // 10. Cross-Brain Client + Notifier
     this.crossBrain = new CrossBrainClient('marketing-brain');
     this.notifier = new CrossBrainNotifier(this.crossBrain, 'marketing-brain');
+    services.crossBrain = this.crossBrain;
 
     // 11. IPC Server
     const router = new IpcRouter(services);

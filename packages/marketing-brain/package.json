@@ -39,6 +39,7 @@
     "directory": "packages/marketing-brain"
   },
   "dependencies": {
+    "@atproto/api": "^0.19.3",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@timmeck/brain-core": "^2.34.0",
     "better-sqlite3": "^11.7.0",

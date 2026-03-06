@@ -104,6 +104,7 @@ export interface Services {
   peerNetwork?: import('@timmeck/brain-core').PeerNetwork;
   llmService?: import('@timmeck/brain-core').LLMService;
   paper?: import('../paper/paper.service.js').PaperService;
+  marketData?: import('../market/market-data-service.js').MarketDataService;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -271,6 +272,18 @@ export class IpcRouter {
       ['paper.pause', () => s.paper?.pause()],
       ['paper.resume', () => s.paper?.resume()],
       ['paper.reset', () => s.paper?.reset()],
+
+      // ─── Market Data ──────────────────────────────────────
+      ['market.providers', async () => {
+        if (!s.marketData) throw new Error('MarketDataService not available');
+        return s.marketData.getProviderStatus();
+      }],
+      ['market.prices', async (params) => {
+        if (!s.marketData) throw new Error('MarketDataService not available');
+        const { crypto, stocks } = p(params);
+        const prices = await s.marketData.fetchPrices(crypto ?? [], stocks ?? []);
+        return Object.fromEntries(prices);
+      }],
 
       // ─── Reset ──────────────────────────────────────────
       ['reset', () => {
@@ -653,6 +666,15 @@ export class IpcRouter {
       ['llm.status',               () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getStats(); }],
       ['llm.history',              (p: unknown) => { if (!s.llmService) throw new Error('LLMService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.llmService.getUsageHistory((params.hours as number) ?? 24); }],
       ['llm.byTemplate',           () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getUsageByTemplate(); }],
+      ['llm.providers',            async () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getProviderStatus(); }],
+      ['llm.ollamaStatus',         async () => {
+        if (!s.llmService) throw new Error('LLMService not available');
+        const ollamaProvider = s.llmService.getProviders().find((p: any) => p.name === 'ollama');
+        if (!ollamaProvider || !('getStatus' in ollamaProvider)) {
+          return { available: false, host: 'http://localhost:11434', chatModel: '-', embedModel: '-', installedModels: [], runningModels: [] };
+        }
+        return (ollamaProvider as any).getStatus();
+      }],
 
       ['status', () => ({
         name: 'trading-brain',

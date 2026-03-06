@@ -71,9 +71,9 @@ export class PortfolioManager {
       this.repo.deletePosition(position.id);
     }
 
-    // Update balance
+    // Update balance: return principal + profit/loss
     const { balance } = this.repo.getBalance();
-    const newBalance = balance + pnlUsdt;
+    const newBalance = balance + position.usdtAmount + pnlUsdt;
     this.repo.updateBalance(newBalance, this.calcEquity(newBalance), `close_${exitReason}`);
 
     this.logger.info(`Paper CLOSE: ${position.symbol} @ ${exitPrice.toFixed(4)} | ${exitReason} | PnL: ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}% ($${pnlUsdt.toFixed(2)})`);
@@ -128,11 +128,11 @@ export class PortfolioManager {
 
   calcEquity(balance: number): number {
     const positions = this.repo.getOpenPositions();
-    let unrealizedPnl = 0;
+    let positionValue = 0;
     for (const pos of positions) {
-      const pnl = pos.usdtAmount * (pos.pnlPct / 100);
-      unrealizedPnl += pnl;
+      // Position value = principal + unrealized P&L
+      positionValue += pos.usdtAmount * (1 + pos.pnlPct / 100);
     }
-    return balance + unrealizedPnl;
+    return balance + positionValue;
   }
 }
