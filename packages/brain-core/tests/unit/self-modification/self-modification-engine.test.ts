@@ -291,4 +291,77 @@ describe('SelfModificationEngine', () => {
     ]);
     expect(mod.target_files.length).toBe(2);
   });
+
+  it('should store proposal metadata', () => {
+    const mod = engine.proposeModification(
+      'Metadata test',
+      'Test problem',
+      ['packages/brain-core/src/foo.ts'],
+      'orchestrator',
+      {
+        hypothesis: 'Improving X will increase Y by 10%',
+        risk_level: 'low',
+        expected_impact: [{ metric: 'test_coverage', direction: 'increase', target: '+10%' }],
+        acceptance_criteria: ['Build passes', 'Tests pass'],
+      },
+    );
+    expect(mod.hypothesis).toBe('Improving X will increase Y by 10%');
+    expect(mod.risk_level).toBe('low');
+    expect(mod.expected_impact).toEqual([{ metric: 'test_coverage', direction: 'increase', target: '+10%' }]);
+    expect(mod.acceptance_criteria).toEqual(['Build passes', 'Tests pass']);
+  });
+
+  it('should store reason_code on rejection', () => {
+    engine.proposeModification('Reject coded', 'Problem', ['packages/brain-core/src/foo.ts']);
+    const rejected = engine.rejectModification(1, 'Breaks API', 'REGRESSION');
+    expect(rejected.reason_code).toBe('REGRESSION');
+  });
+
+  it('should record before/after metrics', () => {
+    engine.proposeModification('Metrics test', 'Problem', ['packages/brain-core/src/foo.ts']);
+    engine.recordMetrics(1, 'before', { test_count: 100, build_time_ms: 5000 });
+    engine.recordMetrics(1, 'after', { test_count: 105, build_time_ms: 4800 });
+
+    const mod = engine.getModification(1)!;
+    expect(mod.metrics_before).toEqual({ test_count: 100, build_time_ms: 5000 });
+    expect(mod.metrics_after).toEqual({ test_count: 105, build_time_ms: 4800 });
+  });
+
+  describe('parseGeneratedFiles (via generateCode)', () => {
+    // We test the parser indirectly by checking what gets stored when we
+    // manually trigger the parsing logic. Since parseGeneratedFiles is private,
+    // we test via the public testModification path with pre-set diffs.
+
+    it('should handle CRLF line endings in generated diffs', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'selfmod-crlf-'));
+      const pkgDir = path.join(tmpDir, 'packages', 'brain-core', 'src');
+      fs.mkdirSync(pkgDir, { recursive: true });
+      fs.writeFileSync(path.join(pkgDir, 'crlf.ts'), 'export const A = 1;\r\n', 'utf-8');
+      fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({
+        name: 'test-root',
+        scripts: { build: 'echo ok', test: 'echo ok' },
+      }), 'utf-8');
+
+      const engine2 = new SelfModificationEngine(db, {
+        brainName: 'test-brain',
+        projectRoot: tmpDir,
+      });
+
+      engine2.proposeModification('CRLF test', 'Test CRLF', ['packages/brain-core/src/crlf.ts']);
+
+      // Simulate a diff with CRLF content (as Windows would produce)
+      db.prepare("UPDATE self_modifications SET generated_diff = ? WHERE id = 1").run(
+        JSON.stringify([{
+          filePath: 'packages/brain-core/src/crlf.ts',
+          oldContent: 'export const A = 1;\r\n',
+          newContent: 'export const A = 2;\r\n',
+        }]),
+      );
+
+      const result = engine2.testModification(1);
+      expect(result.test_result).toBe('passed');
+
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+  });
 });

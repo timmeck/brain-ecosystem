@@ -353,6 +353,21 @@ export class SelfModificationEngine {
       // Parse response: extract file blocks
       const diffs = this.parseGeneratedFiles(text, mod.target_files);
 
+      // Fail if no files were extracted — Claude didn't produce usable output
+      if (diffs.length === 0) {
+        const preview = text.replace(/\r\n/g, '\n').substring(0, 1500);
+        this.updateModification(modificationId, {
+          status: 'failed',
+          generated_diff: '[]',
+          test_result: 'failed',
+          test_output: `No parseable file blocks in API response (${tokensUsed} tokens used). Expected "### FILE: <path>" blocks.\n\nResponse preview:\n${preview}`,
+          tokens_used: tokensUsed,
+          model_used: this.config.model,
+          generation_time_ms: generationTimeMs,
+        });
+        throw new Error(`No parseable file blocks found in Claude response for modification #${modificationId}`);
+      }
+
       // Validate line count
       let totalChangedLines = 0;
       for (const diff of diffs) {
@@ -711,17 +726,27 @@ export class SelfModificationEngine {
 
   private parseGeneratedFiles(text: string, _targetFiles: string[]): FileDiff[] {
     const diffs: FileDiff[] = [];
-    // Pattern: ### FILE: <path>\n```typescript\n<content>\n```
-    const fileBlockRegex = /###\s*FILE:\s*(.+?)\n```(?:typescript|ts)?\n([\s\S]*?)```/g;
-    let match: RegExpExecArray | null;
 
-    while ((match = fileBlockRegex.exec(text)) !== null) {
+    // Normalize CRLF → LF (Windows compat — Claude API responses may have \r\n)
+    const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Pattern: ### FILE: <path>\n```<lang>\n<content>\n```
+    // Supports: typescript, ts, js, javascript, or no language tag
+    const fileBlockRegex = /###\s*FILE:\s*(.+?)\n```(?:typescript|ts|javascript|js)?\n([\s\S]*?)```/g;
+    let match: RegExpExecArray | null;
+    let skippedPaths = 0;
+
+    while ((match = fileBlockRegex.exec(normalized)) !== null) {
       const filePath = match[1]!.trim();
       const newContent = match[2]!;
 
       // Only accept target files or files matching the whitelist
       const normalizedPath = filePath.replace(/\\/g, '/');
-      if (!isPathAllowed(normalizedPath)) continue;
+      if (!isPathAllowed(normalizedPath)) {
+        this.log.warn(`[self-mod] Skipping non-whitelisted path from Claude: ${normalizedPath}`);
+        skippedPaths++;
+        continue;
+      }
 
       // Get old content
       let oldContent = '';
@@ -734,6 +759,10 @@ export class SelfModificationEngine {
       }
 
       diffs.push({ filePath: normalizedPath, oldContent, newContent });
+    }
+
+    if (diffs.length === 0 && normalized.length > 0) {
+      this.log.warn(`[self-mod] Parser found 0 file blocks (${skippedPaths} skipped by path filter). Response preview: ${normalized.substring(0, 500)}`);
     }
 
     return diffs;
