@@ -5,7 +5,7 @@ import { loadConfig } from './config.js';
 import type { MarketingBrainConfig } from './types/config.types.js';
 import { createLogger, getLogger } from './utils/logger.js';
 import { getEventBus } from './utils/events.js';
-import { createConnection } from './db/connection.js';
+import { createConnection } from '@timmeck/brain-core';
 import { runMigrations } from './db/migrations/index.js';
 
 // Repositories
@@ -42,7 +42,7 @@ import { ResearchEngine } from './research/research-engine.js';
 
 // IPC
 import { IpcRouter, type Services } from './ipc/router.js';
-import { IpcServer } from './ipc/server.js';
+import { IpcServer } from '@timmeck/brain-core';
 
 // API
 import { ApiServer } from './api/server.js';
@@ -55,7 +55,7 @@ import { DashboardServer } from './dashboard/server.js';
 import { renderDashboard } from './dashboard/renderer.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine } from '@timmeck/brain-core';
 
 export class MarketingCore {
   private db: Database.Database | null = null;
@@ -67,6 +67,7 @@ export class MarketingCore {
   private researchEngine: ResearchEngine | null = null;
   private crossBrain: CrossBrainClient | null = null;
   private notifier: CrossBrainNotifier | null = null;
+  private transferEngine: TransferEngine | null = null;
   private config: MarketingBrainConfig | null = null;
   private configPath?: string;
   private restarting = false;
@@ -90,22 +91,23 @@ export class MarketingCore {
     const logger = getLogger();
 
     // 4. Database
-    this.db = createConnection(config.dbPath);
-    runMigrations(this.db);
+    const db = createConnection(config.dbPath);
+    this.db = db;
+    runMigrations(db);
     logger.info(`Database initialized: ${config.dbPath}`);
 
     // 5. Repositories
-    const postRepo = new PostRepository(this.db);
-    const engagementRepo = new EngagementRepository(this.db);
-    const campaignRepo = new CampaignRepository(this.db);
-    const strategyRepo = new StrategyRepository(this.db);
-    const ruleRepo = new RuleRepository(this.db);
-    const templateRepo = new TemplateRepository(this.db);
-    const audienceRepo = new AudienceRepository(this.db);
-    const synapseRepo = new SynapseRepository(this.db);
-    const insightRepo = new InsightRepository(this.db);
-    const memoryRepo = new MemoryRepository(this.db);
-    const sessionRepo = new SessionRepository(this.db);
+    const postRepo = new PostRepository(db);
+    const engagementRepo = new EngagementRepository(db);
+    const campaignRepo = new CampaignRepository(db);
+    const strategyRepo = new StrategyRepository(db);
+    const ruleRepo = new RuleRepository(db);
+    const templateRepo = new TemplateRepository(db);
+    const audienceRepo = new AudienceRepository(db);
+    const synapseRepo = new SynapseRepository(db);
+    const insightRepo = new InsightRepository(db);
+    const memoryRepo = new MemoryRepository(db);
+    const sessionRepo = new SessionRepository(db);
 
     // 6. Synapse Manager
     const synapseManager = new SynapseManager(synapseRepo, config.synapses);
@@ -144,8 +146,8 @@ export class MarketingCore {
       campaignRepo, templateRepo, insightRepo, synapseManager,
     );
     try {
-      runHypothesisMigration(this.db);
-      const hypothesisEngine = new HypothesisEngine(this.db, { minEvidence: 3, confirmThreshold: 0.10, rejectThreshold: 0.5 });
+      runHypothesisMigration(db);
+      const hypothesisEngine = new HypothesisEngine(db, { minEvidence: 3, confirmThreshold: 0.10, rejectThreshold: 0.5 });
       this.researchEngine.setHypothesisEngine(hypothesisEngine);
       logger.info('HypothesisEngine wired into marketing research');
     } catch (err) {
@@ -153,6 +155,17 @@ export class MarketingCore {
     }
     this.researchEngine.start();
     logger.info(`Research engine started (interval: ${config.research.intervalMs}ms)`);
+
+    // 9b. TransferEngine for cross-brain knowledge transfer
+    try {
+      this.transferEngine = new TransferEngine(db, { brainName: 'marketing-brain' });
+      this.transferEngine.seedDefaultRules();
+      this.researchEngine.setTransferEngine(this.transferEngine);
+      services.transferEngine = this.transferEngine;
+      logger.info('TransferEngine wired into marketing brain');
+    } catch (err) {
+      logger.warn(`TransferEngine setup failed (non-critical): ${(err as Error).message}`);
+    }
 
     // Expose learning engine + cross-brain to IPC
     services.learning = this.learningEngine;
@@ -262,6 +275,7 @@ export class MarketingCore {
     this.dashboardServer = null;
     this.learningEngine = null;
     this.researchEngine = null;
+    this.transferEngine = null;
   }
 
   restart(): void {

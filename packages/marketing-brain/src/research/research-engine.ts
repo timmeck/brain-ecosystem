@@ -7,10 +7,12 @@ import type { InsightRepository } from '../db/repositories/insight.repository.js
 import type { SynapseManager } from '../synapses/synapse-manager.js';
 import { engagementScore } from '../learning/confidence-scorer.js';
 import { BaseResearchEngine } from '@timmeck/brain-core';
-import type { HypothesisEngine } from '@timmeck/brain-core';
+import type { HypothesisEngine, TransferEngine } from '@timmeck/brain-core';
 
 export class ResearchEngine extends BaseResearchEngine {
   private hypothesisEngine: HypothesisEngine | null = null;
+  private transferEngine: TransferEngine | null = null;
+  private cycleCount = 0;
 
   constructor(
     private config: ResearchConfig,
@@ -26,6 +28,10 @@ export class ResearchEngine extends BaseResearchEngine {
 
   setHypothesisEngine(engine: HypothesisEngine): void {
     this.hypothesisEngine = engine;
+  }
+
+  setTransferEngine(engine: TransferEngine): void {
+    this.transferEngine = engine;
   }
 
   runCycle(): void {
@@ -66,6 +72,31 @@ export class ResearchEngine extends BaseResearchEngine {
       const confirmed = testResults.filter(r => r.newStatus === 'confirmed');
       if (confirmed.length > 0) {
         this.logger.info(`Hypotheses confirmed: ${confirmed.length}`);
+      }
+    }
+
+    // Cross-domain transfer analysis (every 5 cycles)
+    this.cycleCount++;
+    if (this.transferEngine && this.cycleCount % 5 === 0) {
+      try {
+        const { analogies, proposals } = this.transferEngine.analyze();
+        if (analogies.length > 0 || proposals.length > 0) {
+          this.logger.info(`Transfer: ${analogies.length} analogies, ${proposals.length} proposals`);
+        }
+        // Auto-adopt pending transfers
+        const pending = this.transferEngine.getPendingTransfers();
+        let applied = 0;
+        for (const transfer of pending.slice(0, 3)) {
+          if (transfer.id) {
+            this.transferEngine.applyTransfer(transfer.id);
+            applied++;
+          }
+        }
+        if (applied > 0) {
+          this.logger.info(`Adopted ${applied} knowledge transfer(s) from peers`);
+        }
+      } catch (err) {
+        this.logger.error(`Transfer analysis error: ${(err as Error).message}`);
       }
     }
 
