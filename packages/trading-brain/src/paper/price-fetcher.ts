@@ -30,10 +30,11 @@ export class PriceFetcher {
   private readonly OHLCV_INTERVAL = 900_000; // 15 minutes
   private logger = getLogger();
 
-  // Rate limiting
-  private consecutiveErrors = 0;
-  private readonly MAX_CONSECUTIVE_ERRORS = 5;
-  private backoffMs = 0;
+  // Per-provider rate limiting
+  private providerErrors = new Map<string, number>();
+  private providerBackoff = new Map<string, number>();
+  private readonly MAX_CONSECUTIVE_ERRORS = 3;
+  private readonly MAX_BACKOFF_MS = 30_000;
 
   constructor(
     private config: PaperConfig,
@@ -77,7 +78,8 @@ export class PriceFetcher {
 
   private async fetchCryptoPrices(): Promise<void> {
     if (this.config.cryptoIds.length === 0) return;
-    if (this.backoffMs > 0) await this.delay(this.backoffMs);
+    const backoff = this.getBackoff('coingecko');
+    if (backoff > 0) await this.delay(backoff);
 
     try {
       const ids = this.config.cryptoIds.join(',');
@@ -85,7 +87,7 @@ export class PriceFetcher {
       const response = await fetch(url);
 
       if (!response.ok) {
-        this.recordError();
+        this.recordProviderError('coingecko');
         this.logger.warn(`CoinGecko price fetch failed: ${response.status}`);
         return;
       }
@@ -97,17 +99,21 @@ export class PriceFetcher {
         }
       }
 
-      this.recordSuccess();
+      this.recordProviderSuccess('coingecko');
       this.logger.debug(`Fetched ${Object.keys(data).length} crypto prices`);
     } catch (err) {
-      this.recordError();
+      this.recordProviderError('coingecko');
       this.logger.warn(`CoinGecko price error: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
   private async fetchStockPrices(): Promise<void> {
     if (this.config.stockSymbols.length === 0) return;
-    if (this.backoffMs > 0) await this.delay(this.backoffMs);
+    const backoff = this.getBackoff('yahoo');
+    if (backoff > 0) await this.delay(backoff);
+
+    let successes = 0;
+    let failures = 0;
 
     for (const symbol of this.config.stockSymbols) {
       try {
@@ -120,8 +126,8 @@ export class PriceFetcher {
         });
 
         if (!response.ok) {
-          this.recordError();
-          this.logger.warn(`Yahoo Finance ${symbol}: ${response.status}`);
+          failures++;
+          this.logger.debug(`Yahoo Finance ${symbol}: ${response.status}`);
           continue;
         }
 
@@ -140,31 +146,38 @@ export class PriceFetcher {
           }
         }
 
-        this.recordSuccess();
+        successes++;
       } catch (err) {
-        this.recordError();
-        this.logger.warn(`Yahoo ${symbol} error: ${err instanceof Error ? err.message : String(err)}`);
+        failures++;
+        this.logger.debug(`Yahoo ${symbol} error: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
-    this.logger.debug(`Fetched stock prices for ${this.config.stockSymbols.length} symbols`);
+    // Track provider-level success/failure (not per-symbol)
+    if (successes > 0) {
+      this.recordProviderSuccess('yahoo');
+    } else if (failures > 0) {
+      this.recordProviderError('yahoo');
+    }
+
+    this.logger.debug(`Stock prices: ${successes} ok, ${failures} failed`);
   }
 
   private async fetchOHLCVData(): Promise<void> {
-    if (this.backoffMs > 0) await this.delay(this.backoffMs);
-
     // Crypto OHLCV from CoinGecko
+    const cgBackoff = this.getBackoff('coingecko');
+    if (cgBackoff > 0) await this.delay(cgBackoff);
+
+    let cgOk = 0, cgFail = 0;
     for (const id of this.config.cryptoIds) {
       try {
-        // Rate limit: 1.5s between CoinGecko OHLCV calls
         await this.delay(1500);
-
         const url = `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=1`;
         const response = await fetch(url);
 
         if (!response.ok) {
-          this.recordError();
-          this.logger.warn(`CoinGecko OHLCV ${id}: ${response.status}`);
+          cgFail++;
+          this.logger.debug(`CoinGecko OHLCV ${id}: ${response.status}`);
           continue;
         }
 
@@ -172,47 +185,44 @@ export class PriceFetcher {
         if (!Array.isArray(data)) continue;
 
         const candles: OHLCVCandle[] = data.map(d => ({
-          timestamp: d[0]!,
-          open: d[1]!,
-          high: d[2]!,
-          low: d[3]!,
-          close: d[4]!,
-          volume: 0,
+          timestamp: d[0]!, open: d[1]!, high: d[2]!, low: d[3]!, close: d[4]!, volume: 0,
         }));
 
         if (candles.length > 0) {
           this.candleCache.set(id, this.mergeCandles(id, candles));
           this.repo.savePrices(id, candles);
         }
-
-        this.recordSuccess();
+        cgOk++;
       } catch (err) {
-        this.recordError();
-        this.logger.warn(`CoinGecko OHLCV ${id} error: ${err instanceof Error ? err.message : String(err)}`);
+        cgFail++;
+        this.logger.debug(`CoinGecko OHLCV ${id} error: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
+    if (cgOk > 0) this.recordProviderSuccess('coingecko');
+    else if (cgFail > 0) this.recordProviderError('coingecko');
 
     // Stock OHLCV from Yahoo
+    const yhBackoff = this.getBackoff('yahoo');
+    if (yhBackoff > 0) await this.delay(yhBackoff);
+
+    let yhOk = 0, yhFail = 0;
     for (const symbol of this.config.stockSymbols) {
       try {
-        // Rate limit: 500ms between Yahoo calls
         await this.delay(500);
-
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=5d&interval=5m`;
         const response = await fetch(url, {
           headers: { 'User-Agent': 'TradingBrain/1.0' },
         });
 
         if (!response.ok) {
-          this.recordError();
-          this.logger.warn(`Yahoo OHLCV ${symbol}: ${response.status}`);
+          yhFail++;
+          this.logger.debug(`Yahoo OHLCV ${symbol}: ${response.status}`);
           continue;
         }
 
         const data = await response.json() as YahooChartResult;
         const result = data?.chart?.result?.[0];
         if (!result?.timestamp) continue;
-
         const quotes = result.indicators?.quote?.[0];
         if (!quotes) continue;
 
@@ -235,13 +245,14 @@ export class PriceFetcher {
           this.candleCache.set(symbol, this.mergeCandles(symbol, candles));
           this.repo.savePrices(symbol, candles);
         }
-
-        this.recordSuccess();
+        yhOk++;
       } catch (err) {
-        this.recordError();
-        this.logger.warn(`Yahoo OHLCV ${symbol} error: ${err instanceof Error ? err.message : String(err)}`);
+        yhFail++;
+        this.logger.debug(`Yahoo OHLCV ${symbol} error: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
+    if (yhOk > 0) this.recordProviderSuccess('yahoo');
+    else if (yhFail > 0) this.recordProviderError('yahoo');
 
     // Prune old cache
     const twoDaysAgo = Date.now() - 2 * 24 * 60 * 60 * 1000;
@@ -263,17 +274,23 @@ export class PriceFetcher {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  private recordError(): void {
-    this.consecutiveErrors++;
-    if (this.consecutiveErrors >= this.MAX_CONSECUTIVE_ERRORS) {
-      this.backoffMs = Math.min(30_000, 2_000 * Math.pow(2, this.consecutiveErrors - this.MAX_CONSECUTIVE_ERRORS));
-      this.logger.warn(`API rate limit backoff: ${this.backoffMs}ms after ${this.consecutiveErrors} consecutive errors`);
+  private getBackoff(provider: string): number {
+    return this.providerBackoff.get(provider) ?? 0;
+  }
+
+  private recordProviderError(provider: string): void {
+    const errors = (this.providerErrors.get(provider) ?? 0) + 1;
+    this.providerErrors.set(provider, errors);
+    if (errors >= this.MAX_CONSECUTIVE_ERRORS) {
+      const backoff = Math.min(this.MAX_BACKOFF_MS, 2_000 * Math.pow(2, errors - this.MAX_CONSECUTIVE_ERRORS));
+      this.providerBackoff.set(provider, backoff);
+      this.logger.warn(`${provider} backoff: ${backoff}ms after ${errors} consecutive failures`);
     }
   }
 
-  private recordSuccess(): void {
-    this.consecutiveErrors = 0;
-    this.backoffMs = 0;
+  private recordProviderSuccess(provider: string): void {
+    this.providerErrors.set(provider, 0);
+    this.providerBackoff.set(provider, 0);
   }
 
   private loadCacheFromDb(): void {

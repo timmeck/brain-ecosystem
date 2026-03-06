@@ -12,7 +12,7 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem ist ein System aus drei spezialisierten "Brains", verbunden durch ein Hebbsches Synapsen-Netzwerk. 60+ autonome Engines laufen in Feedback-Loops — beobachten, erkennen Anomalien, bilden Hypothesen, testen sie statistisch, destillieren Prinzipien, träumen, debattieren, denken in Ketten, fühlen Emotionen, entwickeln Strategien genetisch weiter und modifizieren ihren eigenen Quellcode. Multi-Provider LLM-Support (Anthropic + Ollama). Live-Marktdaten via CCXT WebSocket. Social Feeds via Bluesky + Reddit. Web-Recherche via Brave Search + Playwright + Firecrawl. Borg Collective Sync. Plugin SDK für Community Brains. Advocatus Diaboli Prinzip-Challenges. 398+ MCP Tools. 2888 Tests. Das Brain denkt buchstäblich über sich selbst nach, wird neugierig, führt Experimente durch und schreibt Code um sich zu verbessern.
+Brain Ecosystem ist ein System aus drei spezialisierten "Brains", verbunden durch ein Hebbsches Synapsen-Netzwerk. 60+ autonome Engines laufen in Feedback-Loops — beobachten, erkennen Anomalien, bilden Hypothesen, testen sie statistisch, destillieren Prinzipien, träumen, debattieren, denken in Ketten, fühlen Emotionen, entwickeln Strategien genetisch weiter und modifizieren ihren eigenen Quellcode. Multi-Provider LLM-Support (Anthropic + Ollama). Live-Marktdaten via CCXT WebSocket. Social Feeds via Bluesky + Reddit. Web-Recherche via Brave Search + Playwright + Firecrawl. Borg Collective Sync. Plugin SDK für Community Brains. Advocatus Diaboli Prinzip-Challenges. RAG-Vektorsuche über alles Wissen. Knowledge Graph mit transitiver Inferenz. Semantische Kompression. RLHF Feedback-Lernen. Proaktive Vorschläge. Inter-Brain Teaching. Multi-Brain Konsens-Abstimmung. Aktives Lernen mit Wissenslücken-Erkennung. 419+ MCP Tools. 3041 Tests. Das Brain denkt buchstäblich über sich selbst nach, wird neugierig, führt Experimente durch und schreibt Code um sich zu verbessern.
 
 ## Pakete
 
@@ -60,16 +60,23 @@ Die meisten KI-Tools vergessen alles zwischen den Sessions. Brain nicht. Es baut
 
 ### Was ist neu
 
-- **Autonome Loops** — DataScout periodisches Scanning, CCXT WebSocket Auto-Connect, CuriosityEngine Auto-Missionen, Social Feed Polling
-- **SelfMod CLI** — `brain selfmod list/pending/show/approve/reject/status` zur Verwaltung von Selbst-Modifikationen mit Git-Backup
-- **DataScout** — Automatisierte Datensammlung mit geplanten Scans alle 6 Stunden
-- **Dashboard i18n** — Command Center unterstützt Englisch (Standard) und Deutsch mit Ein-Klick-Sprachwechsel
+- **RAG-Pipeline** — Universelle Vektorsuche über alles Wissen (Insights, Memories, Prinzipien, Fehler, Lösungen, Regeln) mit LLM-basiertem Reranking
+- **Knowledge Graph** — Typisierte Subjekt-Prädikat-Objekt-Tripel mit transitiver Inferenz, Widerspruchserkennung und automatischer Faktenextraktion
+- **Semantische Kompression** — Periodisches Clustering und Zusammenführung ähnlicher Insights zu Meta-Insights
+- **RLHF Feedback** — Explizite Reward-Signale (positiv/negativ/Korrektur) die Synapsen-Gewichte, Insight-Prioritäten und Regel-Konfidenz anpassen
+- **Tool-Use Learning** — Trackt Tool-Ergebnisse, empfiehlt Tools basierend auf Kontext, erkennt Tool-Sequenzen via Markov-Ketten
+- **Proaktive Vorschläge** — Erkennt wiederkehrende Fehler, ungenutztes Wissen, veraltete Insights und Performance-Trends
+- **User Modeling** — Inferiert Skill-Domänen, Arbeitsmuster und Kommunikationsstil aus Interaktionen
+- **Code Health Monitor** — Periodische Codebase-Scans: Komplexitätstrends, Duplikaterkennung, Dependency-Gesundheit, Tech-Debt-Score
+- **Inter-Brain Teaching** — Brains teilen ihre stärksten Prinzipien miteinander, bewertet nach Relevanz vor Akzeptanz
+- **Konsens-Entscheidungen** — Multi-Brain-Abstimmung für High-Risk-Entscheidungen mit Mehrheits-/Supermehrheits-/Veto-Regeln
+- **Aktives Lernen** — Intelligentes Gap-Closing: Forschungsmissionen, gezielte User-Fragen, Experimente, Lehranfragen
 
 ## Was es kann
 
 ### Brain — Fehler-Gedächtnis, Code-Intelligenz & volle Autonomie
 
-137 MCP Tools. Merkt sich Fehler, lernt Lösungen, führt 40-Schritt autonome Forschungszyklen durch, träumt, debattiert, hinterfragt Prinzipien (Advocatus Diaboli), denkt, fühlt und modifiziert seinen eigenen Code.
+158 MCP Tools. Merkt sich Fehler, lernt Lösungen, führt 40-Schritt autonome Forschungszyklen durch, träumt, debattiert, hinterfragt Prinzipien (Advocatus Diaboli), denkt, fühlt und modifiziert seinen eigenen Code.
 
 ### Trading Brain — Adaptive Trading-Intelligenz
 
@@ -96,7 +103,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installiert alle Workspace-Abhängigkeiten
 npm run build        # baut alle Pakete (brain-core zuerst)
-npm test             # führt alle 2888 Tests aus
+npm test             # führt alle 3041 Tests aus
 ```
 
 ## Support

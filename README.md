@@ -12,7 +12,7 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 60+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Advocatus Diaboli principle challenges. 398+ MCP tools. 2888 tests. The brain literally thinks about itself, gets curious, runs experiments, and writes code to improve itself.
+Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 60+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Advocatus Diaboli principle challenges. RAG vector search across all knowledge. Knowledge Graph with transitive inference. Semantic compression. RLHF feedback learning. Proactive suggestions. Inter-brain teaching. Multi-brain consensus voting. Active learning with gap detection. 419+ MCP tools. 3041 tests. The brain literally thinks about itself, gets curious, runs experiments, and writes code to improve itself.
 
 ## Packages
 
@@ -60,16 +60,23 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 ### What's New
 
-- **Autonomous Loops** — DataScout periodic scanning, CCXT WebSocket auto-connect, CuriosityEngine auto-missions, Social Feed polling
-- **SelfMod CLI** — `brain selfmod list/pending/show/approve/reject/status` for managing self-modifications with git backup
-- **DataScout** — Automated data gathering with scheduled scans every 6 hours
-- **Dashboard i18n** — Command Center supports English (default) and German with a one-click language toggle
+- **RAG Pipeline** — Universal vector search across all knowledge (insights, memories, principles, errors, solutions, rules) with LLM-based reranking
+- **Knowledge Graph** — Typed subject-predicate-object triples with transitive inference, contradiction detection, and automatic fact extraction
+- **Semantic Compression** — Periodic clustering and merging of similar insights into meta-insights, reducing noise while preserving signal
+- **RLHF Feedback** — Explicit reward signals (positive/negative/correction) that adjust synapse weights, insight priorities, and rule confidence
+- **Tool-Use Learning** — Tracks tool outcomes (success/failure/partial), recommends tools based on context, detects tool sequences via Markov chains
+- **Proactive Suggestions** — Detects recurring errors, unused knowledge, stale insights, and performance trends — suggests fixes without being asked
+- **User Modeling** — Infers skill domains, work patterns, and communication style from interactions — adapts response detail level
+- **Code Health Monitor** — Periodic codebase scans: complexity trends, duplication detection, dependency health, tech debt scoring
+- **Inter-Brain Teaching** — Brains share their strongest principles with each other, evaluated by relevance before acceptance
+- **Consensus Decisions** — Multi-brain voting for high-risk decisions (SelfMod, strategy changes) with majority/supermajority/veto rules
+- **Active Learning** — Intelligent gap-closing: research missions, targeted user questions, experiments, teach requests, passive observation
 
 ## What It Does
 
 ### Brain — Error Memory, Code Intelligence & Full Autonomy
 
-137 MCP tools. Remembers errors, learns solutions, runs 40-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, and modifies its own code.
+158 MCP tools. Remembers errors, learns solutions, runs 40-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, and modifies its own code.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
@@ -149,6 +156,17 @@ Brain Core provides the building blocks all brains share:
 | **Borg Sync** | Collective knowledge sharing between all brains |
 | **Plugin SDK** | Community brain plugins with lifecycle hooks |
 | **Debate Engine** | Multi-perspective debates + Advocatus Diaboli challenges |
+| **RAG** | Universal vector search with embedding indexing + LLM reranking |
+| **Knowledge Graph** | Typed triples with transitive inference + contradiction detection |
+| **Feedback** | RLHF reward signals adjusting synapses, priorities, confidence |
+| **Tool Learning** | Tool outcome tracking, context-based recommendations, Markov chains |
+| **Proactive** | Recurring error detection, unused knowledge alerts, trend warnings |
+| **User Model** | Skill inference, work patterns, adaptive response detail |
+| **Code Health** | Complexity trends, duplication, dependency health, tech debt score |
+| **Teaching** | Inter-brain knowledge sharing with relevance filtering |
+| **Consensus** | Multi-brain voting for high-risk decisions |
+| **Active Learning** | Intelligent gap detection + multi-strategy gap closing |
+| **Semantic Compression** | Insight deduplication via clustering + LLM summarization |
 
 ## Architecture
 
@@ -242,7 +260,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installs all workspace dependencies
 npm run build        # builds all packages (brain-core first)
-npm test             # runs all 2888 tests
+npm test             # runs all 3041 tests
 ```
 
 ### Package Dependencies
@@ -268,7 +286,7 @@ brain-core          (no internal deps)
 - **Playwright** — Headless browser for web research
 - **Commander** — CLI framework
 - **Winston** — Structured logging with file rotation
-- **Vitest** — 2888 tests across 220 test files
+- **Vitest** — 3041 tests across 231 test files
 
 ## Docker (Optional)
 

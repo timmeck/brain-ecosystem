@@ -48,9 +48,11 @@ export function createLogger(opts?: LoggerOptions): winston.Logger {
     const consoleTransport = new winston.transports.Console({
       format: combine(colorize(), timestamp(), logFormat),
     });
-    // Silently swallow EPIPE errors (closed pipe in daemon mode)
+    // On EPIPE (closed pipe in daemon mode), remove the console transport entirely
     consoleTransport.on('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'EPIPE') return;
+      if (err.code === 'EPIPE' && loggerInstance) {
+        loggerInstance.remove(consoleTransport);
+      }
     });
     transports.push(consoleTransport);
   }
