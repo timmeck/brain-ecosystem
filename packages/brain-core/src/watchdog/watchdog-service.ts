@@ -53,6 +53,7 @@ export class WatchdogService {
   private daemons: Map<string, DaemonState> = new Map();
   private healthTimer: ReturnType<typeof setInterval> | null = null;
   private running = false;
+  private monitorOnly = false;
   private logger = getLogger();
 
   private maxRestarts: number;
@@ -96,6 +97,38 @@ export class WatchdogService {
         this.logger.error(`Health check error: ${err}`),
       );
     }, this.healthCheckIntervalMs);
+  }
+
+  /** Monitor-only mode: detect already-running daemons via PID files and run health checks,
+   *  but do NOT spawn new daemons. Use this when the Brain process itself is one of the daemons. */
+  startMonitoring(): void {
+    if (this.running) return;
+    this.running = true;
+    this.monitorOnly = true;
+    this.logger.info(`Watchdog monitoring mode (${this.daemons.size} daemons)`);
+
+    // Detect already-running daemons via PID files
+    for (const [name, state] of this.daemons) {
+      const existingPid = this.readPid(state.config.pidPath);
+      if (existingPid && this.isProcessAlive(existingPid)) {
+        state.pid = existingPid;
+        state.running = true;
+        state.startedAt = Date.now();
+        this.logger.info(`${name} detected (PID: ${existingPid})`);
+      }
+    }
+
+    // Start health check loop
+    this.healthTimer = setInterval(() => {
+      this.checkHealth().catch(err =>
+        this.logger.error(`Health check error: ${err}`),
+      );
+    }, this.healthCheckIntervalMs);
+
+    // Run first health check immediately
+    this.checkHealth().catch(err =>
+      this.logger.error(`Initial health check error: ${err}`),
+    );
   }
 
   /** Stop all daemons and health monitoring. */
@@ -251,7 +284,19 @@ export class WatchdogService {
   /** Health check — ping each daemon via IPC. */
   private async checkHealth(): Promise<void> {
     for (const [name, state] of this.daemons) {
-      if (!state.running || !state.pid) {
+      // In monitor mode, try to detect newly-started daemons via PID file
+      if ((!state.running || !state.pid) && this.monitorOnly) {
+        const pid = this.readPid(state.config.pidPath);
+        if (pid && this.isProcessAlive(pid)) {
+          state.pid = pid;
+          state.running = true;
+          state.startedAt = state.startedAt ?? Date.now();
+          this.logger.info(`${name} detected (PID: ${pid})`);
+        } else {
+          state.healthy = false;
+          continue;
+        }
+      } else if (!state.running || !state.pid) {
         state.healthy = false;
         continue;
       }
@@ -261,7 +306,7 @@ export class WatchdogService {
         state.healthy = false;
         state.running = false;
         this.logger.warn(`${name} PID ${state.pid} no longer alive`);
-        if (this.running) this.launchDaemon(name);
+        if (this.running && !this.monitorOnly) this.launchDaemon(name);
         continue;
       }
 

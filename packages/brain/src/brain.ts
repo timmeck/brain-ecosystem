@@ -995,9 +995,10 @@ export class BrainCore {
     services.unifiedServer = this.unifiedServer;
     logger.info('Unified Mission Control dashboard on :7788');
 
-    // 11c. Watchdog — monitoring only (not spawning daemons)
+    // 11c. Watchdog — monitoring only (detect peers via PID, run health checks)
     const watchdogConfig = createDefaultWatchdogConfig();
     const watchdog = new WatchdogService(watchdogConfig);
+    watchdog.startMonitoring();
     services.watchdog = watchdog;
 
     // 11d. Plugin Registry (created synchronously, loadAll is async — runs after IPC setup)

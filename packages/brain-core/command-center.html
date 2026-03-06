@@ -944,16 +944,18 @@ function renderGrid(id, engines, showBrain = false) {
   const el = document.getElementById(id); if (!el) return;
   if (!engines.length) { el.innerHTML = '<div class="empty">Keine Engines</div>'; return; }
   el.innerHTML = engines.map(e => {
-    const st = e.lastActivity && (Date.now() - e.lastActivity < 60000) ? 'active' : e.thoughtCount > 0 ? 'idle' : 'off';
+    const lastTs = e.lastActive || e.lastActivity || 0;
+    const count = e.metrics?.totalThoughts ?? e.thoughtCount ?? 0;
+    const st = lastTs && (Date.now() - lastTs < 60000) ? 'active' : count > 0 ? 'idle' : 'off';
     const lbl = showBrain && e.brain ? `${e.brain}/${e.engine}` : (e.engine || e.name || '?');
-    return `<div class="engine-chip"><span class="engine-dot ${st}"></span><span class="engine-name" title="${lbl}">${lbl}</span><span class="engine-count">${e.thoughtCount || 0}</span></div>`;
+    return `<div class="engine-chip"><span class="engine-dot ${st}"></span><span class="engine-name" title="${lbl}">${lbl}</span><span class="engine-count">${count}</span></div>`;
   }).join('');
 }
 
 function updateLearningPipeline(engines) {
   let d=0,a=0,h=0,e=0,p=0,ac=0;
   for (const x of engines) {
-    const n = (x.engine||'').toLowerCase(), c = x.thoughtCount||0;
+    const n = (x.engine||'').toLowerCase(), c = x.metrics?.totalThoughts ?? x.thoughtCount ?? 0;
     if (n.includes('data')||n.includes('scout')||n.includes('miner')||n.includes('scanner')) d+=c;
     else if (n.includes('anomaly')||n.includes('observer')||n.includes('causal')) a+=c;
     else if (n.includes('hypothesis')) h+=c;

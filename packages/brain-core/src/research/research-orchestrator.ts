@@ -126,6 +126,8 @@ export class ResearchOrchestrator {
   private lastSuggestionsHash = '';
   /** Cycle number of last written suggestions — write at most once per cycle. */
   private lastSuggestionsCycle = -1;
+  /** Recent debate topic keys to prevent repeating the same debate. */
+  private recentDebateTopics: string[] = [];
 
   constructor(db: Database.Database, config: ResearchOrchestratorConfig, causalGraph?: CausalGraph) {
     this.db = db;
@@ -1804,32 +1806,46 @@ export class ResearchOrchestrator {
   /** Analyze Brain's own state and generate concrete improvement suggestions.
    *  Tracks suggestion history — if a suggestion repeats 3+ times without resolution,
    *  Brain tries alternative strategies instead of repeating itself. */
-  /** Pick a debate topic from recent attention, anomalies, or journal insights. */
+  /** Pick a debate topic from recent attention, anomalies, or journal insights.
+   *  Avoids repeating the same topic within the last 10 debates. */
   private pickDebateTopic(): string | null {
-    // Try attention-based topics first
+    const maxHistory = 10;
+    const isRecent = (key: string) => this.recentDebateTopics.includes(key);
+    const recordTopic = (key: string, topic: string) => {
+      this.recentDebateTopics.push(key);
+      if (this.recentDebateTopics.length > maxHistory) this.recentDebateTopics.shift();
+      return topic;
+    };
+
+    // Try attention-based topics — pick first non-recent one
     if (this.attentionEngine) {
       try {
-        const topics = this.attentionEngine.getTopTopics(3);
-        if (topics.length > 0) {
-          return `What should ${this.brainName} prioritize regarding "${topics[0].topic}"?`;
+        const topics = this.attentionEngine.getTopTopics(5);
+        for (const t of topics) {
+          if (!isRecent(`attention:${t.topic}`)) {
+            return recordTopic(`attention:${t.topic}`, `What should ${this.brainName} prioritize regarding "${t.topic}"?`);
+          }
         }
       } catch { /* not wired */ }
     }
 
-    // Try recent anomalies
+    // Try recent anomalies — pick first non-recent one
     try {
       const anomalies = this.anomalyDetective.getAnomalies(undefined, 5);
-      if (anomalies.length > 0) {
-        return `How should we respond to the anomaly: "${anomalies[0].title}"?`;
+      for (const a of anomalies) {
+        if (!isRecent(`anomaly:${a.title}`)) {
+          return recordTopic(`anomaly:${a.title}`, `How should we respond to the anomaly: "${a.title}"?`);
+        }
       }
     } catch { /* empty */ }
 
     // Try recent journal breakthroughs
     try {
       const entries = this.journal.search('breakthrough', 5);
-      const breakthrough = entries.find(e => e.significance === 'breakthrough');
-      if (breakthrough) {
-        return `What are the implications of: "${breakthrough.title}"?`;
+      for (const e of entries) {
+        if (e.significance === 'breakthrough' && !isRecent(`journal:${e.title}`)) {
+          return recordTopic(`journal:${e.title}`, `What are the implications of: "${e.title}"?`);
+        }
       }
     } catch { /* empty */ }
 
@@ -2157,8 +2173,13 @@ export class ResearchOrchestrator {
         history.count++;
         history.lastCycle = this.cycleCount;
 
+        // Max repeats: after stalledThreshold + alternatives exhausted twice, suppress silently
+        const maxRepeats = this.stalledThreshold + Math.max(item.alternatives.length, 1) * 2;
         if (history.count <= this.stalledThreshold) {
           suggestions.push(item.suggestion);
+        } else if (history.count > maxRepeats) {
+          // Silently suppress — user has seen this enough times
+          continue;
         } else if (item.alternatives.length > 0) {
           const altIndex = (history.count - this.stalledThreshold - 1) % item.alternatives.length;
           const alt = item.alternatives[altIndex];

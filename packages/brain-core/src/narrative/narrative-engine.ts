@@ -428,7 +428,7 @@ export class NarrativeEngine {
     const confirmed = hypotheses.filter(h => h.status === 'confirmed');
     for (const h of confirmed) {
       for (const a of antiPatterns) {
-        if (this.topicOverlap(h.statement, a.statement) > 0.45) {
+        if (this.topicOverlap(h.statement, a.statement) >= 0.5) {
           contradictions.push({
             id: idCounter++,
             type: 'hypothesis_vs_antipattern',
@@ -447,7 +447,7 @@ export class NarrativeEngine {
     const rejected = hypotheses.filter(h => h.status === 'rejected');
     for (const c of confirmed) {
       for (const r of rejected) {
-        if (this.topicOverlap(c.statement, r.statement) > 0.45) {
+        if (this.topicOverlap(c.statement, r.statement) >= 0.5) {
           contradictions.push({
             id: idCounter++,
             type: 'hypothesis_vs_hypothesis',
@@ -505,7 +505,7 @@ export class NarrativeEngine {
       const sev = { high: 3, medium: 2, low: 1 };
       return (sev[b.severity] ?? 0) - (sev[a.severity] ?? 0);
     });
-    const capped = contradictions.slice(0, 50);
+    const capped = contradictions.slice(0, 20);
 
     this.thoughtStream?.emit('narrative', 'discovering',
       `Found ${capped.length} contradictions (${capped.filter(c => c.severity === 'high').length} high severity)`,
@@ -829,8 +829,8 @@ export class NarrativeEngine {
   }
 
   private seemsContradictory(a: string, b: string): boolean {
-    // Simple heuristic: if statements share >30% words but contain negation/opposite signals
-    if (this.topicOverlap(a, b) < 0.4) return false;
+    // Simple heuristic: if statements share >55% words but contain negation/opposite signals
+    if (this.topicOverlap(a, b) < 0.55) return false;
     const negations = ['not', 'never', 'no', 'decrease', 'reduce', 'lower', 'worse', 'fail', 'nicht', 'nie', 'kein'];
     const aHasNeg = negations.some(n => a.toLowerCase().includes(n));
     const bHasNeg = negations.some(n => b.toLowerCase().includes(n));
