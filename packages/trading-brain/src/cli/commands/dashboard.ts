@@ -141,6 +141,26 @@ export function dashboardCommand(): Command {
           html = html.replace(`{{${plural}}}`, insHtml);
         }
 
+        // Paper Trading
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ps: any = await client.request('paper.status', {});
+          if (ps?.enabled) {
+            html = html.replace('{{PAPER_STATUS}}', ps.running ? (ps.paused ? 'PAUSED' : 'RUNNING') : 'STOPPED');
+            html = html.replace('{{PAPER_BALANCE}}', `$${(ps.balance ?? 0).toFixed(2)}`);
+            html = html.replace('{{PAPER_EQUITY}}', `$${(ps.equity ?? 0).toFixed(2)}`);
+            const portfolioPnl = (ps.equity ?? 0) - (ps.startingBalance ?? 10000);
+            const pSign = portfolioPnl >= 0 ? '+' : '';
+            html = html.replace('{{PAPER_PNL}}', `${pSign}$${portfolioPnl.toFixed(2)}`);
+            html = html.replace('{{PAPER_WIN_RATE}}', `${ps.winRate ?? 0}%`);
+            html = html.replace('{{PAPER_TRADES}}', String(ps.closedTrades ?? ps.totalTrades ?? 0));
+            html = html.replace('{{PAPER_POSITIONS}}', String(ps.openPositions ?? 0));
+            html = html.replace('{{PAPER_CYCLES}}', String(ps.cycleCount ?? 0));
+          }
+        } catch { /* paper engine not available */ }
+        // Replace any remaining paper placeholders
+        html = html.replace(/\{\{PAPER_\w+\}\}/g, 'N/A');
+
         // Ecosystem peers
         let peersHtml = '';
         try {

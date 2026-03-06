@@ -152,8 +152,9 @@ export function renderDashboard(template: string, services: DashboardServices): 
     html = html.replace('{{PAPER_STATUS}}', ps.running ? (ps.paused ? 'PAUSED' : 'RUNNING') : 'STOPPED');
     html = html.replace('{{PAPER_BALANCE}}', `$${ps.balance.toFixed(2)}`);
     html = html.replace('{{PAPER_EQUITY}}', `$${ps.equity.toFixed(2)}`);
-    const pnlSign = ps.totalPnl >= 0 ? '+' : '';
-    html = html.replace('{{PAPER_PNL}}', `${pnlSign}$${ps.totalPnl.toFixed(2)}`);
+    const portfolioPnl = ps.equity - (ps.startingBalance ?? 10000);
+    const pnlSign = portfolioPnl >= 0 ? '+' : '';
+    html = html.replace('{{PAPER_PNL}}', `${pnlSign}$${portfolioPnl.toFixed(2)}`);
     html = html.replace('{{PAPER_WIN_RATE}}', `${ps.winRate}%`);
     html = html.replace('{{PAPER_TRADES}}', String(ps.totalTrades));
     html = html.replace('{{PAPER_POSITIONS}}', String(ps.openPositions));
