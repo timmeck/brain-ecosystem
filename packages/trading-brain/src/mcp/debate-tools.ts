@@ -130,4 +130,45 @@ function registerDebateToolsWithCaller(server: McpServer, call: BrainCall): void
       return textResult(lines.join('\n'));
     },
   );
+
+  // ── Advocatus Diaboli: Principle Challenges ──────────
+
+  server.tool(
+    'trading_challenge_principle',
+    'Challenge a trading principle by searching for contradicting evidence (Advocatus Diaboli). Returns resilience score and outcome.',
+    { statement: z.string().describe('The principle statement to challenge') },
+    async (params) => {
+      const c: AnyResult = await call('challenge.principle', { statement: params.statement });
+      const lines = [`# Principle Challenge`, '', `**Statement:** ${c.principleStatement}`, `**Outcome:** ${c.outcome.toUpperCase()} (resilience: ${(c.resilienceScore * 100).toFixed(0)}%)`, ''];
+      if (c.supportingEvidence?.length > 0) { lines.push(`## Supporting Evidence (${c.supportingEvidence.length})`); for (const e of c.supportingEvidence.slice(0, 5)) lines.push(`- ${e}`); lines.push(''); }
+      if (c.contradictingEvidence?.length > 0) { lines.push(`## Contradicting Evidence (${c.contradictingEvidence.length})`); for (const e of c.contradictingEvidence.slice(0, 5)) lines.push(`- ${e}`); lines.push(''); }
+      return textResult(lines.join('\n'));
+    },
+  );
+
+  server.tool(
+    'trading_challenge_history',
+    'View recent trading principle challenges with their outcomes and resilience scores.',
+    { limit: z.number().optional().describe('Max challenges to show (default: 20)') },
+    async (params) => {
+      const challenges: AnyResult[] = await call('challenge.history', { limit: params.limit ?? 20 }) as AnyResult[];
+      if (!challenges?.length) return textResult('No principle challenges yet.');
+      const lines = [`# Principle Challenges: ${challenges.length} entries\n`];
+      for (const c of challenges) { const icon = c.outcome === 'survived' ? '\u2705' : c.outcome === 'weakened' ? '\u26A0\uFE0F' : '\u274C'; lines.push(`${icon} **${c.outcome}** (${(c.resilienceScore * 100).toFixed(0)}%) — ${c.principleStatement.substring(0, 80)}`); }
+      return textResult(lines.join('\n'));
+    },
+  );
+
+  server.tool(
+    'trading_challenge_vulnerable',
+    'Show trading principles with the lowest resilience scores — the most vulnerable beliefs.',
+    { limit: z.number().optional().describe('Max principles to show (default: 5)') },
+    async (params) => {
+      const vulnerable: AnyResult[] = await call('challenge.vulnerable', { limit: params.limit ?? 5 }) as AnyResult[];
+      if (!vulnerable?.length) return textResult('No vulnerable principles found.');
+      const lines = [`# Most Vulnerable Trading Principles\n`];
+      for (const c of vulnerable) { lines.push(`## ${c.principleStatement}`, `Resilience: ${(c.resilienceScore * 100).toFixed(0)}% | Outcome: ${c.outcome}`, `Supporting: ${c.supportingEvidence?.length ?? 0} | Contradicting: ${c.contradictingEvidence?.length ?? 0}`, ''); }
+      return textResult(lines.join('\n'));
+    },
+  );
 }

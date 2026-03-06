@@ -341,4 +341,110 @@ describe('DebateEngine', () => {
     expect(p.arguments.length).toBe(2);
     expect(p.arguments[0].strength).toBeGreaterThanOrEqual(p.arguments[1].strength);
   });
+
+  // ── Advocatus Diaboli: Principle Challenges ──────────
+
+  it('should challenge a principle with no data sources', () => {
+    const result = engine.challenge('Errors always increase at night');
+    expect(result.principleStatement).toBe('Errors always increase at night');
+    expect(result.resilienceScore).toBeDefined();
+    expect(result.outcome).toBeDefined();
+    expect(['survived', 'weakened', 'disproved']).toContain(result.outcome);
+    expect(result.challengeArguments).toBeInstanceOf(Array);
+    expect(result.supportingEvidence).toBeInstanceOf(Array);
+    expect(result.contradictingEvidence).toBeInstanceOf(Array);
+    expect(result.challengedAt).toBeDefined();
+    expect(result.id).toBeGreaterThan(0);
+  });
+
+  it('should mark principle as survived with only supporting evidence', () => {
+    const mockDistiller = {
+      getPackage: () => ({
+        principles: [
+          { id: '1', statement: 'Deploy causes errors', confidence: 0.9, sample_size: 50 },
+          { id: '2', statement: 'Errors happen at deploy time', confidence: 0.85, sample_size: 40 },
+        ],
+        anti_patterns: [],
+        strategies: [],
+      }),
+    };
+    const mockHypothesis = {
+      list: (status: string) => status === 'confirmed'
+        ? [{ statement: 'Deploy correlates with error spikes', status: 'confirmed' }]
+        : [],
+    };
+
+    engine.setDataSources({
+      knowledgeDistiller: mockDistiller as never,
+      hypothesisEngine: mockHypothesis as never,
+    });
+
+    const result = engine.challenge('Deploy causes errors');
+    expect(result.supportingEvidence.length).toBeGreaterThan(0);
+    expect(result.resilienceScore).toBeGreaterThan(0.5);
+    expect(result.outcome).toBe('survived');
+  });
+
+  it('should mark principle as weakened/disproved with contradicting evidence', () => {
+    const mockHypothesis = {
+      list: (status: string) => status === 'rejected'
+        ? [
+            { statement: 'Night errors are just noise' },
+            { statement: 'Night errors correlate with timezone' },
+            { statement: 'Night errors are batch job failures' },
+          ]
+        : [],
+    };
+
+    engine.setDataSources({ hypothesisEngine: mockHypothesis as never });
+
+    const result = engine.challenge('Errors increase at night');
+    expect(result.contradictingEvidence.length).toBeGreaterThan(0);
+    expect(result.resilienceScore).toBeLessThan(0.5);
+    expect(['weakened', 'disproved']).toContain(result.outcome);
+  });
+
+  it('should persist challenges and retrieve history', () => {
+    engine.challenge('Principle A');
+    engine.challenge('Principle B');
+    engine.challenge('Principle C');
+
+    const history = engine.getChallengeHistory(10);
+    expect(history.length).toBe(3);
+    // Most recent first
+    expect(history[0].principleStatement).toBe('Principle C');
+  });
+
+  it('should return most vulnerable principles sorted by resilience', () => {
+    // Create challenges with different resilience scores
+    const mockHigh = {
+      list: (status: string) => status === 'confirmed'
+        ? [{ statement: 'Strong evidence for strong principle' }]
+        : [],
+      getPackage: () => ({ principles: [{ id: '1', statement: 'Strong principle', confidence: 0.95, sample_size: 100 }], anti_patterns: [], strategies: [] }),
+    };
+    engine.setDataSources({ hypothesisEngine: mockHigh as never, knowledgeDistiller: mockHigh as never });
+    engine.challenge('Strong principle');
+
+    // Reset for weak challenge
+    const mockLow = {
+      list: (status: string) => status === 'rejected'
+        ? [{ statement: 'Counter to weak' }, { statement: 'More counter' }]
+        : [],
+    };
+    engine.setDataSources({ hypothesisEngine: mockLow as never, knowledgeDistiller: undefined as never });
+    engine.challenge('Weak principle');
+
+    const vulnerable = engine.getMostVulnerable(5);
+    expect(vulnerable.length).toBe(2);
+    // Lowest resilience first
+    expect(vulnerable[0].resilienceScore).toBeLessThanOrEqual(vulnerable[1].resilienceScore);
+  });
+
+  it('should include challenge stats in getStatus', () => {
+    engine.challenge('Test principle');
+    const status = engine.getStatus();
+    expect(status.totalChallenges).toBe(1);
+    expect(status.vulnerablePrinciples).toHaveLength(1);
+  });
 });

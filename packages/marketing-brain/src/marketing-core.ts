@@ -60,7 +60,7 @@ import { BlueskyProvider } from './social/bluesky-provider.js';
 import { RedditProvider } from './social/reddit-provider.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine, BorgSyncEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine, BorgSyncEngine, DebateEngine } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
 
 export class MarketingCore {
@@ -75,6 +75,7 @@ export class MarketingCore {
   private notifier: CrossBrainNotifier | null = null;
   private transferEngine: TransferEngine | null = null;
   private borgSync: BorgSyncEngine | null = null;
+  private debateEngine: DebateEngine | null = null;
   private config: MarketingBrainConfig | null = null;
   private configPath?: string;
   private restarting = false;
@@ -230,6 +231,16 @@ export class MarketingCore {
     this.borgSync = new BorgSyncEngine('marketing-brain', this.crossBrain!, borgProvider);
     services.borgSync = this.borgSync;
 
+    // 10c. Debate Engine — multi-perspective debates on marketing questions
+    try {
+      const debateEngine = new DebateEngine(db, { brainName: 'marketing-brain', domainDescription: 'content strategy and engagement learning' });
+      this.debateEngine = debateEngine;
+      services.debateEngine = debateEngine;
+      logger.info('DebateEngine wired into marketing brain');
+    } catch (err) {
+      logger.warn(`DebateEngine setup failed (non-critical): ${(err as Error).message}`);
+    }
+
     // 11. IPC Server
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName);
@@ -336,6 +347,7 @@ export class MarketingCore {
     this.researchEngine = null;
     this.transferEngine = null;
     this.borgSync = null;
+    this.debateEngine = null;
   }
 
   restart(): void {

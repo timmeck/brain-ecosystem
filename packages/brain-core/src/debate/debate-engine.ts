@@ -187,7 +187,7 @@ export class DebateEngine {
     this.stmtOpenDebates = db.prepare('SELECT COUNT(*) as cnt FROM debates WHERE status = \'open\' OR status = \'deliberating\'');
     this.stmtSynthesizedDebates = db.prepare('SELECT COUNT(*) as cnt FROM debates WHERE status = \'synthesized\' OR status = \'closed\'');
     this.stmtInsertChallenge = db.prepare('INSERT INTO principle_challenges (principle_id, principle_statement, challenge_arguments, supporting_evidence, contradicting_evidence, resilience_score, outcome) VALUES (?, ?, ?, ?, ?, ?, ?)');
-    this.stmtGetChallengeHistory = db.prepare('SELECT * FROM principle_challenges ORDER BY challenged_at DESC LIMIT ?');
+    this.stmtGetChallengeHistory = db.prepare('SELECT * FROM principle_challenges ORDER BY id DESC LIMIT ?');
     this.stmtGetMostVulnerable = db.prepare('SELECT * FROM principle_challenges ORDER BY resilience_score ASC LIMIT ?');
     this.stmtTotalChallenges = db.prepare('SELECT COUNT(*) as cnt FROM principle_challenges');
 
