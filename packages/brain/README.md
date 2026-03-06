@@ -7,7 +7,7 @@
 
 **Autonomous Error Memory, Code Intelligence & Self-Improving AI for Claude Code — 134 MCP Tools, 60+ Engines**
 
-Brain is an MCP server that gives Claude Code a persistent, self-improving memory. It remembers errors, learns solutions, and runs 60+ autonomous engines in a 40-step feedback cycle. It observes itself, detects anomalies, forms and tests hypotheses, distills principles, reasons in chains, feels emotions, evolves strategies genetically, debates itself, gets curious about knowledge gaps, and modifies its own source code. Multi-provider LLM (Anthropic + Ollama). Autonomous web research missions. Live tech radar scanning. 134 MCP tools. 1401 tests.
+Brain is an MCP server that gives Claude Code a persistent, self-improving memory. It remembers errors, learns solutions, and runs 60+ autonomous engines in a 40-step feedback cycle. It observes itself, detects anomalies, forms and tests hypotheses, distills principles, reasons in chains, feels emotions, evolves strategies genetically, debates itself, challenges its own principles (Advocatus Diaboli), gets curious about knowledge gaps, syncs knowledge via Borg collective, loads community plugins, and modifies its own source code. Multi-provider LLM (Anthropic + Ollama). Autonomous web research missions. Live tech radar scanning. 137 MCP tools. 1407 tests.
 
 ## Quick Start
 
@@ -204,13 +204,13 @@ Automatic anomaly response system:
 | Dashboard | Port | What It Shows |
 |-----------|------|--------------|
 | **Mission Control** | 7788 | 7-tab: Overview, Consciousness Entity, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
-| **Command Center** | 7790 | 7-page: Ecosystem, Learning Pipeline, Trading Flow, Marketing Flow, Cross-Brain & Borg, Activity & Missions, Infrastructure |
+| **Command Center** | 7790 | 8-page: Ecosystem, Learning, Trading, Marketing, Cross-Brain & Borg, Debates & Challenges, Activity & Missions, Infrastructure |
 
 **Mission Control** — The Consciousness Entity visualization shows Brain's current emotional state, active thought streams, engine activity heatmap, and real-time thought generation. CodeGen tab shows pending code proposals. Self-Mod tab shows modification history with diffs.
 
-**Command Center** — Live overview of the entire ecosystem: all 3 brains, 60+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, animated Borg network, peer graph, watchdog daemon monitoring, LLM usage tracking.
+**Command Center** — Live overview of the entire ecosystem: all 3 brains, 60+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, animated Borg network, peer graph, debate history, Advocatus Diaboli challenges with resilience bars, watchdog daemon monitoring, LLM usage tracking.
 
-## MCP Tools (134 tools)
+## MCP Tools (137 tools)
 
 **Error & Code**: brain_report_error, brain_query_error, brain_report_solution, brain_report_attempt, brain_find_reusable_code, brain_register_code, brain_check_code_similarity
 
@@ -218,7 +218,7 @@ Automatic anomaly response system:
 
 **Research Engines** (5 tools each): self_observer, anomaly_detective, cross_domain, adaptive_strategy, experiment, knowledge_distiller, research_agenda, counterfactual, journal
 
-**Dream, Consciousness, Prediction, AutoResponder, Attention, Transfer, Narrative, Curiosity, Emergence, Debate, MetaCognition, Evolution, Reasoning, Emotions, Self-Modification, Ecosystem** — full tool suites for each
+**Dream, Consciousness, Prediction, AutoResponder, Attention, Transfer, Narrative, Curiosity, Emergence, Debate, Challenge (Advocatus Diaboli), MetaCognition, Evolution, Reasoning, Emotions, Self-Modification, Ecosystem, Borg, Plugins** — full tool suites for each
 
 ## CLI Commands
 
@@ -234,6 +234,8 @@ brain dashboard          Generate interactive HTML dashboard
 brain missions           Research mission management (create, list, report)
 brain watchdog           Watchdog daemon status and control
 brain service            Windows service management (install, uninstall, status)
+brain borg               Borg collective sync (status, enable, disable, sync, history)
+brain plugins            Community plugins (list, routes, tools)
 brain export             Export Brain data as JSON
 ```
 

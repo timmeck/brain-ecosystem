@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Self-Learning Marketing Intelligence System for Claude Code — 128 MCP Tools, 60+ Engines**
+**Self-Learning Marketing Intelligence System for Claude Code — 131 MCP Tools, 60+ Engines**
 
 Marketing Brain is an MCP server that gives Claude Code a persistent marketing memory. It tracks every post you publish, learns what works across 6 platforms, and builds a Hebbian synapse network connecting posts, campaigns, strategies, templates, and insights. Live social feeds from Bluesky + Reddit. Over time, it learns your best-performing patterns, generates content drafts, schedules posts, analyzes competitors, and runs 60+ autonomous engines in a 40-step feedback cycle to discover engagement patterns, reason about causality, evolve strategies genetically, and improve itself. Multi-provider LLM (Anthropic + Ollama). 85 tests.
 

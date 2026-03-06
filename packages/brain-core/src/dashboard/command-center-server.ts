@@ -31,6 +31,10 @@ export interface CommandCenterOptions {
   getMissionList?: (status?: string, limit?: number) => unknown;
   getKnowledgeStats?: () => unknown;
   getTimeSeries?: (days?: number) => unknown;
+  getDebateStatus?: () => unknown;
+  getDebateList?: (limit?: number) => unknown;
+  getChallengeHistory?: (limit?: number) => unknown;
+  getChallengeVulnerable?: (limit?: number) => unknown;
   triggerAction?: (action: string, params?: unknown) => Promise<unknown>;
 }
 
@@ -96,6 +100,7 @@ export class CommandCenterServer {
         if (url.pathname === '/api/selfmod') { this.handleSelfMod(res); return; }
         if (url.pathname === '/api/missions') { this.handleMissions(res, url); return; }
         if (url.pathname === '/api/knowledge') { this.handleKnowledge(res); return; }
+        if (url.pathname === '/api/debates') { this.handleDebates(res); return; }
         if (url.pathname === '/api/borg/toggle' && req.method === 'POST') { this.handleBorgToggle(req, res); return; }
         if (url.pathname === '/api/action' && req.method === 'POST') { this.handleAction(req, res); return; }
         if (url.pathname === '/events') { this.handleSSE(req, res); return; }
@@ -211,6 +216,20 @@ export class CommandCenterServer {
       try { this.broadcast('knowledge', this.options.getKnowledgeStats()); } catch { /* ignore */ }
     }, 60_000));
 
+    // Debates (30s)
+    this.timers.push(setInterval(() => {
+      if (this.clients.size === 0) return;
+      if (!this.options.getDebateStatus) return;
+      try {
+        this.broadcast('debates', {
+          status: this.options.getDebateStatus(),
+          recent: this.options.getDebateList?.(5) ?? [],
+          challenges: this.options.getChallengeHistory?.(10) ?? [],
+          vulnerable: this.options.getChallengeVulnerable?.(5) ?? [],
+        });
+      } catch { /* ignore */ }
+    }, 30_000));
+
     // Heartbeat (30s)
     this.timers.push(setInterval(() => {
       if (this.clients.size > 0) {
@@ -296,8 +315,14 @@ export class CommandCenterServer {
         list: this.options.getMissionList?.() ?? [],
       } : null;
       const knowledge = this.options.getKnowledgeStats?.() ?? null;
+      const debates = this.options.getDebateStatus ? {
+        status: this.options.getDebateStatus(),
+        recent: this.options.getDebateList?.(5) ?? [],
+        challenges: this.options.getChallengeHistory?.(10) ?? [],
+        vulnerable: this.options.getChallengeVulnerable?.(5) ?? [],
+      } : null;
 
-      this.json(res, { ecosystem, engines: engineResults, watchdog, plugins, borg, analytics, llm, thoughts, errors, selfmod, missions, knowledge });
+      this.json(res, { ecosystem, engines: engineResults, watchdog, plugins, borg, analytics, llm, thoughts, errors, selfmod, missions, knowledge, debates });
     } catch (err) {
       this.json(res, { error: (err as Error).message }, 500);
     }
@@ -393,6 +418,19 @@ export class CommandCenterServer {
 
   private handleKnowledge(res: http.ServerResponse): void {
     this.json(res, this.options.getKnowledgeStats?.() ?? { timeSeries: [], totals: null });
+  }
+
+  private handleDebates(res: http.ServerResponse): void {
+    if (!this.options.getDebateStatus) {
+      this.json(res, { status: null, recent: [], challenges: [], vulnerable: [] });
+      return;
+    }
+    this.json(res, {
+      status: this.options.getDebateStatus(),
+      recent: this.options.getDebateList?.(10) ?? [],
+      challenges: this.options.getChallengeHistory?.(20) ?? [],
+      vulnerable: this.options.getChallengeVulnerable?.(5) ?? [],
+    });
   }
 
   private handleBorgToggle(req: http.IncomingMessage, res: http.ServerResponse): void {

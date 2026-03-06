@@ -1067,6 +1067,10 @@ export class BrainCore {
           timeSeries,
         };
       },
+      getDebateStatus: () => this.debateEngine?.getStatus() ?? null,
+      getDebateList: (limit = 10) => this.debateEngine?.listDebates(limit) ?? [],
+      getChallengeHistory: (limit = 20) => this.debateEngine?.getChallengeHistory(limit) ?? [],
+      getChallengeVulnerable: (limit = 5) => this.debateEngine?.getMostVulnerable(limit) ?? [],
       triggerAction: async (action: string) => {
         switch (action) {
           case 'learning-cycle':

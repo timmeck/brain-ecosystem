@@ -8,7 +8,7 @@
 
 **An autonomous AI research system that observes itself, learns, evolves, and modifies its own code — built as MCP servers for Claude Code.**
 
-Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 60+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. 395+ MCP tools. 2837 tests. The brain literally thinks about itself, gets curious, runs experiments, and writes code to improve itself.
+Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 60+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Advocatus Diaboli principle challenges. 398+ MCP tools. 2859 tests. The brain literally thinks about itself, gets curious, runs experiments, and writes code to improve itself.
 
 ## Packages
 
@@ -54,7 +54,7 @@ All brains support MCP over HTTP with SSE transport:
 
 ### Brain — Error Memory, Code Intelligence & Full Autonomy
 
-134 MCP tools. Remembers errors, learns solutions, runs 40-step autonomous research cycles, dreams, debates, reasons, feels, and modifies its own code.
+137 MCP tools. Remembers errors, learns solutions, runs 40-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, and modifies its own code.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
@@ -66,20 +66,23 @@ All brains support MCP over HTTP with SSE transport:
 - **TechRadar** — Daily scanning of trending repos, tech trends, and relevance scoring
 - **Notifications** — Discord, Telegram, Email providers for cross-brain alerts
 - **Web Research** — Brave Search + Jina Reader + Playwright + Firecrawl fallback chain
+- **Borg Sync** — Collective knowledge sharing between all brains (opt-in, selective/full mode)
+- **Plugin SDK** — Community brain plugins with lifecycle hooks, MCP tools, and IPC routes
+- **Advocatus Diaboli** — Principle challenges with resilience scoring (survived/weakened/disproved)
 
 ### Dashboards
 
 | Dashboard | Port | Description |
 |-----------|------|-------------|
 | **Mission Control** | 7788 | 7-tab dashboard: Overview, Consciousness Entity, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
-| **Command Center** | 7790 | 7-page ecosystem dashboard: Brain Status, Learning Pipeline, Trading Flow, Marketing Flow, Cross-Brain, Activity & Missions, Infrastructure |
+| **Command Center** | 7790 | 8-page ecosystem dashboard: Ecosystem, Learning, Trading, Marketing, Cross-Brain, Debates & Challenges, Activity & Missions, Infrastructure |
 
 
-- **Command Center** — Live overview of the entire ecosystem: all 3 brains, 60+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, Borg network with animated sync packets, LLM usage, thought stream
+- **Command Center** — Live overview of the entire ecosystem: all 3 brains, 60+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, Borg network with animated sync packets, debate history, Advocatus Diaboli challenges with resilience bars, LLM usage, thought stream
 
 ### Trading Brain — Adaptive Trading Intelligence
 
-128 MCP tools. Learns from every trade outcome through Hebbian synapses and autonomous research.
+131 MCP tools. Learns from every trade outcome through Hebbian synapses and autonomous research.
 
 - **Trade Outcome Memory** — Record and query trades with full signal context
 - **Paper Trading** — 10 positions active, live equity tracking, balance management
@@ -91,7 +94,7 @@ All brains support MCP over HTTP with SSE transport:
 
 ### Marketing Brain — Self-Learning Marketing Intelligence
 
-128 MCP tools. Learns what content works across platforms.
+131 MCP tools. Learns what content works across platforms.
 
 - **Post Tracking** — Store posts with platform, format, hashtags, engagement history
 - **Social Feeds** — Bluesky + Reddit live data providers
@@ -128,6 +131,9 @@ Brain Core provides the building blocks all brains share:
 | **Notifications** | Discord, Telegram, Email multi-channel alerts |
 | **Missions** | 5-phase autonomous web research pipeline |
 | **Consciousness** | ThoughtStream, entity model, real-time dashboard |
+| **Borg Sync** | Collective knowledge sharing between all brains |
+| **Plugin SDK** | Community brain plugins with lifecycle hooks |
+| **Debate Engine** | Multi-perspective debates + Advocatus Diaboli challenges |
 
 ## Architecture
 
@@ -188,6 +194,9 @@ Each brain provides a full CLI:
 brain setup / start / stop / status / doctor
 brain query <text> / modules / insights / network / dashboard
 brain learn / explain <id> / export / import <dir> / peers
+brain borg status / enable / disable / sync / history
+brain plugins list / routes / tools
+brain watchdog status / restart <name>
 
 # Trading Brain
 trading setup / start / stop / status / doctor
@@ -218,7 +227,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installs all workspace dependencies
 npm run build        # builds all packages (brain-core first)
-npm test             # runs all 2837 tests
+npm test             # runs all 2859 tests
 ```
 
 ### Package Dependencies
@@ -244,7 +253,7 @@ brain-core          (no internal deps)
 - **Playwright** — Headless browser for web research
 - **Commander** — CLI framework
 - **Winston** — Structured logging with file rotation
-- **Vitest** — 2837 tests across 214 test files
+- **Vitest** — 2859 tests across 217 test files
 
 ## Docker (Optional)
 

@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Adaptive Trading Intelligence & Signal Learning System for Claude Code — 128 MCP Tools, 60+ Engines**
+**Adaptive Trading Intelligence & Signal Learning System for Claude Code — 131 MCP Tools, 60+ Engines**
 
 Trading Brain is an MCP server that gives Claude Code a persistent trading memory. It learns from every trade outcome — strengthening connections between signals, strategies, and results through a Hebbian synapse network ("signals that win together wire together"). Paper trading with live market data (CoinGecko, Yahoo Finance, CCXT WebSocket). Over time, it develops statistical confidence in signal combinations, adapts calibration parameters, and runs 60+ autonomous engines in a 40-step feedback cycle to discover patterns, reason about causality, evolve strategies genetically, and improve itself. Multi-provider LLM (Anthropic + Ollama). 121 tests.
 

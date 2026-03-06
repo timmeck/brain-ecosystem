@@ -234,6 +234,7 @@ canvas{display:block;width:100%;height:100%}
     <div class="nav-item" data-page="marketing"><span class="nav-icon">&#x1F4E3;</span><span class="nav-label">Marketing Flow</span></div>
     <div class="nav-section">System</div>
     <div class="nav-item" data-page="crossbrain"><span class="nav-icon">&#x1F517;</span><span class="nav-label">Cross-Brain</span></div>
+    <div class="nav-item" data-page="debates"><span class="nav-icon">&#x2696;</span><span class="nav-label">Debates</span></div>
     <div class="nav-item" data-page="activity"><span class="nav-icon">&#x26A1;</span><span class="nav-label">Aktivität</span></div>
     <div class="nav-item" data-page="infra"><span class="nav-icon">&#x2699;</span><span class="nav-label">Infrastruktur</span></div>
   </div>
@@ -534,7 +535,42 @@ canvas{display:block;width:100%;height:100%}
         </div>
       </div>
 
-      <!-- ════ Page 7: Infrastruktur ══════════════════════ -->
+      <!-- ════ Page 7: Debates & Challenges ═════════════════ -->
+      <div class="page" id="page-debates">
+        <!-- Debate Engine Status -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x2696;</span> Debate Engine</div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Multi-Perspektiven-Debatten zu Schlüsselfragen. Jeder Brain liefert seine Sichtweise basierend auf Prinzipien, Hypothesen und Vorhersagen.</p>
+          <div class="grid grid-4" id="debateStats">
+            <div class="card" style="text-align:center"><div class="card-value" id="db-total" style="color:var(--cyan)">0</div><div class="card-sub">Debatten gesamt</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="db-open" style="color:var(--yellow)">0</div><div class="card-sub">Offen</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="db-synthesized" style="color:var(--green)">0</div><div class="card-sub">Synthesiert</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="db-challenges" style="color:var(--red)">0</div><div class="card-sub">Challenges</div></div>
+          </div>
+        </div>
+
+        <!-- Recent Debates -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F4AC;</span> Letzte Debatten</div>
+          <div id="debateList" style="margin-top:8px"><div class="empty">Noch keine Debatten gestartet</div></div>
+        </div>
+
+        <!-- Advocatus Diaboli: Principle Challenges -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F525;</span> Advocatus Diaboli — Prinzip-Challenges</div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Jedes Prinzip wird aktiv hinterfragt. Überlebt es die Gegenargumente, oder wird es geschwächt/widerlegt?</p>
+          <div id="challengeList" style="margin-top:8px"><div class="empty">Noch keine Challenges durchgeführt</div></div>
+        </div>
+
+        <!-- Most Vulnerable Principles -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x26A0;</span> Verwundbarste Prinzipien</div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Prinzipien mit den niedrigsten Resilienz-Scores — die schwächsten Überzeugungen, die überprüft werden sollten.</p>
+          <div id="vulnerableList" style="margin-top:8px"><div class="empty">Keine verwundbaren Prinzipien</div></div>
+        </div>
+      </div>
+
+      <!-- ════ Page 8: Infrastruktur ══════════════════════ -->
       <div class="page" id="page-infra">
         <div class="section">
           <div class="section-title"><span class="icon">&#x1F6E1;</span> Watchdog — Daemon-Überwachung</div>
@@ -581,6 +617,7 @@ const titles = {
   marketing:'Marketing Flow',
   crossbrain:'Cross-Brain & Borg',
   activity:'Aktivität & Missionen',
+  debates:'Debates & Challenges',
   infra:'Infrastruktur'
 };
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -608,6 +645,7 @@ function connectSSE() {
   es.addEventListener('selfmod', e => { state.selfmod = JSON.parse(e.data); renderSelfMod(); });
   es.addEventListener('missions', e => { state.missions = JSON.parse(e.data); renderMissions(); });
   es.addEventListener('knowledge', e => { state.knowledge = JSON.parse(e.data); renderKnowledge(); });
+  es.addEventListener('debates', e => { state.debates = JSON.parse(e.data); renderDebates(); });
   es.onerror = () => { state.connected = false; updateConnection(); };
 }
 
@@ -626,10 +664,11 @@ async function loadInitial() {
     state.borg = data.borg; state.analytics = data.analytics; state.llm = data.llm;
     state.errors = data.errors; state.selfmod = data.selfmod;
     state.missions = data.missions; state.knowledge = data.knowledge;
+    state.debates = data.debates;
     if (data.thoughts) { state.thoughts = data.thoughts; renderThoughts(); }
     renderEcosystem(); renderEngines(); renderWatchdog(); renderPlugins();
     renderBorg(); renderAnalytics(); renderLLM(); renderErrors();
-    renderSelfMod(); renderMissions(); renderKnowledge();
+    renderSelfMod(); renderMissions(); renderKnowledge(); renderDebates();
   } catch {}
 }
 
@@ -1016,6 +1055,72 @@ document.getElementById('borgToggle').addEventListener('click', async () => {
   if (!state.borg?.status) return;
   try { await fetch('/api/borg/toggle', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enabled:!state.borg.status.enabled}) }); } catch {}
 });
+
+// ── Render: Debates ──────────────────────────────────────
+function renderDebates() {
+  const d = state.debates; if (!d) return;
+  const s = d.status;
+  if (s) {
+    const el = (id) => document.getElementById(id);
+    el('db-total').textContent = s.totalDebates ?? 0;
+    el('db-open').textContent = s.openDebates ?? 0;
+    el('db-synthesized').textContent = s.synthesizedDebates ?? 0;
+    el('db-challenges').textContent = s.totalChallenges ?? 0;
+  }
+  // Recent debates
+  const list = d.recent || [];
+  const listEl = document.getElementById('debateList');
+  if (!list.length) { listEl.innerHTML = '<div class="empty">Noch keine Debatten gestartet</div>'; }
+  else {
+    listEl.innerHTML = list.map(db => {
+      const statusCol = db.status === 'synthesized' ? 'var(--green)' : db.status === 'open' ? 'var(--yellow)' : 'var(--cyan)';
+      const persp = (db.perspectives || []).length;
+      return `<div class="card" style="margin-bottom:8px;padding:10px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong style="color:var(--cyan)">#${db.id}: ${db.question?.substring(0,80)||'?'}</strong>
+          <span style="color:${statusCol};font-size:11px;text-transform:uppercase">${db.status}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${persp} Perspektiven | ${db.created_at ? new Date(db.created_at).toLocaleString('de-DE') : ''}</div>
+        ${db.synthesis ? `<div style="font-size:11px;margin-top:4px;color:var(--green)">Konsens: ${(db.synthesis.consensus||'').substring(0,120)}...</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+  // Challenges
+  const chList = d.challenges || [];
+  const chEl = document.getElementById('challengeList');
+  if (!chList.length) { chEl.innerHTML = '<div class="empty">Noch keine Challenges durchgeführt</div>'; }
+  else {
+    chEl.innerHTML = chList.map(c => {
+      const icon = c.outcome === 'survived' ? '\u2705' : c.outcome === 'weakened' ? '\u26A0\uFE0F' : '\u274C';
+      const col = c.outcome === 'survived' ? 'var(--green)' : c.outcome === 'weakened' ? 'var(--yellow)' : 'var(--red)';
+      const pct = ((c.resilienceScore || 0) * 100).toFixed(0);
+      return `<div class="card" style="margin-bottom:6px;padding:8px 14px;border-left:3px solid ${col}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span>${icon} ${(c.principleStatement||'').substring(0,80)}</span>
+          <span style="color:${col};font-size:12px;font-weight:bold">${c.outcome?.toUpperCase()} ${pct}%</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  // Vulnerable
+  const vulList = d.vulnerable || [];
+  const vulEl = document.getElementById('vulnerableList');
+  if (!vulList.length) { vulEl.innerHTML = '<div class="empty">Keine verwundbaren Prinzipien</div>'; }
+  else {
+    vulEl.innerHTML = vulList.map(v => {
+      const pct = ((v.resilienceScore || 0) * 100).toFixed(0);
+      const barCol = pct < 30 ? 'var(--red)' : pct < 60 ? 'var(--yellow)' : 'var(--green)';
+      return `<div class="card" style="margin-bottom:6px;padding:8px 14px">
+        <div style="font-size:13px;color:var(--text)">${(v.principleStatement||'').substring(0,100)}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+          <div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${barCol};border-radius:3px"></div></div>
+          <span style="font-size:11px;color:${barCol};min-width:40px">${pct}%</span>
+          <span style="font-size:11px;color:var(--text-dim)">${v.outcome}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
 
 // ── Quick Actions ─────────────────────────────────────────
 document.querySelectorAll('.action-btn').forEach(btn => {

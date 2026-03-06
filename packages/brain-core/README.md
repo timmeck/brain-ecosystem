@@ -70,7 +70,7 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 | **HypothesisEngine** | Forms and tests hypotheses (temporal, correlation, threshold, creative) |
 | **CuriosityEngine** | Knowledge gap detection, UCB1 explore/exploit, blind spot detection |
 | **DreamEngine** | Offline consolidation — memory replay, synapse pruning, compression, decay |
-| **DebateEngine** | Multi-agent debates, advocatus diaboli, consensus synthesis |
+| **DebateEngine** | Multi-agent debates, Advocatus Diaboli principle challenges, consensus synthesis |
 
 #### Testing & Experimentation
 
@@ -127,7 +127,7 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 | Dashboard | Port | Description |
 |-----------|------|-------------|
 | **Mission Control** | 7788 | 7-tab dashboard: Overview, Consciousness Entity, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
-| **Command Center** | 7790 | 7-page ecosystem dashboard with live visualizations, error log, self-mod feed, missions, knowledge growth |
+| **Command Center** | 7790 | 8-page ecosystem dashboard with live visualizations, debates, challenges, error log, self-mod feed, missions, knowledge growth |
 
 ### Cross-Brain & Ecosystem
 
@@ -139,6 +139,8 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 | **BorgSyncEngine** | Collective knowledge synchronization between all brains |
 | **EcosystemService** | Aggregated status, health score 0–100, analytics |
 | **WatchdogService** | Process monitoring, auto-restart, health checks |
+| **PluginRegistry** | Community plugin loading, lifecycle hooks, MCP tools, IPC routes |
+| **WindowsServiceManager** | NSSM/SC.exe service install/uninstall/status |
 
 ### Utilities
 
