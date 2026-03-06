@@ -77,6 +77,7 @@ export class MarketingCore {
   private borgSync: BorgSyncEngine | null = null;
   private debateEngine: DebateEngine | null = null;
   private config: MarketingBrainConfig | null = null;
+  private retentionTimer: ReturnType<typeof setInterval> | null = null;
   private configPath?: string;
   private restarting = false;
 
@@ -295,6 +296,10 @@ export class MarketingCore {
       logger.info(`Dashboard server enabled on port ${config.dashboard.port}`);
     }
 
+    // 12b. DB retention cleanup + optimize (once at start, then every 24h)
+    this.runRetentionCleanup(db);
+    this.retentionTimer = setInterval(() => this.runRetentionCleanup(db), 24 * 60 * 60 * 1000);
+
     // 13. Event listeners (synapse wiring)
     this.setupEventListeners(synapseManager);
 
@@ -308,12 +313,14 @@ export class MarketingCore {
 
     // 16. Crash recovery — auto-restart on uncaught errors
     process.on('uncaughtException', (err) => {
-      logger.error('Uncaught exception — restarting', { error: err.message, stack: err.stack });
+      // EPIPE = writing to closed stdout/stderr (daemon mode) — ignore silently
+      if ((err as NodeJS.ErrnoException).code === 'EPIPE') return;
+      try { logger.error('Uncaught exception — restarting', { error: err.message, stack: err.stack }); } catch { /* logger may be broken */ }
       this.logCrash('uncaughtException', err);
       this.restart();
     });
     process.on('unhandledRejection', (reason) => {
-      logger.error('Unhandled rejection — restarting', { reason: String(reason) });
+      try { logger.error('Unhandled rejection — restarting', { reason: String(reason) }); } catch { /* logger may be broken */ }
       this.logCrash('unhandledRejection', reason instanceof Error ? reason : new Error(String(reason)));
       this.restart();
     });
@@ -325,10 +332,39 @@ export class MarketingCore {
     if (!this.config) return;
     const crashLog = path.join(path.dirname(this.config.dbPath), 'crashes.log');
     const entry = `[${new Date().toISOString()}] ${type}: ${err.message}\n${err.stack ?? ''}\n\n`;
-    try { fs.appendFileSync(crashLog, entry); } catch { /* best effort */ }
+    try {
+      // Rotate crash log if > 5MB (max 1 rotation = 10MB total)
+      try {
+        const stat = fs.statSync(crashLog);
+        if (stat.size > 5 * 1024 * 1024) {
+          const rotated = crashLog.replace('.log', '.1.log');
+          try { fs.unlinkSync(rotated); } catch { /* no previous rotation */ }
+          fs.renameSync(crashLog, rotated);
+        }
+      } catch { /* file doesn't exist yet */ }
+      fs.appendFileSync(crashLog, entry);
+    } catch { /* best effort */ }
+  }
+
+  private runRetentionCleanup(db: Database.Database): void {
+    const logger = getLogger();
+    try {
+      const insightCutoff = new Date(Date.now() - 60 * 86_400_000).toISOString(); // 60 days
+      const result = db.prepare("DELETE FROM insights WHERE active = 0 AND created_at < ?").run(insightCutoff);
+      if (Number(result.changes) > 0) {
+        logger.info(`[retention] Cleaned up ${result.changes} old inactive insights`);
+      }
+      db.pragma('optimize');
+    } catch (err) {
+      logger.warn(`[retention] Cleanup failed (non-critical): ${(err as Error).message}`);
+    }
   }
 
   private cleanup(): void {
+    if (this.retentionTimer) {
+      clearInterval(this.retentionTimer);
+      this.retentionTimer = null;
+    }
     this.borgSync?.stop();
     this.researchEngine?.stop();
     this.learningEngine?.stop();
@@ -375,7 +411,10 @@ export class MarketingCore {
     }
 
     logger.info('Marketing Brain daemon stopped');
-    process.exit(0);
+    // Flush logger before exit, with 2s timeout fallback
+    const exitTimeout = setTimeout(() => process.exit(0), 2000);
+    logger.on('finish', () => { clearTimeout(exitTimeout); process.exit(0); });
+    logger.end();
   }
 
   private setupEventListeners(synapseManager: SynapseManager): void {

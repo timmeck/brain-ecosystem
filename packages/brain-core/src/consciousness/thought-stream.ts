@@ -131,6 +131,11 @@ export class ThoughtStream {
     }));
   }
 
+  /** Register an engine so it appears in getEngineActivity() even before it emits thoughts. */
+  registerEngine(name: string): void {
+    this.emit(name, 'perceiving', `Engine "${name}" registered`, 'routine');
+  }
+
   /** Clear the buffer. */
   clear(): void {
     this.buffer = [];

@@ -171,6 +171,12 @@ export class ResearchMissionEngine {
    * Create a new research mission and start executing it asynchronously.
    */
   createMission(topic: string, depth: MissionDepth = 'standard'): Mission {
+    // Enforce maxConcurrentMissions limit
+    const active = (this.db.prepare("SELECT COUNT(*) as c FROM research_missions WHERE status NOT IN ('complete','failed')").get() as { c: number }).c;
+    if (active >= this.config.maxConcurrentMissions) {
+      throw new Error(`Maximum concurrent missions reached (${this.config.maxConcurrentMissions}). Wait for active missions to complete or cancel one.`);
+    }
+
     const result = this.stmtInsertMission.run(topic, depth, 'pending');
     const id = Number(result.lastInsertRowid);
 

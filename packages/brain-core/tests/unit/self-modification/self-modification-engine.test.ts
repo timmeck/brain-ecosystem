@@ -130,15 +130,15 @@ describe('SelfModificationEngine', () => {
     expect(status.byStatus.rejected).toBe(1);
   });
 
-  it('should not generate code without proposed status', () => {
+  it('should not generate code without proposed status', async () => {
     engine.proposeModification('Test', 'Problem', ['packages/brain-core/src/foo.ts']);
     engine.rejectModification(1);
 
-    expect(engine.generateCode(1)).rejects.toThrow('not in \'proposed\' state');
+    await expect(engine.generateCode(1)).rejects.toThrow('not in \'proposed\' state');
   });
 
-  it('should not generate code for unknown modification', () => {
-    expect(engine.generateCode(999)).rejects.toThrow('not found');
+  it('should not generate code for unknown modification', async () => {
+    await expect(engine.generateCode(999)).rejects.toThrow('not found');
   });
 
   it('should recover from crash (testing state)', () => {

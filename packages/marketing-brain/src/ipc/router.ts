@@ -159,10 +159,21 @@ export class IpcRouter {
       throw new Error(`Unknown method: ${method}`);
     }
 
-    logger.debug(`IPC: ${method}`, { params });
-    const result = handler(params);
-    logger.debug(`IPC: ${method} → done`);
-    return result;
+    try {
+      logger.debug(`IPC: ${method}`, { params });
+      const result = handler(params);
+      if (result instanceof Promise) {
+        return result.catch((err: Error) => {
+          logger.error(`IPC handler error (async) in ${method}: ${err.message}`);
+          throw err;
+        });
+      }
+      logger.debug(`IPC: ${method} → done`);
+      return result;
+    } catch (err) {
+      logger.error(`IPC handler error in ${method}: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   listMethods(): string[] {
@@ -172,7 +183,7 @@ export class IpcRouter {
   private buildMethodMap(): Map<string, MethodHandler> {
     const s = this.services;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const p = (params: unknown) => params as any;
+    const p = (params: unknown) => (params ?? {}) as any;
 
     return new Map<string, MethodHandler>([
       // Posts

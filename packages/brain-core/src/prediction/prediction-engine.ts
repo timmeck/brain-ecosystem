@@ -93,7 +93,7 @@ export class PredictionEngine {
       ewmaAlpha: config.ewmaAlpha ?? 0.3,
       trendBeta: config.trendBeta ?? 0.1,
       minDataPoints: config.minDataPoints ?? 5,
-      minConfidence: config.minConfidence ?? 0.3,
+      minConfidence: config.minConfidence ?? 0.5,
       maxPredictionsPerCycle: config.maxPredictionsPerCycle ?? 5,
       resolveIntervalMs: config.resolveIntervalMs ?? 60_000,
     };

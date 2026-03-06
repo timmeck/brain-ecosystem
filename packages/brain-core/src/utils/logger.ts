@@ -43,12 +43,16 @@ export function createLogger(opts?: LoggerOptions): winston.Logger {
     }),
   ];
 
-  if (process.env['NODE_ENV'] !== 'production') {
-    transports.push(
-      new winston.transports.Console({
-        format: combine(colorize(), timestamp(), logFormat),
-      })
-    );
+  // Only add Console transport if stdout is writable (daemon mode sets stdio: 'ignore')
+  if (process.env['NODE_ENV'] !== 'production' && process.stdout?.writable) {
+    const consoleTransport = new winston.transports.Console({
+      format: combine(colorize(), timestamp(), logFormat),
+    });
+    // Silently swallow EPIPE errors (closed pipe in daemon mode)
+    consoleTransport.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EPIPE') return;
+    });
+    transports.push(consoleTransport);
   }
 
   loggerInstance = winston.createLogger({ level, transports });

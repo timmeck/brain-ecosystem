@@ -99,6 +99,7 @@ export class BrainCore {
   private pluginRegistry: PluginRegistry | null = null;
   private borgSync: BorgSyncEngine | null = null;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
+  private retentionTimer: ReturnType<typeof setInterval> | null = null;
   private config: BrainConfig | null = null;
   private configPath?: string;
   private restarting = false;
@@ -1178,6 +1179,12 @@ export class BrainCore {
       services.terminal.cleanup();
     }, 60_000);
 
+    // 12b. DB retention cleanup + VACUUM (once at start, then every 24h)
+    this.runRetentionCleanup(this.db!, config);
+    this.retentionTimer = setInterval(() => {
+      if (this.db && this.config) this.runRetentionCleanup(this.db, this.config);
+    }, 24 * 60 * 60 * 1000);
+
     // 13. Event listeners (synapse wiring)
     this.setupEventListeners(services, synapseManager);
 
@@ -1194,17 +1201,19 @@ export class BrainCore {
 
     // 16. Crash recovery — auto-restart on uncaught errors (with loop protection)
     process.on('uncaughtException', (err) => {
-      logger.error('Uncaught exception', { error: err.message, stack: err.stack });
+      // EPIPE = writing to closed stdout/stderr (daemon mode) — ignore silently
+      if ((err as NodeJS.ErrnoException).code === 'EPIPE') return;
+      try { logger.error('Uncaught exception', { error: err.message, stack: err.stack }); } catch { /* logger may be broken */ }
       this.logCrash('uncaughtException', err);
       // Don't restart on port conflicts — it will just loop
       if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
-        logger.error('Port conflict during restart — stopping to prevent crash loop');
+        try { logger.error('Port conflict during restart — stopping to prevent crash loop'); } catch { /* ignore */ }
         return;
       }
       this.restart();
     });
     process.on('unhandledRejection', (reason) => {
-      logger.error('Unhandled rejection', { reason: String(reason) });
+      try { logger.error('Unhandled rejection', { reason: String(reason) }); } catch { /* logger may be broken */ }
       this.logCrash('unhandledRejection', reason instanceof Error ? reason : new Error(String(reason)));
       this.restart();
     });
@@ -1216,13 +1225,52 @@ export class BrainCore {
     if (!this.config) return;
     const crashLog = path.join(path.dirname(this.config.dbPath), 'crashes.log');
     const entry = `[${new Date().toISOString()}] ${type}: ${err.message}\n${err.stack ?? ''}\n\n`;
-    try { fs.appendFileSync(crashLog, entry); } catch { /* best effort */ }
+    try {
+      // Rotate crash log if > 5MB (max 1 rotation = 10MB total)
+      try {
+        const stat = fs.statSync(crashLog);
+        if (stat.size > 5 * 1024 * 1024) {
+          const rotated = crashLog.replace('.log', '.1.log');
+          try { fs.unlinkSync(rotated); } catch { /* no previous rotation */ }
+          fs.renameSync(crashLog, rotated);
+        }
+      } catch { /* file doesn't exist yet */ }
+      fs.appendFileSync(crashLog, entry);
+    } catch { /* best effort */ }
+  }
+
+  private runRetentionCleanup(db: Database.Database, config: BrainConfig): void {
+    const logger = getLogger();
+    try {
+      const now = Date.now();
+      const errorCutoff = new Date(now - config.retention.errorDays * 86_400_000).toISOString();
+      const insightCutoff = new Date(now - config.retention.insightDays * 2 * 86_400_000).toISOString();
+
+      // Delete resolved errors older than retention period
+      const errResult = db.prepare("DELETE FROM errors WHERE status = 'resolved' AND created_at < ?").run(errorCutoff);
+      // Delete inactive insights older than 2× insightDays
+      const insResult = db.prepare("DELETE FROM insights WHERE status = 'inactive' AND created_at < ?").run(insightCutoff);
+
+      if (Number(errResult.changes) > 0 || Number(insResult.changes) > 0) {
+        logger.info(`[retention] Cleaned up ${errResult.changes} old errors, ${insResult.changes} old insights`);
+      }
+
+      // Optimize DB
+      db.pragma('optimize');
+      logger.debug('[retention] DB optimized');
+    } catch (err) {
+      logger.warn(`[retention] Cleanup failed (non-critical): ${(err as Error).message}`);
+    }
   }
 
   private cleanup(): void {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
+    }
+    if (this.retentionTimer) {
+      clearInterval(this.retentionTimer);
+      this.retentionTimer = null;
     }
 
     this.borgSync?.stop();
@@ -1317,7 +1365,10 @@ export class BrainCore {
     }
 
     logger.info('Brain daemon stopped');
-    process.exit(0);
+    // Flush logger before exit, with 2s timeout fallback
+    const exitTimeout = setTimeout(() => process.exit(0), 2000);
+    logger.on('finish', () => { clearTimeout(exitTimeout); process.exit(0); });
+    logger.end();
   }
 
   private setupCrossBrainSubscriptions(): void {

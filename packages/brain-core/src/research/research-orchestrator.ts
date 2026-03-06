@@ -171,6 +171,16 @@ export class ResearchOrchestrator {
   setThoughtStream(stream: ThoughtStream): void {
     this.thoughtStream = stream;
     this.autoResponder.setThoughtStream(stream);
+
+    // Register all known engines so they appear in getEngineActivity() from the start
+    const engineNames = [
+      'orchestrator', 'self_observer', 'adaptive_strategy', 'experiment',
+      'cross_domain', 'counterfactual', 'knowledge_distiller', 'research_agenda',
+      'anomaly_detective', 'journal', 'hypothesis', 'prediction', 'mission_engine',
+    ];
+    for (const name of engineNames) {
+      stream.registerEngine(name);
+    }
   }
 
   /** Set the SignalScanner — feeds scan results into journal/predictions. */
