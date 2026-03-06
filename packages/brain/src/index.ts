@@ -38,6 +38,8 @@ import { setupCommand } from './cli/commands/setup.js';
 import { rulesCommand } from './cli/commands/rules.js';
 import { synapsesCommand } from './cli/commands/synapses.js';
 import { missionsCommand } from './cli/commands/missions.js';
+import { watchdogCommand } from './cli/commands/watchdog.js';
+import { serviceCommand } from './cli/commands/service.js';
 import { getCurrentVersion } from './cli/update-check.js';
 
 const program = new Command();
@@ -67,6 +69,8 @@ program.addCommand(setupCommand());
 program.addCommand(rulesCommand());
 program.addCommand(synapsesCommand());
 program.addCommand(missionsCommand());
+program.addCommand(watchdogCommand());
+program.addCommand(serviceCommand());
 
 // Hidden command: run MCP server (called by Claude Code)
 program

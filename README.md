@@ -101,6 +101,34 @@ All brains support MCP over HTTP with SSE transport:
 - **Cross-Platform** — Optimize for X, LinkedIn, Reddit, Bluesky, Mastodon, Threads
 - **60+ Autonomous Engines** — Same full engine suite as Brain, with marketing-specific DataMiner
 
+### Autonomous Research Layer
+
+All three brains share 60+ autonomous engines via Brain Core:
+
+- **40-Step Feedback Loop** — ResearchOrchestrator runs every 5 minutes: observe → hypothesize → experiment → measure → distill → adapt
+- **Self-Improvement** — HypothesisEngine generates theories, AutoExperiment tests them, AdaptiveStrategy applies winners
+- **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle
+- **Knowledge Distillation** — Extracts principles and anti-patterns from raw experience
+- **Prediction Engine** — Holt-Winters + EWMA forecasting with auto-calibration
+- **Genetic Evolution** — EvolutionEngine breeds optimal strategy combinations
+
+### Shared Infrastructure (Brain Core)
+
+Brain Core provides the building blocks all brains share:
+
+| Module | What It Does |
+|--------|-------------|
+| **IPC** | Named pipe communication between brains |
+| **MCP** | Model Context Protocol servers (stdio + HTTP/SSE) |
+| **REST** | Base API server with CORS, auth, RPC |
+| **LLM** | Multi-provider AI (Anthropic + Ollama), caching, rate limiting |
+| **Synapses** | Hebbian learning network connecting all knowledge |
+| **Engines** | 60+ autonomous research and meta-cognition engines |
+| **Watchdog** | Daemon monitoring, auto-restart, health checks |
+| **Notifications** | Discord, Telegram, Email multi-channel alerts |
+| **Missions** | 5-phase autonomous web research pipeline |
+| **Consciousness** | ThoughtStream, entity model, real-time dashboard |
+
 ## Architecture
 
 ```
@@ -134,6 +162,7 @@ All brains support MCP over HTTP with SSE transport:
 
 Cross-brain peering via IPC named pipes
 Borg Sync for collective knowledge sharing
+Watchdog auto-restart with exponential backoff
 ```
 
 ## Port Map
@@ -216,6 +245,22 @@ brain-core          (no internal deps)
 - **Commander** — CLI framework
 - **Winston** — Structured logging with file rotation
 - **Vitest** — 2837 tests across 214 test files
+
+## Docker (Optional)
+
+```bash
+# Build all brains
+docker build -t brain-ecosystem .
+
+# Run with persistent data
+docker run -d \
+  -v ~/.brain:/root/.brain \
+  -v ~/.trading-brain:/root/.trading-brain \
+  -v ~/.marketing-brain:/root/.marketing-brain \
+  -p 7777-7790:7777-7790 \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  brain-ecosystem
+```
 
 ## Support
 

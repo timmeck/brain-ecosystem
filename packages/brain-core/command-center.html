@@ -536,24 +536,29 @@ canvas{display:block;width:100%;height:100%}
 
       <!-- ════ Page 7: Infrastruktur ══════════════════════ -->
       <div class="page" id="page-infra">
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F6E1;</span> Watchdog — Daemon-Überwachung</div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Überwacht alle Brain-Daemons. Grün = gesund, Gelb = läuft aber Healthcheck fehlgeschlagen, Rot = gestoppt. Auto-Update alle 30s.</p>
+          <div class="grid grid-3" id="watchdogCards"><div class="empty">Loading...</div></div>
+        </div>
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x2705;</span> System Health Check</div>
+          <div class="card" id="healthCheckCard"><div class="empty">Loading...</div></div>
+        </div>
         <div class="grid grid-2">
-          <div class="section">
-            <div class="section-title"><span class="icon">&#x1F6E1;</span> Watchdog — Hält alles am Laufen</div>
-            <div class="card" id="watchdogCard"><div class="empty">Loading...</div></div>
-          </div>
           <div class="section">
             <div class="section-title"><span class="icon">&#x1F9E9;</span> Plugins — Erweiterungen</div>
             <div class="card" id="pluginCard"><div class="empty">Loading...</div></div>
+          </div>
+          <div class="section" style="min-height:100px">
+            <div class="section-title"><span class="icon">&#x1F4CA;</span> Dienst-Statistik</div>
+            <div class="card" id="watchdogStatsCard"><div class="empty">Loading...</div></div>
           </div>
         </div>
         <div class="section">
           <div class="section-title"><span class="icon">&#x1F3ED;</span> Alle Engines auf einen Blick</div>
           <p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Grün = aktiv, Gelb = bereit, Grau = aus. Die Zahl zeigt wie viele Gedanken die Engine produziert hat.</p>
           <div class="engine-grid" id="allEngineGrid"><div class="empty">Loading...</div></div>
-        </div>
-        <div class="section">
-          <div class="section-title"><span class="icon">&#x2705;</span> System Health Check</div>
-          <div class="card" id="healthCheckCard"><div class="empty">Loading...</div></div>
         </div>
       </div>
     </div>
@@ -943,14 +948,47 @@ function num(v) { if (v == null) return 0; if (typeof v === 'object') return v.t
 
 // ── Render: Watchdog ──────────────────────────────────────
 function renderWatchdog() {
-  const el = document.getElementById('watchdogCard');
+  const el = document.getElementById('watchdogCards');
   const d = state.watchdog || [];
-  if (!d.length) { el.innerHTML = '<div class="empty">Kein Watchdog konfiguriert</div>'; return; }
-  el.innerHTML = `<table class="tbl"><thead><tr><th>Dienst</th><th>Status</th><th>PID</th><th>Laufzeit</th><th>Neustarts</th></tr></thead><tbody>` +
-    d.map(x => `<tr><td>${x.name}</td><td><span class="dot ${x.running?'dot-on':'dot-off'}" style="margin-right:6px"></span>${x.running?(x.healthy?'Gesund':'Problem'):'Gestoppt'}</td><td>${x.pid||'-'}</td><td>${x.uptime?fmtUp(x.uptime/1000):'-'}</td><td>${x.restarts||0}</td></tr>`).join('') + '</tbody></table>';
+  if (!d.length) { el.innerHTML = '<div class="empty">Kein Watchdog konfiguriert — starte Brain mit <code>brain start</code></div>'; return; }
+
+  // Daemon cards — color-coded
+  el.innerHTML = d.map(x => {
+    const borderColor = !x.running ? 'var(--red)' : x.healthy ? 'var(--green)' : 'var(--orange)';
+    const bgColor = !x.running ? 'rgba(239,68,68,0.08)' : x.healthy ? 'rgba(34,197,94,0.08)' : 'rgba(234,179,8,0.08)';
+    const statusText = !x.running ? 'Gestoppt' : x.healthy ? 'Gesund' : 'Problem';
+    const statusIcon = !x.running ? '&#x1F534;' : x.healthy ? '&#x1F7E2;' : '&#x1F7E1;';
+    const uptime = x.uptime ? fmtUp(x.uptime / 1000) : '-';
+    return `<div class="card" style="border-left:3px solid ${borderColor};background:${bgColor};padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:15px;font-weight:700">${x.name}</div>
+        <span style="font-size:14px">${statusIcon} ${statusText}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div><span style="color:var(--text-dim)">PID</span><br><span style="font-weight:600;font-size:14px">${x.pid || '-'}</span></div>
+        <div><span style="color:var(--text-dim)">Laufzeit</span><br><span style="font-weight:600;font-size:14px">${uptime}</span></div>
+        <div><span style="color:var(--text-dim)">Neustarts</span><br><span style="font-weight:600;font-size:14px;color:${x.restarts > 0 ? 'var(--orange)' : 'inherit'}">${x.restarts || 0}</span></div>
+        <div><span style="color:var(--text-dim)">Letzter Crash</span><br><span style="font-weight:600;font-size:11px">${x.lastCrash ? new Date(x.lastCrash).toLocaleString('de') : '-'}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Health check summary
   const hc = document.getElementById('healthCheckCard');
   const ok = d.every(x => x.running && x.healthy), off = d.filter(x => !x.running).length;
-  hc.innerHTML = `<div style="display:flex;gap:20px;align-items:center"><span style="font-size:32px">${ok?'&#x2705;':'&#x26A0;'}</span><div><div style="font-size:15px;font-weight:600;color:${ok?'var(--green)':'var(--orange)'}">${ok?'Alle Systeme laufen':`${off} Dienste offline`}</div><div style="font-size:12px;color:var(--text-dim);margin-top:4px">${d.length} Dienste überwacht</div></div></div>`;
+  const unhealthy = d.filter(x => x.running && !x.healthy).length;
+  hc.innerHTML = `<div style="display:flex;gap:20px;align-items:center"><span style="font-size:32px">${ok?'&#x2705;':off?'&#x1F6A8;':'&#x26A0;'}</span><div><div style="font-size:15px;font-weight:600;color:${ok?'var(--green)':off?'var(--red)':'var(--orange)'}">${ok?'Alle Systeme laufen':off?`${off} Dienste offline`:`${unhealthy} Dienste mit Problemen`}</div><div style="font-size:12px;color:var(--text-dim);margin-top:4px">${d.length} Dienste überwacht &bull; ${d.filter(x=>x.running).length} laufen &bull; ${d.filter(x=>x.running&&x.healthy).length} gesund</div></div></div>`;
+
+  // Stats card
+  const sc = document.getElementById('watchdogStatsCard');
+  const totalRestarts = d.reduce((s, x) => s + (x.restarts || 0), 0);
+  const avgUptime = d.filter(x => x.uptime).map(x => x.uptime);
+  const maxUp = avgUptime.length ? fmtUp(Math.max(...avgUptime) / 1000) : '-';
+  sc.innerHTML = `<div style="display:flex;gap:24px;font-size:13px">
+    <div><span style="color:var(--text-dim)">Gesamt-Neustarts</span><br><span style="font-size:20px;font-weight:700;color:${totalRestarts>0?'var(--orange)':'var(--green)'}">${totalRestarts}</span></div>
+    <div><span style="color:var(--text-dim)">Längste Laufzeit</span><br><span style="font-size:20px;font-weight:700">${maxUp}</span></div>
+    <div><span style="color:var(--text-dim)">Dienste</span><br><span style="font-size:20px;font-weight:700">${d.length}</span></div>
+  </div>`;
 }
 
 function renderPlugins() {

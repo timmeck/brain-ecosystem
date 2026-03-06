@@ -182,7 +182,9 @@ describe('CommandCenterServer', () => {
   it('GET /api/watchdog returns daemon status when available', async () => {
     const mockWatchdog = {
       getStatus: vi.fn().mockReturnValue([
-        { name: 'brain', pid: 1234, running: true, healthy: true, uptime: 5000, restarts: 0 },
+        { name: 'brain', pid: 1234, running: true, healthy: true, uptime: 5000, restarts: 0, lastCrash: null },
+        { name: 'trading-brain', pid: 5678, running: true, healthy: false, uptime: 3000, restarts: 1, lastCrash: '2026-03-06T12:00:00Z' },
+        { name: 'marketing-brain', pid: null, running: false, healthy: false, uptime: null, restarts: 3, lastCrash: '2026-03-06T11:00:00Z' },
       ]),
     };
     const result = await startServer({ watchdog: mockWatchdog as unknown as CommandCenterOptions['watchdog'] });
@@ -191,9 +193,13 @@ describe('CommandCenterServer', () => {
     const res = await request(result.port, '/api/watchdog');
     expect(res.statusCode).toBe(200);
     const data = JSON.parse(res.body);
-    expect(data).toHaveLength(1);
+    expect(data).toHaveLength(3);
     expect(data[0].name).toBe('brain');
     expect(data[0].running).toBe(true);
+    expect(data[0].healthy).toBe(true);
+    expect(data[1].healthy).toBe(false);
+    expect(data[2].running).toBe(false);
+    expect(data[2].pid).toBeNull();
   });
 
   it('GET /api/plugins returns empty array when no registry', async () => {

@@ -123,6 +123,7 @@ export interface Services {
   peerNetwork?: import('@timmeck/brain-core').PeerNetwork;
   llmService?: import('@timmeck/brain-core').LLMService;
   missionEngine?: import('@timmeck/brain-core').ResearchMissionEngine;
+  watchdog?: import('@timmeck/brain-core').WatchdogService;
   projectScanner?: ProjectScanner;
   reposignalImporter?: ReposignalImporter;
 }
@@ -855,6 +856,10 @@ export class IpcRouter {
       ['mission.report',           (params) => { if (!s.missionEngine) throw new Error('MissionEngine not available'); const { id } = (params ?? {}) as { id: number }; return s.missionEngine.getReport(id); }],
       ['mission.cancel',           (params) => { if (!s.missionEngine) throw new Error('MissionEngine not available'); const { id } = (params ?? {}) as { id: number }; return s.missionEngine.cancelMission(id); }],
       ['mission.status',           () => { if (!s.missionEngine) throw new Error('MissionEngine not available'); return s.missionEngine.getStatus(); }],
+
+      // ─── Watchdog ──────────────────────────────────────────
+      ['watchdog.status',         () => s.watchdog?.getStatus() ?? []],
+      ['watchdog.restart',        (params) => s.watchdog?.restartDaemon(p(params).name) ?? false],
 
       // Status (cross-brain)
       ['status',                  () => ({

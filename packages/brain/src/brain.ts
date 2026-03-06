@@ -66,7 +66,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider, CommandCenterServer } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
@@ -991,13 +991,19 @@ export class BrainCore {
     services.unifiedServer = this.unifiedServer;
     logger.info('Unified Mission Control dashboard on :7788');
 
-    // 11c. Command Center Dashboard
+    // 11c. Watchdog — monitoring only (not spawning daemons)
+    const watchdogConfig = createDefaultWatchdogConfig();
+    const watchdog = new WatchdogService(watchdogConfig);
+    services.watchdog = watchdog;
+
+    // 11d. Command Center Dashboard
     this.commandCenter = new CommandCenterServer({
       port: 7790,
       selfName: 'brain',
       crossBrain: this.crossBrain,
       ecosystemService: this.ecosystemService!,
       correlator: this.correlator!,
+      watchdog,
       thoughtStream,
       getLLMStats: () => services.llmService?.getStats() ?? null,
       getLLMHistory: (hours: number) => services.llmService?.getUsageHistory(hours) ?? [],

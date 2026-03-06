@@ -18,6 +18,29 @@ brain setup
 
 That's it. One command configures MCP, hooks, and starts the daemon.
 
+## Architecture
+
+```
+Claude Code  ──MCP stdio──►  Brain Daemon (:7777)
+Cursor/Windsurf ─MCP SSE──►  MCP HTTP Server (:7778)
+Browser ────────HTTP──────►  Mission Control (:7788)
+                              Command Center  (:7790)
+                                    │
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
+              Error Memory    Research Engine   60+ Engines
+              Code Intel      Mission Engine    ResearchOrchestrator
+              Synapse Net     LLM Service       40-step feedback loop
+              Prevention      Web Research          │
+              Git Intel       TechRadar         ┌───┴───────────┐
+                    │                           ▼               ▼
+                    ▼                     Self-Modification  Dream Mode
+                  SQLite (~/.brain)       CodeGenerator      Memory
+                                          SelfScanner        Consolidation
+```
+
+Cross-brain communication via IPC named pipes (trading-brain, marketing-brain).
+
 ## Features
 
 ### Error Memory & Code Intelligence
@@ -32,6 +55,8 @@ That's it. One command configures MCP, hooks, and starts the daemon.
 - **Memory System** — Remember preferences, decisions, context, facts, goals, and lessons across sessions
 - **Session Tracking** — Auto-tracks conversation sessions with goals, summaries, and outcomes
 - **Decision History** — Record architecture/design decisions with alternatives and rationale
+- **Semantic Changelog** — Tracks every file change with semantic meaning, diffs, and context
+- **Task & Goal Tracking** — Persistent tasks with priority, status, and cross-session continuity
 - **Semantic Search** — Local all-MiniLM-L6-v2 embeddings (23MB, no cloud required)
 
 ### LLM Service
@@ -39,37 +64,140 @@ That's it. One command configures MCP, hooks, and starts the daemon.
 - **Smart Caching** — Content-hash cache, avoid duplicate API calls
 - **Rate Limiting** — Per-hour and per-day token budgets with automatic throttling
 - **Usage Tracking** — Calls, tokens, latency, cache hit rate, cost tracking
+- **Tier Routing** — Templates mapped to tiers (critical/standard/bulk), auto-routed to best provider
 
 ### Research Missions
 - **5-Phase Pipeline** — Decompose → Gather → Hypothesize → Analyze → Synthesize
 - **Web Research** — Brave Search + Jina Reader + Playwright + Firecrawl fallback chain
 - **Autonomous** — Brain decides what to research and executes independently
+- **Source Tracking** — Every finding traced back to its original source
 
 ### TechRadar
 - **Daily Scanning** — Tracks trending repos, tech news, library updates
-- **Repo Watching** — Monitor specific repos for changes
-- **LLM Relevance Scoring** — AI judges how relevant each finding is
+- **Repo Watching** — Monitor specific repos for changes (3 default repos configured)
+- **LLM Relevance Scoring** — AI judges how relevant each finding is to your stack
+- **Digest Generation** — Daily summaries of what's new and relevant
 
 ### 60+ Autonomous Engines
 
 The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes:
 
-- **Observation** — SelfObserver, AnomalyDetective, DataScout, SignalScanner, TechRadar
-- **Understanding** — AttentionEngine, CausalGraph, CrossDomain, PatternEngine
-- **Ideas** — HypothesisEngine, CuriosityEngine, DreamEngine, DebateEngine
-- **Testing** — ExperimentEngine, AutoExperiment, SimulationEngine, PredictionEngine
-- **Knowledge** — KnowledgeDistiller, MemoryPalace, ResearchJournal, ConceptAbstraction
-- **Action** — SelfModification, GoalEngine, AdaptiveStrategy, MetaCognition, Evolution, Reasoning, EmotionalModel
+#### Core Research Engines
+
+| Engine | Purpose |
+|--------|---------|
+| SelfObserver | Monitors Brain's own performance metrics and behavior |
+| AnomalyDetective | Detects statistical anomalies in error patterns and metrics |
+| DataScout | Discovers external data sources and imports relevant data |
+| SignalScanner | Scans GitHub repos, HN, crypto markets for signals |
+| TechRadar | Daily tech landscape scanning with relevance scoring |
+| HypothesisEngine | Generates and statistically tests hypotheses about patterns |
+| ExperimentEngine | Proposes, runs, and measures controlled experiments |
+| AutoExperimentEngine | Autonomously discovers and runs parameter experiments |
+| SimulationEngine | What-if scenarios and counterfactual reasoning |
+| KnowledgeDistiller | Extracts principles and anti-patterns from experience |
+
+#### Intelligence Engines
+
+| Engine | Purpose |
+|--------|---------|
+| AttentionEngine | Dynamic focus allocation across topics and engines |
+| CausalGraph | Discovers cause-effect relationships between events |
+| CrossDomainEngine | Finds correlations across brain domains |
+| PatternExtractor | Mines recurring code and error patterns |
+| TransferEngine | Transfers knowledge between domains via analogies |
+| NarrativeEngine | Generates natural language explanations of findings |
+| CuriosityEngine | Detects knowledge gaps and generates exploration questions |
+| ResearchAgendaEngine | Prioritizes what to investigate next |
+| CounterfactualEngine | "What if X hadn't happened?" reasoning |
+
+#### Meta-Cognition Engines
+
+| Engine | Purpose |
+|--------|---------|
+| MetaCognitionLayer | Evaluates engine effectiveness, produces report cards |
+| DebateEngine | Multi-perspective reasoning with synthesis |
+| EmergenceEngine | Detects emergent properties from engine interactions |
+| ConceptAbstraction | Forms hierarchical concept taxonomies |
+| MemoryPalace | Builds associative knowledge graph for navigation |
+| ReasoningEngine | Deductive, abductive, and temporal inference chains |
+| EmotionalModel | Frustration, curiosity, satisfaction — influences priorities |
+| SelfTestEngine | Tests understanding of its own principles |
+| TeachEngine | Packages knowledge for transfer to other brains |
+
+#### Autonomy Engines
+
+| Engine | Purpose |
+|--------|---------|
+| SelfModificationEngine | Generates code improvements, tests before applying |
+| CodeGenerator | Produces new code from learned patterns |
+| CodeMiner | Extracts reusable patterns from codebases |
+| GoalEngine | Sets, tracks, and forecasts autonomous goals |
+| EvolutionEngine | Genetic algorithm for strategy optimization |
+| AdaptiveStrategyEngine | Real-time parameter adaptation based on outcomes |
+| DreamEngine | Offline memory consolidation during idle |
+| ResearchOrchestrator | Orchestrates the entire 40-step feedback cycle |
+
+### Self-Improvement Loop
+
+Brain continuously improves itself through a closed-loop cycle:
+
+1. **Observe** — SelfObserver records performance metrics (error rates, resolution times, cache hits)
+2. **Hypothesize** — HypothesisEngine generates testable theories about what could work better
+3. **Experiment** — AutoExperimentEngine runs controlled A/B tests on parameters
+4. **Measure** — MetaCognitionLayer evaluates which experiments improved outcomes
+5. **Adapt** — AdaptiveStrategy applies winning parameters, reverts failures
+6. **Evolve** — EvolutionEngine genetically breeds the best strategy combinations
+
+Frustration Detection: EmotionalModel tracks repeated failures. High frustration triggers more aggressive exploration via CuriosityEngine.
+
+### Dream Mode
+
+During idle periods (no active conversations), DreamEngine performs memory consolidation:
+
+- **Replay** — Re-processes important experiences to strengthen synaptic connections
+- **Pruning** — Removes low-value memories and weak synapse connections
+- **Compression** — Merges similar patterns into generalized principles
+- **Decay** — Time-based weight reduction on unused knowledge
+- **Triggers** — Starts automatically after configurable idle period, or manually via `dream.start`
+
+### Prediction Engine
+
+Forecasts future metrics using statistical models:
+
+- **Holt-Winters** — Triple exponential smoothing for seasonal patterns
+- **EWMA** — Exponential weighted moving average for trend detection
+- **Auto-Calibration** — Tracks prediction accuracy and adjusts model parameters
+- **Domain-Aware** — Separate models per domain (errors, performance, learning)
+
+### AutoResponder
+
+Automatic anomaly response system:
+
+- **Rule-Based** — Configurable rules: "if error_rate > threshold, trigger learning cycle"
+- **Cooldown** — Prevents response storms with per-rule cooldown periods
+- **Action Types** — Learning cycles, notifications, parameter adjustments, dream triggers
+- **History** — Full audit trail of what was detected and what action was taken
+
+### Code Generation & Mining
+
+- **CodeGenerator** — Generates code improvements via Claude API with full diff preview
+- **CodeMiner** — Analyzes codebases to extract reusable patterns and modules
+- **PatternExtractor** — Identifies recurring code patterns across projects
+- **SignalScanner** — Monitors GitHub trending, Hacker News, crypto markets for relevant signals
+- **Self-Improvement Proposals** — Engines can propose improvements to their own source code
 
 ### Self-Modification
 - **SelfScanner** — Indexes own TypeScript source code with SHA256 change detection
 - **SelfModificationEngine** — Generates improvements via Claude API, tests before applying
 - **Experiment Ledger** — Tracks hypothesis, risk level, metrics before/after for every modification
+- **Safety** — All modifications require explicit approval, automatic rollback on test failure
 
 ### Notifications
 - **Discord, Telegram, Email** — Multi-channel alert routing
 - **Notification Bridge** — IPC-based cross-brain notification relay
 - **Configurable** — All providers optional, graceful fallback
+- **Event Routing** — Different events route to different channels
 
 ### Dashboards
 
@@ -78,8 +206,9 @@ The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes:
 | **Mission Control** | 7788 | 7-tab: Overview, Consciousness Entity, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
 | **Command Center** | 7790 | 7-page: Ecosystem, Learning Pipeline, Trading Flow, Marketing Flow, Cross-Brain & Borg, Activity & Missions, Infrastructure |
 
+**Mission Control** — The Consciousness Entity visualization shows Brain's current emotional state, active thought streams, engine activity heatmap, and real-time thought generation. CodeGen tab shows pending code proposals. Self-Mod tab shows modification history with diffs.
 
-**Command Center features:** Brain status cards, health gauge, LLM usage, thought stream, error log, engine dependency flow, knowledge growth chart, self-modification feed, mission tracker with 5-phase progress, quick actions, animated Borg network, peer graph
+**Command Center** — Live overview of the entire ecosystem: all 3 brains, 60+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, animated Borg network, peer graph, watchdog daemon monitoring, LLM usage tracking.
 
 ## MCP Tools (134 tools)
 
@@ -102,6 +231,9 @@ brain query <text>       Search for errors and solutions
 brain learn              Trigger a learning cycle
 brain peers              Show peer brains in the ecosystem
 brain dashboard          Generate interactive HTML dashboard
+brain missions           Research mission management (create, list, report)
+brain watchdog           Watchdog daemon status and control
+brain service            Windows service management (install, uninstall, status)
 brain export             Export Brain data as JSON
 ```
 
@@ -116,6 +248,7 @@ brain export             Export Brain data as JSON
 | `ANTHROPIC_API_KEY` | — | Enables LLM features, CodeGen, Self-Mod |
 | `BRAVE_SEARCH_API_KEY` | — | Enables web research missions |
 | `GITHUB_TOKEN` | — | Enables CodeMiner + Signal Scanner |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama local model endpoint |
 
 ## Brain Ecosystem
 
