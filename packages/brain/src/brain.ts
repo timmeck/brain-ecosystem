@@ -71,7 +71,7 @@ import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
-import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber } from '@timmeck/brain-core';
+import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -850,6 +850,14 @@ export class BrainCore {
     repoAbsorber.setRAGEngine(ragEngine);
     repoAbsorber.setKnowledgeGraph(knowledgeGraph);
     services.repoAbsorber = repoAbsorber;
+
+    // 67. FeatureExtractor — extract useful functions/patterns from absorbed repos
+    const featureExtractor = new FeatureExtractor(this.db!);
+    featureExtractor.setRAGEngine(ragEngine);
+    featureExtractor.setKnowledgeGraph(knowledgeGraph);
+    if (services.llmService) featureExtractor.setLLMService(services.llmService);
+    services.featureExtractor = featureExtractor;
+    repoAbsorber.setFeatureExtractor(featureExtractor);
 
     // ── Wire intelligence engines into autonomous ResearchOrchestrator ──
     this.orchestrator.setFactExtractor(factExtractor);

@@ -7,6 +7,8 @@ export { CodegenServer } from './codegen-server.js';
 export type { CodegenServerOptions } from './codegen-server.js';
 export { RepoAbsorber } from './repo-absorber.js';
 export type { AbsorbResult, RepoAbsorberStatus } from './repo-absorber.js';
+export { FeatureExtractor } from './feature-extractor.js';
+export type { ExtractedFeature, FeatureCategory, FeatureExtractionResult, FeatureSearchOptions, FeatureStats } from './feature-extractor.js';
 export type {
   CodeMinerConfig, RepoContent, CodeMinerSummary,
   ExtractedPattern, DependencyPattern, TechStack, ProjectStructure, ReadmePattern,

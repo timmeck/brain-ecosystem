@@ -144,6 +144,7 @@ export interface Services {
   consensusEngine?: import('@timmeck/brain-core').ConsensusEngine;
   activeLearner?: import('@timmeck/brain-core').ActiveLearner;
   repoAbsorber?: import('@timmeck/brain-core').RepoAbsorber;
+  featureExtractor?: import('@timmeck/brain-core').FeatureExtractor;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -1000,6 +1001,13 @@ export class IpcRouter {
       ['repoAbsorber.status',    () => { if (!s.repoAbsorber) throw new Error('RepoAbsorber not available'); return s.repoAbsorber.getStatus(); }],
       ['repoAbsorber.absorb',    async () => { if (!s.repoAbsorber) throw new Error('RepoAbsorber not available'); return s.repoAbsorber.absorbNext(); }],
       ['repoAbsorber.candidate', () => { if (!s.repoAbsorber) throw new Error('RepoAbsorber not available'); return s.repoAbsorber.getNextCandidate(); }],
+
+      // ─── Feature Extractor ──────────────────────────────────────
+      ['features.extract',  async (params) => { if (!s.featureExtractor) throw new Error('FeatureExtractor not available'); return s.featureExtractor.extractFromAbsorbedCode(p(params).repo); }],
+      ['features.search',   (params) => { if (!s.featureExtractor) throw new Error('FeatureExtractor not available'); const pp = p(params); return s.featureExtractor.search({ category: pp.category, repo: pp.repo, minUsefulness: pp.minUsefulness, limit: pp.limit, query: pp.query }); }],
+      ['features.suggest',  async (params) => { if (!s.featureExtractor) throw new Error('FeatureExtractor not available'); return s.featureExtractor.suggest(p(params).context); }],
+      ['features.stats',    () => { if (!s.featureExtractor) throw new Error('FeatureExtractor not available'); return s.featureExtractor.getStats(); }],
+      ['features.semantic', async (params) => { if (!s.featureExtractor) throw new Error('FeatureExtractor not available'); const pp = p(params); return s.featureExtractor.semanticSearch(pp.query, pp.limit); }],
 
       // Status (cross-brain)
       ['status',                  () => ({

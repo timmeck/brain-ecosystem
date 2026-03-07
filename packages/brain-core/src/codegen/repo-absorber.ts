@@ -7,6 +7,7 @@ import { getLogger } from '../utils/logger.js';
 import type { ThoughtStream } from '../consciousness/thought-stream.js';
 import type { RAGEngine } from '../rag/rag-engine.js';
 import type { KnowledgeGraphEngine } from '../knowledge-graph/graph-engine.js';
+import type { FeatureExtractor } from './feature-extractor.js';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -16,6 +17,7 @@ export interface AbsorbResult {
   patternsFound: number;
   factsExtracted: number;
   ragVectorsAdded: number;
+  featuresExtracted: number;
   durationMs: number;
 }
 
@@ -62,6 +64,7 @@ export class RepoAbsorber {
   private thoughtStream: ThoughtStream | null = null;
   private ragEngine: RAGEngine | null = null;
   private knowledgeGraph: KnowledgeGraphEngine | null = null;
+  private featureExtractor: FeatureExtractor | null = null;
   private totalAbsorbed = 0;
   private lastAbsorbed: string | null = null;
 
@@ -73,6 +76,7 @@ export class RepoAbsorber {
   setThoughtStream(ts: ThoughtStream): void { this.thoughtStream = ts; }
   setRAGEngine(rag: RAGEngine): void { this.ragEngine = rag; }
   setKnowledgeGraph(kg: KnowledgeGraphEngine): void { this.knowledgeGraph = kg; }
+  setFeatureExtractor(fe: FeatureExtractor): void { this.featureExtractor = fe; }
 
   private ensureTable(): void {
     this.db.exec(`
@@ -175,6 +179,7 @@ export class RepoAbsorber {
       patternsFound: 0,
       factsExtracted: 0,
       ragVectorsAdded: 0,
+      featuresExtracted: 0,
       durationMs: 0,
     };
 
@@ -221,6 +226,13 @@ export class RepoAbsorber {
               this.knowledgeGraph.addFact(p.subject, p.predicate, p.object, p.context, p.confidence, 'repo', candidate.name);
               result.factsExtracted++;
             }
+          }
+
+          // Extract reusable features (functions, classes, patterns)
+          if (this.featureExtractor) {
+            try {
+              result.featuresExtracted += this.featureExtractor.extractAndSave(content, file.relativePath, candidate.name, file.ext);
+            } catch { /* feature extraction is optional */ }
           }
 
           result.patternsFound += this.countPatterns(content, file.ext);

@@ -182,6 +182,7 @@ export function intelligenceCommand(): Command {
           console.log(keyValue('Patterns Found', String(result.patternsFound)));
           console.log(keyValue('Facts Extracted', String(result.factsExtracted)));
           console.log(keyValue('RAG Vectors', String(result.ragVectorsAdded)));
+          if (result.featuresExtracted) console.log(keyValue('Features', String(result.featuresExtracted)));
           console.log(keyValue('Duration', `${(result.durationMs / 1000).toFixed(1)}s`));
         }
         console.log(divider());
@@ -212,6 +213,124 @@ export function intelligenceCommand(): Command {
             console.log(`\n  ${c.cyan.bold('Rate Limits')}`);
             console.log(`    Calls/h: ${stats.rateLimits.callsThisHour ?? 0}/${stats.rateLimits.maxCallsPerHour ?? '∞'}`);
             console.log(`    Tokens/h: ${(stats.rateLimits.tokensThisHour ?? 0).toLocaleString()}/${(stats.rateLimits.maxTokensPerHour ?? 0).toLocaleString()}`);
+          }
+        }
+        console.log(divider());
+      });
+    });
+
+  // Subcommand: features — search/extract/suggest useful features from absorbed repos
+  const featuresCmd = cmd.command('features')
+    .description('Search and extract useful features from absorbed repos')
+    .option('-q, --query <text>', 'Search features by keyword')
+    .option('-c, --category <cat>', 'Filter by category (utility_function, design_pattern, error_handling, ...)')
+    .option('-r, --repo <repo>', 'Filter by repo name')
+    .option('-m, --min <score>', 'Minimum usefulness score (0-1)', '0.4')
+    .option('-l, --limit <n>', 'Max results', '15')
+    .action(async (opts: { query?: string; category?: string; repo?: string; min: string; limit: string }) => {
+      await withIpc(async (client) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const features = await client.request('features.search', {
+          query: opts.query,
+          category: opts.category,
+          repo: opts.repo,
+          minUsefulness: parseFloat(opts.min),
+          limit: parseInt(opts.limit, 10),
+        }) as any[];
+        console.log(header('Extracted Features', '🧬'));
+        if (!Array.isArray(features) || !features.length) {
+          console.log(`  ${c.dim('No features found. Run "brain intel features extract" first.')}`);
+        } else {
+          for (const f of features) {
+            const score = ((f.usefulness ?? 0) * 100).toFixed(0);
+            const scoreColor = f.usefulness >= 0.7 ? c.green : f.usefulness >= 0.5 ? c.orange : c.dim;
+            console.log(`\n  ${scoreColor(`${score}%`)} ${c.cyan.bold(f.name)} ${c.dim(`[${f.category}]`)}`);
+            console.log(`  ${c.dim(`${f.repo} → ${f.filePath}`)}`);
+            if (f.description) console.log(`  ${f.description}`);
+            if (f.tags) {
+              const tags = typeof f.tags === 'string' ? JSON.parse(f.tags) : f.tags;
+              if (Array.isArray(tags) && tags.length) {
+                console.log(`  ${tags.map((t: string) => c.blue(`#${t}`)).join(' ')}`);
+              }
+            }
+            // Show first 3 lines of code
+            const lines = (f.codeSnippet || '').split('\n').slice(0, 3);
+            for (const line of lines) {
+              console.log(`  ${c.dim('│')} ${c.dim(line.slice(0, 100))}`);
+            }
+          }
+        }
+        console.log(divider());
+      });
+    });
+
+  // Sub-subcommand: extract features from absorbed repos
+  featuresCmd.command('extract')
+    .description('Extract features from absorbed repos (run after absorbing)')
+    .option('-r, --repo <repo>', 'Only extract from specific repo')
+    .action(async (opts: { repo?: string }) => {
+      await withIpc(async (client) => {
+        console.log(`  ${c.cyan('Extracting features...')} ${opts.repo ? `from ${opts.repo}` : '(all repos)'}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: any = await client.request('features.extract', { repo: opts.repo });
+        if (result) {
+          console.log(header('Feature Extraction Complete', '🧬'));
+          console.log(keyValue('Features Extracted', String(result.featuresExtracted)));
+          console.log(keyValue('Duration', `${(result.durationMs / 1000).toFixed(1)}s`));
+          if (result.categories) {
+            console.log(`\n  ${c.cyan.bold('By Category:')}`);
+            for (const [cat, count] of Object.entries(result.categories)) {
+              console.log(`    ${c.dim('•')} ${cat}: ${c.green(String(count))}`);
+            }
+          }
+        }
+        console.log(divider());
+      });
+    });
+
+  // Sub-subcommand: suggest features relevant to a context
+  featuresCmd.command('suggest')
+    .description('Suggest features that could help improve Brain')
+    .argument('[context]', 'Optional context (e.g. "error handling", "caching")')
+    .action(async (context?: string) => {
+      await withIpc(async (client) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const features = await client.request('features.suggest', { context }) as any[];
+        console.log(header('Feature Suggestions', '💡'));
+        if (!Array.isArray(features) || !features.length) {
+          console.log(`  ${c.dim('No suggestions. Extract features first.')}`);
+        } else {
+          for (const f of features) {
+            const score = ((f.usefulness ?? 0) * 100).toFixed(0);
+            console.log(`\n  ${c.green(`${score}%`)} ${c.cyan.bold(f.name)} ${c.dim(`[${f.category}]`)}`);
+            console.log(`  ${c.dim(f.repo)} ${f.description || ''}`);
+            if (f.applicability) console.log(`  ${c.orange('→')} ${f.applicability}`);
+          }
+        }
+        console.log(divider());
+      });
+    });
+
+  // Sub-subcommand: stats
+  featuresCmd.command('stats')
+    .description('Feature extraction statistics')
+    .action(async () => {
+      await withIpc(async (client) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stats: any = await client.request('features.stats', {});
+        console.log(header('Feature Stats', '📊'));
+        console.log(keyValue('Total Features', String(stats.totalFeatures ?? 0)));
+        console.log(keyValue('Avg Usefulness', `${((stats.avgUsefulness ?? 0) * 100).toFixed(0)}%`));
+        if (stats.byCategory) {
+          console.log(`\n  ${c.cyan.bold('By Category:')}`);
+          for (const [cat, count] of Object.entries(stats.byCategory)) {
+            console.log(`    ${c.dim('•')} ${cat}: ${c.green(String(count))}`);
+          }
+        }
+        if (stats.byRepo) {
+          console.log(`\n  ${c.cyan.bold('By Repo:')}`);
+          for (const [repo, count] of Object.entries(stats.byRepo)) {
+            console.log(`    ${c.dim('•')} ${repo}: ${c.green(String(count))}`);
           }
         }
         console.log(divider());
