@@ -1057,6 +1057,11 @@ export class BrainCore {
         proactive: services.proactiveEngine?.getStatus() ?? null,
         userModel: services.userModel?.getStatus() ?? null,
         userProfile: services.userModel?.getProfile() ?? null,
+        recommender: services.featureRecommender ? {
+          ...services.featureRecommender.getStatus(),
+          wishlist: services.featureRecommender.getWishlist(),
+          connections: services.featureRecommender.getConnections(),
+        } : null,
       }),
       getEmotionalStatus: () => {
         const mood = (services.emotionalModel as EmotionalModel)?.getMood?.();

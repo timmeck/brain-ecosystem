@@ -554,6 +554,23 @@ canvas{display:block;width:100%;height:100%}
           </div>
           <div id="userTopTools" style="margin-top:12px"></div>
         </div>
+
+        <!-- Feature Recommender -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x2B50;</span> Feature Recommender — <span data-t="Was Brain sich wünscht">Was Brain sich wünscht</span></div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px" data-t="Brain erkennt was ihm fehlt und sucht nach passenden Features aus absorbierten Repos.">Brain erkennt was ihm fehlt und sucht nach passenden Features aus absorbierten Repos.</p>
+          <div class="grid grid-4">
+            <div class="card" style="text-align:center"><div class="card-value" id="int-rec-total" style="color:var(--cyan)">0</div><div class="card-sub" data-t="Wünsche">Wünsche</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-rec-open" style="color:var(--yellow)">0</div><div class="card-sub" data-t="Offen">Offen</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-rec-matched" style="color:var(--green)">0</div><div class="card-sub" data-t="Gefunden">Gefunden</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-rec-adopted" style="color:var(--purple)">0</div><div class="card-sub" data-t="Übernommen">Übernommen</div></div>
+          </div>
+          <div class="grid grid-2" style="margin-top:8px">
+            <div class="card" style="text-align:center"><div class="card-value" id="int-rec-connections" style="color:var(--text-dim)">0</div><div class="card-sub" data-t="Verbindungen">Verbindungen</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-rec-scan" style="color:var(--text-dim);font-size:14px">—</div><div class="card-sub" data-t="Letzter Scan">Letzter Scan</div></div>
+          </div>
+          <div id="featureWishlist" style="margin-top:12px"></div>
+        </div>
       </div>
 
       <!-- ════ Page 6: Cross-Brain & Borg ═════════════════ -->
@@ -799,6 +816,10 @@ const translations = { en: {
   'Keine Plugins installiert':'No plugins installed','Geladen':'Loaded','Keine Engines':'No engines',
   'Strategien':'Strategies','BORG AKTIV':'BORG ACTIVE','gesendet':'sent','empfangen':'received',
   'Der Lern-Kreislauf':'The Learning Cycle','Aktivität & Missionen':'Activity & Missions','Bewusstsein':'Consciousness',
+  'Was Brain sich wünscht':'What Brain wants','Wünsche':'Wishes','Offen':'Open','Gefunden':'Found','Übernommen':'Adopted',
+  'Verbindungen':'Connections','Letzter Scan':'Last scan','Suche läuft':'Searching','Verworfen':'Dismissed','Priorität':'Priority',
+  'Noch keine Feature-Wünsche — Brain analysiert automatisch':'No feature wishes yet — Brain analyzes automatically',
+  'Brain erkennt was ihm fehlt und sucht nach passenden Features aus absorbierten Repos.':'Brain detects what it needs and searches for matching features from absorbed repos.',
 }};
 let currentLang = localStorage.getItem('brain-lang') || 'en';
 function t(text) { if (currentLang === 'en' && translations.en[text]) return translations.en[text]; return text; }
@@ -1190,6 +1211,39 @@ function renderIntelligence() {
     if (tools.length) {
       el.innerHTML = `<div style="font-size:12px;color:var(--text-dim);margin-bottom:6px">${t('Deine Top-Tools:')}</div>` +
         tools.map((t,i) => `<span class="badge badge-ok" style="margin:2px">${i+1}. ${escHtml(t)}</span>`).join('');
+    }
+  }
+
+  // Feature Recommender
+  if (d.recommender) {
+    const r = d.recommender;
+    setText('int-rec-total', r.totalWishes || 0);
+    setText('int-rec-open', r.openWishes || 0);
+    setText('int-rec-matched', r.matchedWishes || 0);
+    setText('int-rec-adopted', r.adoptedWishes || 0);
+    setText('int-rec-connections', r.totalConnections || 0);
+    setText('int-rec-scan', r.lastScanAt ? new Date(r.lastScanAt).toLocaleString(getLocale(), {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—');
+
+    const wishEl = document.getElementById('featureWishlist');
+    const wishes = r.wishlist || [];
+    if (wishes.length) {
+      wishEl.innerHTML = wishes.slice(0, 10).map(w => {
+        const statusColor = w.status === 'matched' ? 'var(--green)' : w.status === 'adopted' ? 'var(--purple)' : w.status === 'dismissed' ? 'var(--text-dim)' : 'var(--yellow)';
+        const statusLabel = w.status === 'matched' ? '&#x2705; ' + escHtml(w.matchedFeatureName || 'Match') : w.status === 'adopted' ? '&#x1F4E6; ' + t('Übernommen') : w.status === 'dismissed' ? '&#x274C; ' + t('Verworfen') : '&#x1F50E; ' + t('Suche läuft');
+        const prio = (w.priority * 100).toFixed(0);
+        return `<div class="card" style="padding:8px 12px;margin-bottom:4px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:600;color:var(--cyan)">${escHtml(w.need)}</span>
+            <span style="font-size:11px;color:${statusColor}">${statusLabel}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--text-dim)">
+            <span>${escHtml(w.reason || '')}</span>
+            <span>${t('Priorität')}: ${prio}%</span>
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      wishEl.innerHTML = `<div class="empty">${t('Noch keine Feature-Wünsche — Brain analysiert automatisch')}</div>`;
     }
   }
 }
