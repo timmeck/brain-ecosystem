@@ -152,6 +152,8 @@ export interface Services {
   messageRouter?: import('@timmeck/brain-core').MessageRouter;
   telegramBot?: import('@timmeck/brain-core').TelegramBot;
   discordBot?: import('@timmeck/brain-core').DiscordBot;
+  benchmarkSuite?: import('@timmeck/brain-core').BenchmarkSuite;
+  agentTrainer?: import('@timmeck/brain-core').AgentTrainer;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -1053,6 +1055,22 @@ export class IpcRouter {
       ['bot.telegram.status',    () => s.telegramBot?.getStatus() ?? { running: false }],
       ['bot.discord.status',     () => s.discordBot?.getStatus() ?? { running: false }],
       ['bot.router.status',      () => s.messageRouter?.getStatus() ?? { messagesReceived: 0, messagesRouted: 0, errors: 0, lastMessageAt: null, uptime: 0 }],
+
+      // Agent Training — Benchmark Suite
+      ['benchmark.addCase',      (params) => { if (!s.benchmarkSuite) throw new Error('BenchmarkSuite not available'); return { id: s.benchmarkSuite.addCase(p(params) as import('@timmeck/brain-core').EvalCase) }; }],
+      ['benchmark.addCases',     (params) => { if (!s.benchmarkSuite) throw new Error('BenchmarkSuite not available'); return { count: s.benchmarkSuite.addCases(p(params).cases) }; }],
+      ['benchmark.getCases',     (params) => { if (!s.benchmarkSuite) throw new Error('BenchmarkSuite not available'); return s.benchmarkSuite.getCases(p(params)); }],
+      ['benchmark.getCategories', () => { if (!s.benchmarkSuite) throw new Error('BenchmarkSuite not available'); return s.benchmarkSuite.getCategories(); }],
+      ['benchmark.deleteCase',   (params) => { if (!s.benchmarkSuite) throw new Error('BenchmarkSuite not available'); return { deleted: s.benchmarkSuite.deleteCase(p(params).id) }; }],
+      ['benchmark.clearCases',   () => { if (!s.benchmarkSuite) throw new Error('BenchmarkSuite not available'); return { cleared: s.benchmarkSuite.clearCases() }; }],
+      ['benchmark.history',      (params) => { if (!s.benchmarkSuite) throw new Error('BenchmarkSuite not available'); return s.benchmarkSuite.getHistory(p(params).limit); }],
+      ['benchmark.getRun',       (params) => { if (!s.benchmarkSuite) throw new Error('BenchmarkSuite not available'); return s.benchmarkSuite.getRun(p(params).id); }],
+      ['benchmark.status',       () => { if (!s.benchmarkSuite) throw new Error('BenchmarkSuite not available'); return s.benchmarkSuite.getStatus(); }],
+
+      // Agent Training — Trainer
+      ['trainer.history',        (params) => { if (!s.agentTrainer) throw new Error('AgentTrainer not available'); return s.agentTrainer.getHistory(p(params).limit); }],
+      ['trainer.getSession',     (params) => { if (!s.agentTrainer) throw new Error('AgentTrainer not available'); return s.agentTrainer.getSession(p(params).id); }],
+      ['trainer.status',         () => { if (!s.agentTrainer) throw new Error('AgentTrainer not available'); return s.agentTrainer.getStatus(); }],
 
       // Status (cross-brain)
       ['status',                  () => ({

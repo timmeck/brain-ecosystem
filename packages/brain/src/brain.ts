@@ -71,7 +71,7 @@ import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
-import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor, FeatureRecommender, ContradictionResolver, CheckpointManager, TraceCollector, MessageRouter, TelegramBot, DiscordBot } from '@timmeck/brain-core';
+import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor, FeatureRecommender, ContradictionResolver, CheckpointManager, TraceCollector, MessageRouter, TelegramBot, DiscordBot, BenchmarkSuite, AgentTrainer } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -891,6 +891,13 @@ export class BrainCore {
     this.discordBot.setRouter(messageRouter);
     services.discordBot = this.discordBot;
 
+    // 73. Agent Training — BenchmarkSuite + AgentTrainer (eval harness with curriculum learning)
+    const benchmarkSuite = new BenchmarkSuite(this.db!);
+    const agentTrainer = new AgentTrainer(this.db!);
+    agentTrainer.setBenchmarkSuite(benchmarkSuite);
+    services.benchmarkSuite = benchmarkSuite;
+    services.agentTrainer = agentTrainer;
+
     // ── Wire intelligence engines into autonomous ResearchOrchestrator ──
     this.orchestrator.setFactExtractor(factExtractor);
     this.orchestrator.setKnowledgeGraph(knowledgeGraph);
@@ -1092,6 +1099,8 @@ export class BrainCore {
         } : null,
         checkpoints: services.checkpointManager?.getStatus() ?? null,
         traces: services.traceCollector?.getStatus() ?? null,
+        benchmark: services.benchmarkSuite?.getStatus() ?? null,
+        trainer: services.agentTrainer?.getStatus() ?? null,
       }),
       getEmotionalStatus: () => {
         const mood = (services.emotionalModel as EmotionalModel)?.getMood?.();

@@ -501,3 +501,14 @@ export type {
   IncomingMessage, OutgoingResponse, MessageRouterConfig, MessageRouterStatus,
   TelegramBotConfig, TelegramBotStatus, DiscordBotConfig, DiscordBotStatus,
 } from './messaging/index.js';
+
+// ── Agent Training ──────────────────────────────────────────
+export { BenchmarkSuite, runBenchmarkMigration } from './agent-training/index.js';
+export type {
+  EvalCase, EvalResult, BenchmarkReport, BenchmarkSuiteStatus,
+  EvalFunction, ScoreFunction,
+} from './agent-training/index.js';
+export { AgentTrainer, runTrainerMigration } from './agent-training/index.js';
+export type {
+  TrainingConfig, EpochResult, TrainingReport, AgentTrainerStatus,
+} from './agent-training/index.js';

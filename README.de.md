@@ -99,6 +99,133 @@ Alle drei Brains teilen sich 72+ autonome Engines via Brain Core:
 - **Wissensdestillation** — Extrahiert Prinzipien und Anti-Patterns aus Roherfahrung
 - **Genetische Evolution** — EvolutionEngine züchtet optimale Strategie-Kombinationen
 
+## Optionale Integrationen
+
+Brain folgt dem "Highend Optional"-Prinzip — alles optional, Kern funktioniert immer. API-Keys in die `.env` Datei (z.B. `~/.brain/.env`) eintragen um Features zu aktivieren:
+
+### Telegram Bot
+
+Befehle per Telegram empfangen und beantworten (Status, Suche, Missionen etc.).
+
+1. Telegram öffnen, nach **@BotFather** suchen
+2. `/newbot` senden, Anweisungen folgen, Namen wählen
+3. Bot-Token kopieren (sieht aus wie `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
+4. In `.env` eintragen:
+   ```env
+   TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+   TELEGRAM_CHAT_ID=deine-chat-id          # optional: auf einen Chat beschränken
+   ```
+5. Chat-ID finden: dem Bot eine Nachricht schicken, dann `https://api.telegram.org/bot<DEIN_TOKEN>/getUpdates` aufrufen
+6. Brain neustarten: `brain stop && brain start`
+7. `/help` an den Bot senden — er sollte mit verfügbaren Befehlen antworten
+
+### Discord Bot
+
+Befehle per Discord empfangen und beantworten (Bot erwähnen oder Befehle nutzen).
+
+1. Zum [Discord Developer Portal](https://discord.com/developers/applications) gehen
+2. **New Application** klicken, Namen vergeben
+3. **Bot** Tab öffnen, **Reset Token** klicken, Token kopieren
+4. Unter **Privileged Gateway Intents**: **Message Content Intent** aktivieren
+5. **OAuth2 > URL Generator** öffnen, Scopes `bot` + `applications.commands` wählen
+6. Unter **Bot Permissions** wählen: Send Messages, Read Message History, View Channels
+7. Generierte URL kopieren, im Browser öffnen, Bot auf deinen Server einladen
+8. In `.env` eintragen:
+   ```env
+   DISCORD_BOT_TOKEN=MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.AbCdEf.xxxxx
+   DISCORD_CHANNEL_ID=123456789012345678   # optional: auf einen Channel beschränken
+   ```
+9. Brain neustarten: `brain stop && brain start`
+10. Bot in Discord erwähnen — er sollte antworten
+
+### Anthropic API (LLM Features)
+
+Benötigt für autonome Forschung, Selbst-Modifikation, Code-Generierung und Missionen.
+
+1. Auf [console.anthropic.com](https://console.anthropic.com) registrieren
+2. API-Key unter **API Keys** erstellen
+3. In `.env` eintragen:
+   ```env
+   ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
+   ```
+
+### Brave Search (Web-Recherche)
+
+Aktiviert Web-Recherche für Missionen, TechRadar und autonome Entdeckungen.
+
+1. Auf [brave.com/search/api](https://brave.com/search/api/) registrieren
+2. Kostenlosen API-Key holen (2.000 Anfragen/Monat im Free-Tier)
+3. In `.env` eintragen:
+   ```env
+   BRAVE_SEARCH_API_KEY=BSAxxxxx
+   ```
+
+### GitHub Token (Code Intelligence)
+
+Aktiviert CodeMiner Repo-Scanning, Signal Scanner Trending Repos und TechRadar.
+
+1. Auf [github.com/settings/tokens](https://github.com/settings/tokens) gehen
+2. **Classic** Token generieren mit `public_repo` Scope
+3. In `.env` eintragen:
+   ```env
+   GITHUB_TOKEN=ghp_xxxxx
+   ```
+
+### Ollama (Lokale AI)
+
+AI-Modelle lokal betreiben ohne API-Kosten. Als Fallback oder für datenschutzsensible Aufgaben.
+
+1. Von [ollama.com](https://ollama.com) installieren
+2. Modell laden: `ollama pull llama3.2`
+3. Ollama läuft auf `http://localhost:11434` — Brain erkennt es automatisch
+
+### Benachrichtigungen (Discord/Telegram/Email)
+
+Brain kann Alerts für Cross-Brain Events, SelfMod-Vorschläge, Anomalien etc. senden.
+
+```env
+# Discord Webhook (anders als der Bot oben — für ausgehende Benachrichtigungen)
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxxxx/xxxxx
+
+# Telegram (nutzt denselben Bot-Token)
+TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+TELEGRAM_CHAT_ID=deine-chat-id
+
+# Email (SMTP)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=du@gmail.com
+EMAIL_PASS=dein-app-passwort
+EMAIL_FROM=du@gmail.com
+EMAIL_TO=alerts@deinedomain.de
+```
+
+### Vollständiges `.env` Beispiel
+
+```env
+# Benötigt für LLM Features
+ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
+
+# Web-Recherche
+BRAVE_SEARCH_API_KEY=BSAxxxxx
+
+# GitHub Intelligence
+GITHUB_TOKEN=ghp_xxxxx
+
+# Telegram Bot (bidirektional)
+TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+TELEGRAM_CHAT_ID=123456789
+
+# Discord Bot (bidirektional)
+DISCORD_BOT_TOKEN=MTIzNDU2.xxxxx
+DISCORD_CHANNEL_ID=123456789012345678
+
+# Discord Benachrichtigungen (ausgehender Webhook)
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxxxx/xxxxx
+```
+
+> Alle Keys sind optional. Brain funktioniert ohne alle — man bekommt nur mehr Features je mehr man hinzufügt.
+
 ## Entwicklung
 
 ```bash
