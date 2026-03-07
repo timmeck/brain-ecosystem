@@ -155,6 +155,7 @@ export interface Services {
   benchmarkSuite?: import('@timmeck/brain-core').BenchmarkSuite;
   agentTrainer?: import('@timmeck/brain-core').AgentTrainer;
   toolScopeManager?: import('@timmeck/brain-core').ToolScopeManager;
+  pluginMarketplace?: import('@timmeck/brain-core').PluginMarketplace;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -1084,6 +1085,22 @@ export class IpcRouter {
       ['scope.history',          (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.getCheckHistory(p(params).limit); }],
       ['scope.blocked',          (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.getTopBlocked(p(params).limit); }],
       ['scope.status',           () => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.getStatus(); }],
+
+      // Plugin Marketplace
+      ['marketplace.browse',     (params) => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.listAvailable(p(params).category); }],
+      ['marketplace.search',     (params) => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.search(p(params).query); }],
+      ['marketplace.info',       (params) => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.getPluginInfo(p(params).name); }],
+      ['marketplace.categories', () => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.getCategories(); }],
+      ['marketplace.featured',   () => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.getFeatured(); }],
+      ['marketplace.install',    (params) => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.install(p(params).name, p(params).version); }],
+      ['marketplace.uninstall',  (params) => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.uninstall(p(params).name); }],
+      ['marketplace.installed',  () => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.getInstalled(); }],
+      ['marketplace.updates',    () => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.getUpdates(); }],
+      ['marketplace.rate',       (params) => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); s.pluginMarketplace.rate(p(params).name, p(params).rating, p(params).text); return { ok: true }; }],
+      ['marketplace.reviews',    (params) => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.getReviews(p(params).name); }],
+      ['marketplace.compat',     (params) => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); const info = s.pluginMarketplace.getPluginInfo(p(params).name); if (!info) throw new Error('Plugin not found'); return s.pluginMarketplace.checkCompatibility(info); }],
+      ['marketplace.deps',       (params) => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.resolveDependencies(p(params).name); }],
+      ['marketplace.status',     () => { if (!s.pluginMarketplace) throw new Error('Marketplace not available'); return s.pluginMarketplace.getStatus(); }],
 
       // Status (cross-brain)
       ['status',                  () => ({

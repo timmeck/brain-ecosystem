@@ -109,6 +109,8 @@ export { WindowsServiceManager } from './watchdog/windows-service.js';
 // ── Plugin SDK ────────────────────────────────────────────
 export { PluginRegistry } from './plugin/plugin-registry.js';
 export type { BrainPlugin, PluginContext, PluginToolDefinition, PluginRouteDefinition, PluginManifest, PluginRecord } from './plugin/types.js';
+export { PluginMarketplace, runMarketplaceMigration } from './plugin/plugin-marketplace.js';
+export type { CatalogPlugin, PluginCatalog, PluginReview, InstallRecord, CompatibilityResult, MarketplaceStatus, PluginMarketplaceConfig } from './plugin/plugin-marketplace.js';
 
 // ── Ecosystem ──────────────────────────────────────────────
 export { EcosystemService } from './ecosystem/service.js';
