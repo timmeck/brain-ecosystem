@@ -57,6 +57,9 @@ const KNOWN_CAPABILITIES: Record<string, string> = {
   'streaming/pipeline pattern': 'ThoughtStream (event streaming pipeline)',
   'monitoring/metrics': 'SelfObserver + MetaCognitionLayer',
   'middleware pattern': 'IPC Router (request handler chain)',
+  'retry mechanism': 'retryWithBackoff() utility (brain-core/utils/retry.ts)',
+  'queue/batch processing': 'BatchQueue utility (brain-core/utils/batch-queue.ts)',
+  'contradiction resolver': 'ContradictionResolver (brain-core/knowledge-graph/contradiction-resolver.ts)',
 };
 
 // ── Need detection patterns ──────────────────────────────
