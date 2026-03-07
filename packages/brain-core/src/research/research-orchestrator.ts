@@ -128,6 +128,7 @@ export class ResearchOrchestrator {
   private knowledgeGraph: KnowledgeGraphEngine | null = null;
   private repoAbsorber: RepoAbsorber | null = null;
   private featureRecommender: import('../codegen/feature-recommender.js').FeatureRecommender | null = null;
+  private featureExtractor: import('../codegen/feature-extractor.js').FeatureExtractor | null = null;
   private contradictionResolver: import('../knowledge-graph/contradiction-resolver.js').ContradictionResolver | null = null;
   private checkpointManager: import('../checkpoint/checkpoint-manager.js').CheckpointManager | null = null;
   private lastAutoMissionTime = 0;
@@ -343,6 +344,7 @@ export class ResearchOrchestrator {
   /** Set the RepoAbsorber — autonomous code learning from discovered repos. */
   setRepoAbsorber(absorber: RepoAbsorber): void { this.repoAbsorber = absorber; }
   setFeatureRecommender(recommender: import('../codegen/feature-recommender.js').FeatureRecommender): void { this.featureRecommender = recommender; }
+  setFeatureExtractor(extractor: import('../codegen/feature-extractor.js').FeatureExtractor): void { this.featureExtractor = extractor; }
   setContradictionResolver(resolver: import('../knowledge-graph/contradiction-resolver.js').ContradictionResolver): void { this.contradictionResolver = resolver; }
   setCheckpointManager(cm: import('../checkpoint/checkpoint-manager.js').CheckpointManager): void { this.checkpointManager = cm; }
 
@@ -1817,6 +1819,7 @@ export class ResearchOrchestrator {
                 risk_level: suggestion.targetFiles.length > 1 ? 'medium' : 'low',
                 expected_impact: [{ metric: 'engine_effectiveness', direction: 'increase', target: '+10%' }],
                 acceptance_criteria: ['Build passes', 'All tests pass', 'No regressions in related engines'],
+                referenceCode: suggestion.referenceCode,
               },
             );
             ts?.emit('self-modification', 'discovering', `Self-modification proposed: ${mod.title}`, 'notable');
@@ -2892,9 +2895,37 @@ export class ResearchOrchestrator {
   }
 
   /** Find a concrete self-improvement suggestion that maps to specific files. */
-  private findActionableSuggestion(): { title: string; problem: string; targetFiles: string[] } | null {
+  private findActionableSuggestion(): { title: string; problem: string; targetFiles: string[]; referenceCode?: string } | null {
+    // ── Source A: FeatureRecommender Wishes (matched, priority ≥ 0.5) ──
+    if (this.featureRecommender) {
+      try {
+        const wishes = this.featureRecommender.getWishlist('matched');
+        const actionable = wishes.find(w => w.priority >= 0.5 && w.matchScore >= 0.3);
+        if (actionable) {
+          // Try to get reference code from matched feature
+          let referenceCode: string | undefined;
+          if (actionable.matchedFeatureId && this.featureExtractor) {
+            const features = this.featureExtractor.search({ query: actionable.matchedFeatureName ?? '', limit: 1 });
+            if (features.length > 0) {
+              referenceCode = features[0].codeSnippet?.slice(0, 2000);
+            }
+          }
+          return {
+            title: `Implement ${actionable.need}`,
+            problem: `Brain needs "${actionable.need}": ${actionable.reason}. ` +
+              `Reference: "${actionable.matchedFeatureName}" (${Math.round(actionable.matchScore * 100)}% match).`,
+            targetFiles: this.findTargetFilesForNeed(actionable.need),
+            referenceCode,
+          };
+        }
+      } catch { /* featureRecommender not ready */ }
+    }
+
+    // ── Source B: Existing suggestions (filtered — skip AutoResponder noise) ──
+    if (!this.selfScanner) return null;
+
     const suggestions = this.generateSelfImprovementSuggestions();
-    if (suggestions.length === 0 || !this.selfScanner) return null;
+    if (suggestions.length === 0) return null;
 
     // Engine name → module file mapping heuristics
     const engineMap: Record<string, string[]> = {
@@ -2937,6 +2968,10 @@ export class ResearchOrchestrator {
     };
 
     for (const suggestion of suggestions) {
+      // Filter out AutoResponder noise — these are not actionable code problems
+      if (suggestion.startsWith('Tell Claude')) continue;
+      if (/Vorschlag.*wurde.*ignoriert/i.test(suggestion)) continue;
+
       const lower = suggestion.toLowerCase();
       // Find engine names in suggestion text (English class names or German keywords)
       for (const [engineName, filePaths] of Object.entries(engineMap)) {
@@ -2978,6 +3013,31 @@ export class ResearchOrchestrator {
     }
 
     return null;
+  }
+
+  /** Map a feature need keyword to likely target files. */
+  private findTargetFilesForNeed(need: string): string[] {
+    const lower = need.toLowerCase();
+    const needFileMap: Record<string, string[]> = {
+      'retry': ['packages/brain-core/src/utils/retry.ts'],
+      'cache': ['packages/brain-core/src/llm/llm-service.ts'],
+      'queue': ['packages/brain-core/src/utils/batch-queue.ts'],
+      'batch': ['packages/brain-core/src/utils/batch-queue.ts'],
+      'rate limit': ['packages/brain-core/src/llm/llm-service.ts'],
+      'contradiction': ['packages/brain-core/src/knowledge-graph/contradiction-resolver.ts'],
+      'streaming': ['packages/brain-core/src/llm/llm-service.ts'],
+      'middleware': ['packages/brain-core/src/llm/llm-middleware.ts'],
+      'monitoring': ['packages/brain-core/src/code-health/health-monitor.ts'],
+      'checkpoint': ['packages/brain-core/src/checkpoint/checkpoint-manager.ts'],
+      'trace': ['packages/brain-core/src/observability/trace-collector.ts'],
+      'feedback': ['packages/brain-core/src/feedback/feedback-engine.ts'],
+      'tool': ['packages/brain-core/src/tool-learning/tool-tracker.ts'],
+      'proactive': ['packages/brain-core/src/proactive/proactive-engine.ts'],
+    };
+    for (const [keyword, files] of Object.entries(needFileMap)) {
+      if (lower.includes(keyword)) return files;
+    }
+    return ['packages/brain-core/src/index.ts'];
   }
 
   /** Get a comprehensive research summary for dashboards/API. */

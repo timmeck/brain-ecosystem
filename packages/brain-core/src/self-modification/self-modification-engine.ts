@@ -28,6 +28,8 @@ export interface ProposalMeta {
   reason_code?: string;
   metrics_before?: Record<string, number>;
   metrics_after?: Record<string, number>;
+  /** Reference code snippet from absorbed repos — included in generation prompt as inspiration. */
+  referenceCode?: string;
 }
 
 export type ModificationStatus =
@@ -157,6 +159,8 @@ export class SelfModificationEngine {
 
   // Rate limiting
   private recentGenerations: number[] = [];
+  // Ephemeral reference code snippets (not persisted in DB)
+  private referenceCodeMap = new Map<number, string>();
 
   // Prepared statements
   private readonly stmtInsert: Database.Statement;
@@ -224,6 +228,9 @@ export class SelfModificationEngine {
     // Store structured proposal metadata if provided
     if (meta) {
       this.updateProposalMeta(id, meta);
+      if (meta.referenceCode) {
+        this.referenceCodeMap.set(id, meta.referenceCode);
+      }
     }
 
     this.log.info(`[self-mod] Proposed modification #${id}: ${title}${meta?.risk_level ? ` [risk: ${meta.risk_level}]` : ''}`);
@@ -294,6 +301,16 @@ export class SelfModificationEngine {
 
       if (fileContents.length > 0) {
         systemPrompt += '\n\n## Current Source Code of Target Files\n' + fileContents.join('\n\n');
+      }
+
+      // Add reference implementation from absorbed repos if available
+      const refCode = this.referenceCodeMap.get(modificationId);
+      if (refCode) {
+        systemPrompt += '\n\n## Reference Implementation (from absorbed repos)\n' +
+          'The following code snippet shows a similar implementation that scored well:\n' +
+          '```\n' + refCode + '\n```\n' +
+          "Adapt this approach to fit Brain's architecture.";
+        this.referenceCodeMap.delete(modificationId); // Clean up after use
       }
 
       // User message

@@ -922,6 +922,7 @@ export class BrainCore {
     this.orchestrator.setCodeHealthMonitor(codeHealthMonitor);
     this.orchestrator.setRepoAbsorber(repoAbsorber);
     this.orchestrator.setFeatureRecommender(featureRecommender);
+    this.orchestrator.setFeatureExtractor(featureExtractor);
     this.orchestrator.setContradictionResolver(contradictionResolver);
     this.orchestrator.setCheckpointManager(checkpointManager);
 
@@ -1083,12 +1084,14 @@ export class BrainCore {
       getKnowledgeStats: () => {
         const timeSeries = services.analytics?.getTimeSeries(undefined, 30) ?? [];
         const summary = services.analytics?.getSummary();
+        const kgFacts = services.knowledgeGraph?.getStatus()?.totalFacts ?? 0;
+        const selfModStatus = services.selfModificationEngine?.getStatus();
         return {
           totals: {
-            principles: summary?.rules?.active ?? 0,
+            principles: kgFacts + (summary?.rules?.active ?? 0),
             hypotheses: summary?.insights?.active ?? 0,
-            experiments: summary?.antipatterns?.total ?? 0,
-            solutions: summary?.solutions?.total ?? 0,
+            experiments: (selfModStatus?.totalModifications ?? 0) + (summary?.antipatterns?.total ?? 0),
+            solutions: (summary?.solutions?.total ?? 0) + (selfModStatus?.byStatus?.['applied'] ?? 0),
           },
           timeSeries,
         };
