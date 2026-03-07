@@ -7,7 +7,7 @@
 
 **Autonomous Error Memory, Code Intelligence & Self-Improving AI for Claude Code — 162 MCP Tools, 72+ Engines**
 
-Brain is an MCP server that gives Claude Code a persistent, self-improving memory. It remembers errors, learns solutions, and runs 72+ autonomous engines in a 49-step feedback cycle. It observes itself, detects anomalies, forms and tests hypotheses, distills principles, reasons in chains, feels emotions, evolves strategies genetically, debates itself, challenges its own principles (Advocatus Diaboli), gets curious about knowledge gaps, syncs knowledge via Borg collective, loads community plugins, absorbs code from GitHub repos, extracts reusable features, and modifies its own source code. Multi-provider LLM (Anthropic + Ollama). RAG vector search across all knowledge. Knowledge Graph with transitive inference. RLHF feedback learning. Tool-use learning. User modeling. Proactive suggestions. Code assimilation with feature extraction. Autonomous web research missions. Live tech radar scanning. 162 MCP tools. 1607 tests.
+Brain is an MCP server that gives Claude Code a persistent, self-improving memory. It remembers errors, learns solutions, and runs 72+ autonomous engines in a 50-step feedback cycle. It observes itself, detects anomalies, forms and tests hypotheses, distills principles, reasons in chains, feels emotions, evolves strategies genetically, debates itself, challenges its own principles (Advocatus Diaboli), gets curious about knowledge gaps, syncs knowledge via Borg collective, loads community plugins, absorbs code from GitHub repos, extracts reusable features, recommends missing features, and modifies its own source code. Multi-provider LLM (Anthropic + Ollama). RAG vector search across all knowledge. Knowledge Graph with transitive inference. RLHF feedback learning. Tool-use learning. User modeling. Proactive suggestions. Code assimilation with feature extraction + recommendation. Autonomous web research missions. Live tech radar scanning. 162 MCP tools. 3076 tests.
 
 ## Quick Start
 
@@ -23,14 +23,13 @@ That's it. One command configures MCP, hooks, and starts the daemon.
 ```
 Claude Code  ──MCP stdio──►  Brain Daemon (:7777)
 Cursor/Windsurf ─MCP SSE──►  MCP HTTP Server (:7778)
-Browser ────────HTTP──────►  Mission Control (:7788)
-                              Command Center  (:7790)
+Browser ────────HTTP──────►  Command Center  (:7790)
                                     │
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
               Error Memory    Research Engine   72+ Engines
               Code Intel      Mission Engine    ResearchOrchestrator
-              Synapse Net     LLM Service       40-step feedback loop
+              Synapse Net     LLM Service       50-step feedback loop
               Prevention      Web Research          │
               Git Intel       TechRadar         ┌───┴───────────┐
                     │                           ▼               ▼
@@ -80,7 +79,7 @@ Cross-brain communication via IPC named pipes (trading-brain, marketing-brain).
 
 ### 72+ Autonomous Engines
 
-The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes:
+The ResearchOrchestrator runs a 50-step feedback cycle every 5 minutes:
 
 #### Core Research Engines
 
@@ -110,6 +109,15 @@ The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes:
 | CuriosityEngine | Detects knowledge gaps and generates exploration questions |
 | ResearchAgendaEngine | Prioritizes what to investigate next |
 | CounterfactualEngine | "What if X hadn't happened?" reasoning |
+| RAGEngine | Vector search across all knowledge (insights, memories, errors) |
+| KnowledgeGraphEngine | Typed fact relations with transitive inference |
+| SemanticCompressor | Deduplicates and compresses similar insights |
+| FeedbackEngine | RLHF reward signals from user corrections |
+| ToolTracker | Tool usage learning and pattern detection |
+| ProactiveEngine | Trigger-based improvement suggestions |
+| UserModel | Adaptive responses based on user skill level |
+| CodeHealthMonitor | Codebase quality tracking with trend analysis |
+| ActiveLearner | Gap identification and multi-strategy closing |
 
 #### Meta-Cognition Engines
 
@@ -124,6 +132,8 @@ The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes:
 | EmotionalModel | Frustration, curiosity, satisfaction — influences priorities |
 | SelfTestEngine | Tests understanding of its own principles |
 | TeachEngine | Packages knowledge for transfer to other brains |
+| TeachingProtocol | Inter-brain knowledge transfer via IPC |
+| ConsensusEngine | Multi-brain voting for critical decisions |
 
 #### Autonomy Engines
 
@@ -136,7 +146,10 @@ The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes:
 | EvolutionEngine | Genetic algorithm for strategy optimization |
 | AdaptiveStrategyEngine | Real-time parameter adaptation based on outcomes |
 | DreamEngine | Offline memory consolidation during idle |
-| ResearchOrchestrator | Orchestrates the entire 40-step feedback cycle |
+| RepoAbsorber | Absorbs external repos and indexes their knowledge |
+| FeatureExtractor | Extracts reusable functions, patterns, data structures |
+| FeatureRecommender | Detects needs, matches features, builds connections |
+| ResearchOrchestrator | Orchestrates the entire 50-step feedback cycle |
 
 ### Self-Improvement Loop
 
@@ -199,16 +212,21 @@ Automatic anomaly response system:
 - **Configurable** — All providers optional, graceful fallback
 - **Event Routing** — Different events route to different channels
 
-### Dashboards
+### Command Center Dashboard (:7790)
 
-| Dashboard | Port | What It Shows |
-|-----------|------|--------------|
-| **Mission Control** | 7788 | 7-tab: Overview, Consciousness Entity, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
-| **Command Center** | 7790 | 8-page: Ecosystem, Learning, Trading, Marketing, Cross-Brain & Borg, Debates & Challenges, Activity & Missions, Infrastructure |
+9-page live dashboard showing the entire ecosystem:
 
-**Mission Control** — The Consciousness Entity visualization shows Brain's current emotional state, active thought streams, engine activity heatmap, and real-time thought generation. CodeGen tab shows pending code proposals. Self-Mod tab shows modification history with diffs.
-
-**Command Center** — Live overview of the entire ecosystem: all 3 brains, 72+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, animated Borg network, peer graph, debate history, Advocatus Diaboli challenges with resilience bars, watchdog daemon monitoring, LLM usage tracking.
+| Page | What It Shows |
+|------|--------------|
+| Overview | All 3 brains, 72+ engines, error log, quick actions |
+| Learning Cycle | 6-stage pipeline: Data → Analysis → Hypotheses → Experiments → Principles → Actions |
+| Trading Flow | Signals → Analysis → Trades → P&L, equity, positions, win rate |
+| Code Intelligence | Repo absorption, feature extraction, code health |
+| Research | Missions, knowledge growth, research agenda |
+| Entity | Consciousness orb — emotional state, thought streams, dimension ring |
+| Cross-Brain & Borg | Collective sync, peer graph, Borg network |
+| Debates & Challenges | Debate history, Advocatus Diaboli, resilience bars |
+| Infrastructure | Watchdog monitoring, LLM usage, plugins, self-modification |
 
 ## MCP Tools (137 tools)
 
@@ -256,7 +274,7 @@ brain export             Export Brain data as JSON
 
 | Brain | Purpose | Ports |
 |-------|---------|-------|
-| **Brain** (this) | Error memory, code intelligence, full autonomy & self-modification | **7777** / 7778 / 7788 / 7790 |
+| **Brain** (this) | Error memory, code intelligence, full autonomy & self-modification | **7777** / 7778 / 7790 |
 | [Trading Brain](../trading-brain) | Adaptive trading intelligence with signal learning & paper trading | 7779 / 7780 |
 | [Marketing Brain](../marketing-brain) | Content strategy, social engagement & cross-platform optimization | 7781 / 7782 / 7783 |
 | [Brain Core](../brain-core) | Shared infrastructure — 72+ engines | — |
