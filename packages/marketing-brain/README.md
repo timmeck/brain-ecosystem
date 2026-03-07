@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Self-Learning Marketing Intelligence System for Claude Code — 131 MCP Tools, 60+ Engines**
+**Self-Learning Marketing Intelligence System for Claude Code — 142 MCP Tools, 72+ Engines**
 
-Marketing Brain is an MCP server that gives Claude Code a persistent marketing memory. It tracks every post you publish, learns what works across 6 platforms, and builds a Hebbian synapse network connecting posts, campaigns, strategies, templates, and insights. Live social feeds from Bluesky + Reddit. Over time, it learns your best-performing patterns, generates content drafts, schedules posts, analyzes competitors, and runs 60+ autonomous engines in a 40-step feedback cycle to discover engagement patterns, reason about causality, evolve strategies genetically, and improve itself. Multi-provider LLM (Anthropic + Ollama). 85 tests.
+Marketing Brain is an MCP server that gives Claude Code a persistent marketing memory. It tracks every post you publish, learns what works across 6 platforms, and builds a Hebbian synapse network connecting posts, campaigns, strategies, templates, and insights. Live social feeds from Bluesky + Reddit. Over time, it learns your best-performing patterns, generates content drafts, schedules posts, analyzes competitors, and runs 72+ autonomous engines in a 49-step feedback cycle to discover engagement patterns, reason about causality, evolve strategies genetically, and improve itself. Full intelligence suite: RAG, Knowledge Graph, feedback learning, tool tracking, user model, proactive suggestions. Multi-provider LLM (Anthropic + Ollama). 407 tests.
 
 ## Quick Start
 
@@ -53,7 +53,7 @@ That's it. One command configures MCP, hooks, and starts the daemon.
 - **Rate Limiting** — Per-hour and per-day token budgets with automatic throttling
 - **Usage Tracking** — Calls, tokens, latency, cache hit rate, cost tracking
 
-### 60+ Autonomous Engines
+### 72+ Autonomous Engines
 
 The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes:
 
@@ -179,7 +179,7 @@ marketing config                 Configuration management
 | [Brain](../brain) | Error memory, code intelligence, full autonomy & self-modification | 7777 / 7778 / 7788 / 7790 |
 | [Trading Brain](../trading-brain) | Adaptive trading intelligence with signal learning & paper trading | 7779 / 7780 |
 | **Marketing Brain** (this) | Content strategy, social engagement & cross-platform optimization | **7781** / 7782 / 7783 |
-| [Brain Core](../brain-core) | Shared infrastructure — 60+ engines | — |
+| [Brain Core](../brain-core) | Shared infrastructure — 72+ engines | — |
 
 ## Support
 

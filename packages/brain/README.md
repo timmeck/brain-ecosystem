@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Autonomous Error Memory, Code Intelligence & Self-Improving AI for Claude Code — 134 MCP Tools, 60+ Engines**
+**Autonomous Error Memory, Code Intelligence & Self-Improving AI for Claude Code — 162 MCP Tools, 72+ Engines**
 
-Brain is an MCP server that gives Claude Code a persistent, self-improving memory. It remembers errors, learns solutions, and runs 60+ autonomous engines in a 40-step feedback cycle. It observes itself, detects anomalies, forms and tests hypotheses, distills principles, reasons in chains, feels emotions, evolves strategies genetically, debates itself, challenges its own principles (Advocatus Diaboli), gets curious about knowledge gaps, syncs knowledge via Borg collective, loads community plugins, and modifies its own source code. Multi-provider LLM (Anthropic + Ollama). Autonomous web research missions. Live tech radar scanning. 137 MCP tools. 1407 tests.
+Brain is an MCP server that gives Claude Code a persistent, self-improving memory. It remembers errors, learns solutions, and runs 72+ autonomous engines in a 49-step feedback cycle. It observes itself, detects anomalies, forms and tests hypotheses, distills principles, reasons in chains, feels emotions, evolves strategies genetically, debates itself, challenges its own principles (Advocatus Diaboli), gets curious about knowledge gaps, syncs knowledge via Borg collective, loads community plugins, absorbs code from GitHub repos, extracts reusable features, and modifies its own source code. Multi-provider LLM (Anthropic + Ollama). RAG vector search across all knowledge. Knowledge Graph with transitive inference. RLHF feedback learning. Tool-use learning. User modeling. Proactive suggestions. Code assimilation with feature extraction. Autonomous web research missions. Live tech radar scanning. 162 MCP tools. 1607 tests.
 
 ## Quick Start
 
@@ -28,7 +28,7 @@ Browser ────────HTTP──────►  Mission Control (:778
                                     │
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
-              Error Memory    Research Engine   60+ Engines
+              Error Memory    Research Engine   72+ Engines
               Code Intel      Mission Engine    ResearchOrchestrator
               Synapse Net     LLM Service       40-step feedback loop
               Prevention      Web Research          │
@@ -78,7 +78,7 @@ Cross-brain communication via IPC named pipes (trading-brain, marketing-brain).
 - **LLM Relevance Scoring** — AI judges how relevant each finding is to your stack
 - **Digest Generation** — Daily summaries of what's new and relevant
 
-### 60+ Autonomous Engines
+### 72+ Autonomous Engines
 
 The ResearchOrchestrator runs a 40-step feedback cycle every 5 minutes:
 
@@ -208,7 +208,7 @@ Automatic anomaly response system:
 
 **Mission Control** — The Consciousness Entity visualization shows Brain's current emotional state, active thought streams, engine activity heatmap, and real-time thought generation. CodeGen tab shows pending code proposals. Self-Mod tab shows modification history with diffs.
 
-**Command Center** — Live overview of the entire ecosystem: all 3 brains, 60+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, animated Borg network, peer graph, debate history, Advocatus Diaboli challenges with resilience bars, watchdog daemon monitoring, LLM usage tracking.
+**Command Center** — Live overview of the entire ecosystem: all 3 brains, 72+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, animated Borg network, peer graph, debate history, Advocatus Diaboli challenges with resilience bars, watchdog daemon monitoring, LLM usage tracking.
 
 ## MCP Tools (137 tools)
 
@@ -259,7 +259,7 @@ brain export             Export Brain data as JSON
 | **Brain** (this) | Error memory, code intelligence, full autonomy & self-modification | **7777** / 7778 / 7788 / 7790 |
 | [Trading Brain](../trading-brain) | Adaptive trading intelligence with signal learning & paper trading | 7779 / 7780 |
 | [Marketing Brain](../marketing-brain) | Content strategy, social engagement & cross-platform optimization | 7781 / 7782 / 7783 |
-| [Brain Core](../brain-core) | Shared infrastructure — 60+ engines | — |
+| [Brain Core](../brain-core) | Shared infrastructure — 72+ engines | — |
 
 ## Support
 

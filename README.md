@@ -12,7 +12,7 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 60+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Advocatus Diaboli principle challenges. RAG vector search across all knowledge. Knowledge Graph with transitive inference. Semantic compression. RLHF feedback learning. Proactive suggestions. Inter-brain teaching. Multi-brain consensus voting. Active learning with gap detection. 419+ MCP tools. 3041 tests. The brain literally thinks about itself, gets curious, runs experiments, and writes code to improve itself.
+Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 72+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Advocatus Diaboli principle challenges. RAG vector search across all knowledge. Knowledge Graph with transitive inference. Semantic compression. RLHF feedback learning. Proactive suggestions. Inter-brain teaching. Multi-brain consensus voting. Active learning with gap detection. Code assimilation from GitHub repos with feature extraction. 424+ MCP tools. 3078 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
 
 ## Packages
 
@@ -21,7 +21,7 @@ Brain Ecosystem is a system of three specialized "brains" connected through a He
 | [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Error memory, code intelligence, autonomous research & self-modification | 7777 / 7778 / 7788 / 7790 |
 | [@timmeck/trading-brain](packages/trading-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/trading-brain)](https://www.npmjs.com/package/@timmeck/trading-brain) | Adaptive trading intelligence with signal learning, paper trading & live market data | 7779 / 7780 |
 | [@timmeck/marketing-brain](packages/marketing-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/marketing-brain)](https://www.npmjs.com/package/@timmeck/marketing-brain) | Content strategy, social engagement & cross-platform optimization | 7781 / 7782 / 7783 |
-| [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure — 60+ engines, synapses, IPC, MCP, LLM, consciousness, missions, notifications | — |
+| [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure — 72+ engines, synapses, IPC, MCP, LLM, consciousness, missions, notifications | — |
 
 ## Quick Start
 
@@ -71,12 +71,15 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 - **Inter-Brain Teaching** — Brains share their strongest principles with each other, evaluated by relevance before acceptance
 - **Consensus Decisions** — Multi-brain voting for high-risk decisions (SelfMod, strategy changes) with majority/supermajority/veto rules
 - **Active Learning** — Intelligent gap-closing: research missions, targeted user questions, experiments, teach requests, passive observation
+- **Code Assimilation** — RepoAbsorber clones, scans, and indexes GitHub repos into RAG + Knowledge Graph. FeatureExtractor identifies reusable functions, patterns, and architecture across TypeScript, Go, Python, Rust
+- **Intelligence Dashboard** — Live Command Center page showing RAG vectors, KG facts, tool stats, feedback scores, user model, proactive suggestions
+- **Intelligence CLI** — `brain intel` overview, `brain intel rag <query>`, `brain intel knowledge`, `brain intel features [search/extract/suggest/stats]`, `brain intel llm`
 
 ## What It Does
 
 ### Brain — Error Memory, Code Intelligence & Full Autonomy
 
-158 MCP tools. Remembers errors, learns solutions, runs 40-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, and modifies its own code.
+162 MCP tools. Remembers errors, learns solutions, runs 49-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, absorbs code from GitHub repos, extracts reusable features, and modifies its own code.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
@@ -97,14 +100,14 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 | Dashboard | Port | Description |
 |-----------|------|-------------|
 | **Mission Control** | 7788 | 7-tab dashboard: Overview, Consciousness Entity, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
-| **Command Center** | 7790 | 8-page ecosystem dashboard: Ecosystem, Learning, Trading, Marketing, Cross-Brain, Debates & Challenges, Activity & Missions, Infrastructure |
+| **Command Center** | 7790 | 9-page ecosystem dashboard: Ecosystem, Learning, Trading, Marketing, Intelligence, Cross-Brain, Debates & Challenges, Activity & Code Assimilation, Infrastructure |
 
 
-- **Command Center** — Live overview of the entire ecosystem: all 3 brains, 60+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, Borg network with animated sync packets, debate history, Advocatus Diaboli challenges with resilience bars, LLM usage, thought stream
+- **Command Center** — Live overview of the entire ecosystem: all 3 brains, 72+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, Borg network with animated sync packets, debate history, Advocatus Diaboli challenges with resilience bars, LLM usage, thought stream
 
 ### Trading Brain — Adaptive Trading Intelligence
 
-131 MCP tools. Learns from every trade outcome through Hebbian synapses and autonomous research.
+131 MCP tools. Learns from every trade outcome through Hebbian synapses and autonomous research. Full intelligence suite (RAG, KG, Feedback, Tool Learning, User Model, Proactive).
 
 - **Trade Outcome Memory** — Record and query trades with full signal context
 - **Paper Trading** — 10 positions active, live equity tracking, balance management
@@ -116,7 +119,7 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 ### Marketing Brain — Self-Learning Marketing Intelligence
 
-131 MCP tools. Learns what content works across platforms.
+131 MCP tools. Learns what content works across platforms. Full intelligence suite (RAG, KG, Feedback, Tool Learning, User Model, Proactive).
 
 - **Post Tracking** — Store posts with platform, format, hashtags, engagement history
 - **Social Feeds** — Bluesky + Reddit live data providers
@@ -128,9 +131,9 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 ### Autonomous Research Layer
 
-All three brains share 60+ autonomous engines via Brain Core:
+All three brains share 72+ autonomous engines via Brain Core:
 
-- **40-Step Feedback Loop** — ResearchOrchestrator runs every 5 minutes: observe → hypothesize → experiment → measure → distill → adapt
+- **49-Step Feedback Loop** — ResearchOrchestrator runs every 5 minutes: observe → hypothesize → experiment → measure → distill → adapt → absorb
 - **Self-Improvement** — HypothesisEngine generates theories, AutoExperiment tests them, AdaptiveStrategy applies winners
 - **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle
 - **Knowledge Distillation** — Extracts principles and anti-patterns from raw experience
@@ -167,6 +170,8 @@ Brain Core provides the building blocks all brains share:
 | **Consensus** | Multi-brain voting for high-risk decisions |
 | **Active Learning** | Intelligent gap detection + multi-strategy gap closing |
 | **Semantic Compression** | Insight deduplication via clustering + LLM summarization |
+| **RepoAbsorber** | Autonomous code learning: clone → scan → RAG index → KG facts |
+| **FeatureExtractor** | Extract reusable functions/patterns from absorbed repos (TS, Go, Py, Rust) |
 
 ## Architecture
 
@@ -230,6 +235,8 @@ brain learn / explain <id> / export / import <dir> / peers
 brain borg status / enable / disable / sync / history
 brain plugins list / routes / tools
 brain watchdog status / restart <name>
+brain selfmod list / pending / show / approve / reject / status
+brain intel / intel rag <query> / intel knowledge / intel features / intel llm
 
 # Trading Brain
 trading setup / start / stop / status / doctor
@@ -260,7 +267,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installs all workspace dependencies
 npm run build        # builds all packages (brain-core first)
-npm test             # runs all 3041 tests
+npm test             # runs all 3078 tests
 ```
 
 ### Package Dependencies
@@ -286,7 +293,7 @@ brain-core          (no internal deps)
 - **Playwright** — Headless browser for web research
 - **Commander** — CLI framework
 - **Winston** — Structured logging with file rotation
-- **Vitest** — 3041 tests across 231 test files
+- **Vitest** — 3078 tests across 231 test files
 
 ## Docker (Optional)
 
