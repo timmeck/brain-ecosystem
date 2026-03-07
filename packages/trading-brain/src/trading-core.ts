@@ -63,7 +63,7 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, BorgSyncEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, BorgSyncEngine, RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, UserModel, ProactiveEngine, SemanticCompressor, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem, HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
 
 export class TradingCore {
@@ -677,7 +677,72 @@ export class TradingCore {
     });
     this.orchestrator.setBootstrapService(bootstrapService);
 
-    logger.info('Research orchestrator started (30+ engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active)');
+    // ── Intelligence Upgrade (Sessions 55-65) ──
+    const ragEngine = new RAGEngine(this.db!, { brainName: 'trading-brain' });
+    const ragIndexer = new RAGIndexer(this.db!);
+    ragIndexer.setRAGEngine(ragEngine);
+    services.ragEngine = ragEngine;
+    services.ragIndexer = ragIndexer;
+
+    const knowledgeGraph = new KnowledgeGraphEngine(this.db!, { brainName: 'trading-brain' });
+    const factExtractor = new FactExtractor(this.db!, { brainName: 'trading-brain' });
+    services.knowledgeGraph = knowledgeGraph;
+    services.factExtractor = factExtractor;
+
+    const semanticCompressor = new SemanticCompressor(this.db!, { brainName: 'trading-brain' });
+    semanticCompressor.setRAGEngine(ragEngine);
+    services.semanticCompressor = semanticCompressor;
+
+    const feedbackEngine = new FeedbackEngine(this.db!, { brainName: 'trading-brain' });
+    services.feedbackEngine = feedbackEngine;
+
+    const toolTracker = new ToolTracker(this.db!, { brainName: 'trading-brain' });
+    const toolPatternAnalyzer = new ToolPatternAnalyzer(this.db!);
+    services.toolTracker = toolTracker;
+    services.toolPatternAnalyzer = toolPatternAnalyzer;
+
+    const proactiveEngine = new ProactiveEngine(this.db!, { brainName: 'trading-brain' });
+    proactiveEngine.setThoughtStream(thoughtStream);
+    services.proactiveEngine = proactiveEngine;
+
+    const userModel = new UserModel(this.db!, { brainName: 'trading-brain' });
+    services.userModel = userModel;
+
+    const codeHealthMonitor = new CodeHealthMonitor(this.db!, { brainName: 'trading-brain' });
+    codeHealthMonitor.setThoughtStream(thoughtStream);
+    services.codeHealthMonitor = codeHealthMonitor;
+
+    const teachingProtocol = new TeachingProtocol(this.db!, { brainName: 'trading-brain' });
+    services.teachingProtocol = teachingProtocol;
+    const curriculum = new Curriculum(this.db!);
+    services.curriculum = curriculum;
+
+    const consensusEngine = new ConsensusEngine(this.db!, { brainName: 'trading-brain' });
+    services.consensusEngine = consensusEngine;
+
+    const activeLearner = new ActiveLearner(this.db!, { brainName: 'trading-brain' });
+    activeLearner.setThoughtStream(thoughtStream);
+    services.activeLearner = activeLearner;
+
+    const repoAbsorber = new RepoAbsorber(this.db!);
+    repoAbsorber.setThoughtStream(thoughtStream);
+    repoAbsorber.setRAGEngine(ragEngine);
+    repoAbsorber.setKnowledgeGraph(knowledgeGraph);
+    services.repoAbsorber = repoAbsorber;
+
+    // Wire intelligence engines into orchestrator
+    this.orchestrator.setFactExtractor(factExtractor);
+    this.orchestrator.setKnowledgeGraph(knowledgeGraph);
+    this.orchestrator.setSemanticCompressor(semanticCompressor);
+    this.orchestrator.setProactiveEngine(proactiveEngine);
+    this.orchestrator.setActiveLearner(activeLearner);
+    this.orchestrator.setRAGIndexer(ragIndexer);
+    this.orchestrator.setTeachingProtocol(teachingProtocol);
+    this.orchestrator.setCodeHealthMonitor(codeHealthMonitor);
+    this.orchestrator.setRepoAbsorber(repoAbsorber);
+
+    logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber)');
+    logger.info('Research orchestrator started (40+ engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active)');
 
     // 12e. Borg Sync Engine — collective knowledge sync (opt-in, default: disabled)
     const borgProvider: BorgDataProvider = {

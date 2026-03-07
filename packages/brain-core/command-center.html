@@ -234,6 +234,7 @@ canvas{display:block;width:100%;height:100%}
     <div class="nav-item" data-page="learning"><span class="nav-icon">&#x1F9E0;</span><span class="nav-label" data-t="Lern-Kreislauf">Lern-Kreislauf</span></div>
     <div class="nav-item" data-page="trading"><span class="nav-icon">&#x1F4C8;</span><span class="nav-label">Trading Flow</span></div>
     <div class="nav-item" data-page="marketing"><span class="nav-icon">&#x1F4E3;</span><span class="nav-label">Marketing Flow</span></div>
+    <div class="nav-item" data-page="intelligence"><span class="nav-icon">&#x1F4A1;</span><span class="nav-label" data-t="Intelligenz">Intelligenz</span></div>
     <div class="nav-section">System</div>
     <div class="nav-item" data-page="crossbrain"><span class="nav-icon">&#x1F517;</span><span class="nav-label">Cross-Brain</span></div>
     <div class="nav-item" data-page="debates"><span class="nav-icon">&#x2696;</span><span class="nav-label">Debates</span></div>
@@ -473,7 +474,76 @@ canvas{display:block;width:100%;height:100%}
         </div>
       </div>
 
-      <!-- ════ Page 5: Cross-Brain & Borg ═════════════════ -->
+      <!-- ════ Page 5: Intelligence ═══════════════════════ -->
+      <div class="page" id="page-intelligence">
+        <!-- RAG Pipeline -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F50D;</span> RAG Pipeline — <span data-t="Vektor-Suche">Vektor-Suche</span></div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px" data-t="Alles Wissen als Vektoren indexiert. Semantische Suche über Insights, Memories, Principles, Errors, Solutions und absorbierten Code.">Alles Wissen als Vektoren indexiert. Semantische Suche über Insights, Memories, Principles, Errors, Solutions und absorbierten Code.</p>
+          <div class="grid grid-3">
+            <div class="card" style="text-align:center"><div class="card-value" id="int-rag-total" style="color:var(--cyan)">0</div><div class="card-sub" data-t="Vektoren gesamt">Vektoren gesamt</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-rag-collections" style="color:var(--green)">0</div><div class="card-sub">Collections</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-rag-indexed" style="color:var(--purple);font-size:14px">—</div><div class="card-sub" data-t="Letzte Indexierung">Letzte Indexierung</div></div>
+          </div>
+          <div id="ragCollections" style="margin-top:12px"></div>
+        </div>
+
+        <!-- Knowledge Graph -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F578;</span> Knowledge Graph — <span data-t="Fakten-Netzwerk">Fakten-Netzwerk</span></div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px" data-t="Typisierte Relationen: Subjekt → Prädikat → Objekt. Automatisch extrahiert aus Insights, Error-Solutions und assimilierten Repos.">Typisierte Relationen: Subjekt → Prädikat → Objekt. Automatisch extrahiert aus Insights, Error-Solutions und assimilierten Repos.</p>
+          <div class="grid grid-3">
+            <div class="card" style="text-align:center"><div class="card-value" id="int-kg-facts" style="color:var(--cyan)">0</div><div class="card-sub" data-t="Fakten gesamt">Fakten gesamt</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-kg-predicates" style="color:var(--green)">0</div><div class="card-sub" data-t="Prädikate">Prädikate</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-kg-confidence" style="color:var(--yellow)">0%</div><div class="card-sub" data-t="Ø Konfidenz">Ø Konfidenz</div></div>
+          </div>
+          <div id="kgPredicates" style="margin-top:12px"></div>
+        </div>
+
+        <!-- Tool Learning -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F6E0;</span> Tool Learning — <span data-t="Nutzungsmuster">Nutzungsmuster</span></div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px" data-t="Trackt jeden IPC-Call: welche Tools werden wie oft und wie erfolgreich genutzt.">Trackt jeden IPC-Call: welche Tools werden wie oft und wie erfolgreich genutzt.</p>
+          <div id="toolStats" style="margin-top:8px"><div class="empty" data-t="Keine Tool-Daten">Keine Tool-Daten</div></div>
+        </div>
+
+        <!-- Feedback & Proactive Row -->
+        <div class="grid grid-2">
+          <!-- Feedback Learning -->
+          <div class="section" style="margin:0">
+            <div class="section-title"><span class="icon">&#x1F4AC;</span> Feedback</div>
+            <div class="grid grid-2" style="gap:8px">
+              <div class="card" style="text-align:center;padding:8px"><div class="card-value" id="int-fb-positive" style="color:var(--green);font-size:20px">0</div><div class="card-sub">Positive</div></div>
+              <div class="card" style="text-align:center;padding:8px"><div class="card-value" id="int-fb-negative" style="color:var(--red);font-size:20px">0</div><div class="card-sub">Negative</div></div>
+            </div>
+            <div class="card" style="text-align:center;margin-top:8px;padding:8px"><div class="card-value" id="int-fb-reward" style="font-size:16px">0</div><div class="card-sub" data-t="Ø Reward Score">Ø Reward Score</div></div>
+          </div>
+
+          <!-- Proactive Suggestions -->
+          <div class="section" style="margin:0">
+            <div class="section-title"><span class="icon">&#x1F4A1;</span> <span data-t="Proaktive Vorschläge">Proaktive Vorschläge</span></div>
+            <div class="grid grid-2" style="gap:8px">
+              <div class="card" style="text-align:center;padding:8px"><div class="card-value" id="int-pr-active" style="color:var(--cyan);font-size:20px">0</div><div class="card-sub" data-t="Offen">Offen</div></div>
+              <div class="card" style="text-align:center;padding:8px"><div class="card-value" id="int-pr-dismissed" style="color:var(--text-dim);font-size:20px">0</div><div class="card-sub" data-t="Verworfen">Verworfen</div></div>
+            </div>
+            <div class="card" style="text-align:center;margin-top:8px;padding:8px"><div class="card-value" id="int-pr-total" style="font-size:16px">0</div><div class="card-sub" data-t="Vorschläge gesamt">Vorschläge gesamt</div></div>
+          </div>
+        </div>
+
+        <!-- User Model -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F464;</span> User Model — <span data-t="Dein Profil">Dein Profil</span></div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px" data-t="Brain lernt dein Verhalten: Skill-Domains, bevorzugte Tools, Arbeitszeiten.">Brain lernt dein Verhalten: Skill-Domains, bevorzugte Tools, Arbeitszeiten.</p>
+          <div class="grid grid-3">
+            <div class="card" style="text-align:center"><div class="card-value" id="int-um-domains" style="color:var(--cyan)">0</div><div class="card-sub" data-t="Skill-Domains">Skill-Domains</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-um-keys" style="color:var(--green)">0</div><div class="card-sub" data-t="Profil-Keys">Profil-Keys</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="int-um-updated" style="color:var(--purple);font-size:14px">—</div><div class="card-sub" data-t="Zuletzt aktualisiert">Zuletzt aktualisiert</div></div>
+          </div>
+          <div id="userTopTools" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- ════ Page 6: Cross-Brain & Borg ═════════════════ -->
       <div class="page" id="page-crossbrain">
         <div class="section">
           <div class="section-title"><span class="icon">&#x1F517;</span> <span data-t="So kommunizieren die Brains">So kommunizieren die Brains</span></div>
@@ -660,6 +730,21 @@ const translations = { en: {
   'Brain klont Open-Source-Repos, extrahiert Patterns und Wissen, indexiert alles in RAG + Knowledge Graph, und löscht den Clone wieder.':'Brain clones open-source repos, extracts patterns and knowledge, indexes everything into RAG + Knowledge Graph, then deletes the clone.',
   'Repos assimiliert':'Repos Assimilated','In der Warteschlange':'In Queue','Zuletzt assimiliert':'Last Assimilated',
   'Noch keine Repos assimiliert':'No repos assimilated yet','Dateien':'Files',
+  'Intelligenz':'Intelligence','Vektor-Suche':'Vector Search',
+  'Alles Wissen als Vektoren indexiert. Semantische Suche über Insights, Memories, Principles, Errors, Solutions und absorbierten Code.':'All knowledge indexed as vectors. Semantic search across insights, memories, principles, errors, solutions and absorbed code.',
+  'Vektoren gesamt':'Total Vectors','Letzte Indexierung':'Last Indexed','Vektoren':'Vectors',
+  'Fakten-Netzwerk':'Fact Network',
+  'Typisierte Relationen: Subjekt → Prädikat → Objekt. Automatisch extrahiert aus Insights, Error-Solutions und assimilierten Repos.':'Typed relations: Subject → Predicate → Object. Auto-extracted from insights, error-solutions and assimilated repos.',
+  'Fakten gesamt':'Total Facts','Prädikate':'Predicates','Ø Konfidenz':'Avg Confidence',
+  'Nutzungsmuster':'Usage Patterns',
+  'Trackt jeden IPC-Call: welche Tools werden wie oft und wie erfolgreich genutzt.':'Tracks every IPC call: which tools are used how often and how successfully.',
+  'Keine Tool-Daten':'No tool data','Aufrufe':'Calls','Erfolg':'Success',
+  'Proaktive Vorschläge':'Proactive Suggestions','Offen':'Open','Verworfen':'Dismissed','Vorschläge gesamt':'Total Suggestions',
+  'Ø Reward Score':'Avg Reward Score',
+  'Dein Profil':'Your Profile',
+  'Brain lernt dein Verhalten: Skill-Domains, bevorzugte Tools, Arbeitszeiten.':'Brain learns your behavior: skill domains, preferred tools, working hours.',
+  'Skill-Domains':'Skill Domains','Profil-Keys':'Profile Keys','Zuletzt aktualisiert':'Last Updated',
+  'Deine Top-Tools:':'Your Top Tools:',
   'Multi-Perspektiven-Debatten zu Schlüsselfragen. Jeder Brain liefert seine Sichtweise basierend auf Prinzipien, Hypothesen und Vorhersagen.':'Multi-perspective debates on key questions. Each brain provides its viewpoint based on principles, hypotheses, and predictions.',
   'Debatten gesamt':'Total Debates','Offen':'Open','Synthesiert':'Synthesized','Letzte Debatten':'Recent Debates',
   'Advocatus Diaboli — Prinzip-Challenges':'Advocatus Diaboli — Principle Challenges',
@@ -726,7 +811,7 @@ function getLocale() { return currentLang === 'de' ? 'de-DE' : 'en-US'; }
 function getTitle(page) {
   const titles = {
     overview:'Ecosystem Overview', learning:t('Der Lern-Kreislauf'), trading:'Trading Flow',
-    marketing:'Marketing Flow', crossbrain:'Cross-Brain & Borg', activity:t('Aktivität & Missionen'),
+    marketing:'Marketing Flow', intelligence:t('Intelligenz'), crossbrain:'Cross-Brain & Borg', activity:t('Aktivität & Missionen'),
     debates:'Debates & Challenges', infra:t('Infrastruktur')
   }; return titles[page] || '';
 }
@@ -735,6 +820,7 @@ const titles = {
   learning:'Der Lern-Kreislauf',
   trading:'Trading Flow',
   marketing:'Marketing Flow',
+  intelligence:'Intelligenz',
   crossbrain:'Cross-Brain & Borg',
   activity:'Aktivität & Missionen',
   debates:'Debates & Challenges',
@@ -765,6 +851,7 @@ function connectSSE() {
   es.addEventListener('selfmod', e => { state.selfmod = JSON.parse(e.data); renderSelfMod(); });
   es.addEventListener('missions', e => { state.missions = JSON.parse(e.data); renderMissions(); });
   es.addEventListener('repoAbsorber', e => { state.repoAbsorber = JSON.parse(e.data); renderRepoAbsorber(); });
+  es.addEventListener('intelligence', e => { state.intelligence = JSON.parse(e.data); renderIntelligence(); });
   es.addEventListener('knowledge', e => { state.knowledge = JSON.parse(e.data); renderKnowledge(); });
   es.addEventListener('debates', e => { state.debates = JSON.parse(e.data); renderDebates(); });
   es.onerror = () => { state.connected = false; updateConnection(); };
@@ -784,12 +871,12 @@ async function loadInitial() {
     state.watchdog = data.watchdog || []; state.plugins = data.plugins || [];
     state.borg = data.borg; state.analytics = data.analytics; state.llm = data.llm;
     state.errors = data.errors; state.selfmod = data.selfmod;
-    state.missions = data.missions; state.knowledge = data.knowledge; state.repoAbsorber = data.repoAbsorber;
+    state.missions = data.missions; state.knowledge = data.knowledge; state.repoAbsorber = data.repoAbsorber; state.intelligence = data.intelligence;
     state.debates = data.debates;
     if (data.thoughts) { state.thoughts = data.thoughts; renderThoughts(); }
     renderEcosystem(); renderEngines(); renderWatchdog(); renderPlugins();
     renderBorg(); renderAnalytics(); renderLLM(); renderErrors();
-    renderSelfMod(); renderMissions(); renderRepoAbsorber(); renderKnowledge(); renderDebates();
+    renderSelfMod(); renderMissions(); renderRepoAbsorber(); renderIntelligence(); renderKnowledge(); renderDebates();
   } catch {}
 }
 
@@ -994,6 +1081,100 @@ function renderRepoAbsorber() {
     </div>
     <div style="font-size:11px;color:var(--text-dim)">${r.absorbedAt ? new Date(r.absorbedAt).toLocaleString(getLocale(), {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</div>
   </div>`).join('');
+}
+
+// ── Intelligence ─────────────────────────────────────────
+function renderIntelligence() {
+  const d = state.intelligence;
+  if (!d) return;
+
+  // RAG
+  if (d.rag) {
+    setText('int-rag-total', (d.rag.totalVectors || 0).toLocaleString());
+    const cols = d.rag.collections || [];
+    setText('int-rag-collections', cols.length);
+    setText('int-rag-indexed', d.rag.lastIndexedAt ? new Date(d.rag.lastIndexedAt).toLocaleString(getLocale(), {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—');
+    const el = document.getElementById('ragCollections');
+    if (cols.length) {
+      el.innerHTML = cols.map(c => `<div class="card" style="padding:6px 12px;margin-bottom:4px;display:flex;justify-content:space-between">
+        <span style="color:var(--cyan)">${escHtml(c.collection)}</span>
+        <span style="color:var(--text-dim)">${(c.count||0).toLocaleString()} ${t('Vektoren')}</span>
+      </div>`).join('');
+    }
+  }
+
+  // Knowledge Graph
+  if (d.kg) {
+    setText('int-kg-facts', (d.kg.totalFacts || 0).toLocaleString());
+    const preds = d.kg.predicateDistribution || {};
+    const predKeys = Object.keys(preds);
+    setText('int-kg-predicates', predKeys.length);
+    setText('int-kg-confidence', ((d.kg.avgConfidence || 0) * 100).toFixed(0) + '%');
+    const el = document.getElementById('kgPredicates');
+    if (predKeys.length) {
+      const sorted = predKeys.sort((a,b) => preds[b] - preds[a]).slice(0, 10);
+      el.innerHTML = sorted.map(k => `<div class="card" style="padding:6px 12px;margin-bottom:4px;display:flex;justify-content:space-between">
+        <span style="color:var(--green)">${escHtml(k)}</span>
+        <span style="color:var(--text-dim)">${preds[k]}</span>
+      </div>`).join('');
+    }
+  }
+
+  // Tool Learning
+  const tools = Array.isArray(d.toolStats) ? d.toolStats : [];
+  const toolEl = document.getElementById('toolStats');
+  if (tools.length) {
+    const top = tools.slice(0, 10);
+    toolEl.innerHTML = `<div style="display:grid;grid-template-columns:1fr 60px 70px 60px;gap:4px;font-size:12px;padding:0 4px">
+      <div style="color:var(--text-dim);font-weight:600">Tool</div>
+      <div style="color:var(--text-dim);font-weight:600;text-align:right">${t('Aufrufe')}</div>
+      <div style="color:var(--text-dim);font-weight:600;text-align:right">${t('Erfolg')}</div>
+      <div style="color:var(--text-dim);font-weight:600;text-align:right">Avg ms</div>
+    </div>` + top.map(t => {
+      const rate = (t.successRate * 100).toFixed(0);
+      const rateColor = t.successRate >= 0.9 ? 'var(--green)' : t.successRate >= 0.7 ? 'var(--yellow)' : 'var(--red)';
+      return `<div class="card" style="padding:4px 8px;margin-bottom:2px;display:grid;grid-template-columns:1fr 60px 70px 60px;gap:4px;font-size:12px">
+        <span style="color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.tool)}">${escHtml(t.tool)}</span>
+        <span style="text-align:right">${t.totalUses}</span>
+        <span style="text-align:right;color:${rateColor}">${rate}%</span>
+        <span style="text-align:right;color:var(--text-dim)">${Math.round(t.avgDuration)}</span>
+      </div>`;
+    }).join('');
+  } else {
+    toolEl.innerHTML = `<div class="empty">${t('Keine Tool-Daten')}</div>`;
+  }
+
+  // Feedback
+  if (d.feedback) {
+    setText('int-fb-positive', d.feedback.positiveCount || 0);
+    setText('int-fb-negative', d.feedback.negativeCount || 0);
+    const reward = d.feedback.avgRewardScore || 0;
+    const rewardEl = document.getElementById('int-fb-reward');
+    rewardEl.textContent = reward.toFixed(2);
+    rewardEl.style.color = reward > 0 ? 'var(--green)' : reward < 0 ? 'var(--red)' : 'var(--text-dim)';
+  }
+
+  // Proactive
+  if (d.proactive) {
+    setText('int-pr-active', d.proactive.activeSuggestions || 0);
+    setText('int-pr-dismissed', d.proactive.dismissedCount || 0);
+    setText('int-pr-total', d.proactive.totalSuggestions || 0);
+  }
+
+  // User Model
+  if (d.userModel) {
+    setText('int-um-domains', d.userModel.domains || 0);
+    setText('int-um-keys', d.userModel.totalKeys || 0);
+    setText('int-um-updated', d.userModel.lastUpdated ? new Date(d.userModel.lastUpdated).toLocaleString(getLocale(), {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—');
+  }
+  if (d.userProfile && d.userProfile.topTools) {
+    const el = document.getElementById('userTopTools');
+    const tools = d.userProfile.topTools.slice(0, 5);
+    if (tools.length) {
+      el.innerHTML = `<div style="font-size:12px;color:var(--text-dim);margin-bottom:6px">${t('Deine Top-Tools:')}</div>` +
+        tools.map((t,i) => `<span class="badge badge-ok" style="margin:2px">${i+1}. ${escHtml(t)}</span>`).join('');
+    }
+  }
 }
 
 // ── Knowledge Growth ──────────────────────────────────────

@@ -106,6 +106,22 @@ export interface Services {
   paper?: import('../paper/paper.service.js').PaperService;
   marketData?: import('../market/market-data-service.js').MarketDataService;
   borgSync?: import('@timmeck/brain-core').BorgSyncEngine;
+  ragEngine?: import('@timmeck/brain-core').RAGEngine;
+  ragIndexer?: import('@timmeck/brain-core').RAGIndexer;
+  knowledgeGraph?: import('@timmeck/brain-core').KnowledgeGraphEngine;
+  factExtractor?: import('@timmeck/brain-core').FactExtractor;
+  semanticCompressor?: import('@timmeck/brain-core').SemanticCompressor;
+  feedbackEngine?: import('@timmeck/brain-core').FeedbackEngine;
+  toolTracker?: import('@timmeck/brain-core').ToolTracker;
+  toolPatternAnalyzer?: import('@timmeck/brain-core').ToolPatternAnalyzer;
+  proactiveEngine?: import('@timmeck/brain-core').ProactiveEngine;
+  userModel?: import('@timmeck/brain-core').UserModel;
+  codeHealthMonitor?: import('@timmeck/brain-core').CodeHealthMonitor;
+  teachingProtocol?: import('@timmeck/brain-core').TeachingProtocol;
+  curriculum?: import('@timmeck/brain-core').Curriculum;
+  consensusEngine?: import('@timmeck/brain-core').ConsensusEngine;
+  activeLearner?: import('@timmeck/brain-core').ActiveLearner;
+  repoAbsorber?: import('@timmeck/brain-core').RepoAbsorber;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -156,21 +172,35 @@ export class IpcRouter {
       throw new Error(`Unknown method: ${method}`);
     }
 
+    const start = Date.now();
     try {
       logger.debug(`IPC: ${method}`, { params });
       const result = handler(params);
       if (result instanceof Promise) {
-        return result.catch((err: Error) => {
-          logger.error(`IPC handler error (async) in ${method}: ${err.message}`);
-          throw err;
-        });
+        return result.then(
+          (res) => { this.trackToolCall(method, Date.now() - start, true); return res; },
+          (err: Error) => {
+            logger.error(`IPC handler error (async) in ${method}: ${err.message}`);
+            this.trackToolCall(method, Date.now() - start, false);
+            throw err;
+          },
+        );
       }
       logger.debug(`IPC: ${method} → done`);
+      this.trackToolCall(method, Date.now() - start, true);
       return result;
     } catch (err) {
       logger.error(`IPC handler error in ${method}: ${(err as Error).message}`);
+      this.trackToolCall(method, Date.now() - start, false);
       throw err;
     }
+  }
+
+  private trackToolCall(method: string, durationMs: number, success: boolean): void {
+    try {
+      this.services.toolTracker?.recordUsage(method, null, durationMs, success ? 'success' : 'failure');
+      this.services.userModel?.updateFromInteraction(method, null, success ? 'success' : 'failure');
+    } catch { /* best effort */ }
   }
 
   listMethods(): string[] {
@@ -696,6 +726,28 @@ export class IpcRouter {
       ['borg.disable',            () => { s.borgSync?.setEnabled(false); return { enabled: false }; }],
       ['cross-brain.borgSync',    (params) => s.borgSync?.handleIncomingSync(params as import('@timmeck/brain-core').SyncPacket) ?? { accepted: 0, rejected: 0 }],
       ['cross-brain.borgExport',  () => s.borgSync?.handleExportRequest() ?? { source: 'trading-brain', timestamp: new Date().toISOString(), items: [] }],
+
+      // ─── Intelligence (Sessions 55-65) ────────────────────
+      ['rag.search',              async (params) => { if (!s.ragEngine) throw new Error('RAGEngine not available'); return s.ragEngine.search(p(params).query, { collections: p(params).collections, limit: p(params).limit, threshold: p(params).threshold }); }],
+      ['rag.status',              () => { if (!s.ragEngine) throw new Error('RAGEngine not available'); return s.ragEngine.getStatus(); }],
+      ['rag.index',               async () => { if (!s.ragIndexer) throw new Error('RAGIndexer not available'); const count = await s.ragIndexer.indexAll(); return { indexed: count }; }],
+      ['kg.query',                (params) => { if (!s.knowledgeGraph) throw new Error('KnowledgeGraph not available'); return s.knowledgeGraph.query({ subject: p(params).subject, predicate: p(params).predicate, object: p(params).object }); }],
+      ['kg.addFact',              (params) => { if (!s.knowledgeGraph) throw new Error('KnowledgeGraph not available'); return s.knowledgeGraph.addFact(p(params).subject, p(params).predicate, p(params).object, p(params).context, p(params).confidence); }],
+      ['kg.status',               () => { if (!s.knowledgeGraph) throw new Error('KnowledgeGraph not available'); return s.knowledgeGraph.getStatus(); }],
+      ['feedback.record',         (params) => { if (!s.feedbackEngine) throw new Error('FeedbackEngine not available'); return s.feedbackEngine.recordFeedback(p(params).type, p(params).targetId, p(params).signal, p(params).detail); }],
+      ['feedback.stats',          () => { if (!s.feedbackEngine) throw new Error('FeedbackEngine not available'); return s.feedbackEngine.getStats(); }],
+      ['toolLearning.stats',      (params) => { if (!s.toolTracker) throw new Error('ToolTracker not available'); return s.toolTracker.getToolStats(p(params)?.tool); }],
+      ['toolLearning.recommend',  (params) => { if (!s.toolTracker) throw new Error('ToolTracker not available'); return s.toolTracker.recommend(p(params).context); }],
+      ['proactive.suggestions',   (params) => { if (!s.proactiveEngine) throw new Error('ProactiveEngine not available'); return s.proactiveEngine.getSuggestions(p(params).limit); }],
+      ['proactive.status',        () => { if (!s.proactiveEngine) throw new Error('ProactiveEngine not available'); return s.proactiveEngine.getStatus(); }],
+      ['userModel.profile',       () => { if (!s.userModel) throw new Error('UserModel not available'); return s.userModel.getProfile(); }],
+      ['userModel.status',        () => { if (!s.userModel) throw new Error('UserModel not available'); return s.userModel.getStatus(); }],
+      ['codeHealth.status',       () => { if (!s.codeHealthMonitor) throw new Error('CodeHealthMonitor not available'); return s.codeHealthMonitor.getStatus(); }],
+      ['teaching.status',         () => { if (!s.teachingProtocol) throw new Error('TeachingProtocol not available'); return s.teachingProtocol.getStatus(); }],
+      ['consensus.status',        () => { if (!s.consensusEngine) throw new Error('ConsensusEngine not available'); return s.consensusEngine.getStatus(); }],
+      ['activeLearning.status',   () => { if (!s.activeLearner) throw new Error('ActiveLearner not available'); return s.activeLearner.getStatus(); }],
+      ['repoAbsorber.status',     () => { if (!s.repoAbsorber) throw new Error('RepoAbsorber not available'); return s.repoAbsorber.getStatus(); }],
+      ['repoAbsorber.absorb',     async () => { if (!s.repoAbsorber) throw new Error('RepoAbsorber not available'); return s.repoAbsorber.absorbNext(); }],
 
       ['status', () => ({
         name: 'trading-brain',

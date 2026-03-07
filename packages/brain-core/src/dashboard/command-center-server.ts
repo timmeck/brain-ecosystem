@@ -39,6 +39,7 @@ export interface CommandCenterOptions {
   getChallengeVulnerable?: (limit?: number) => unknown;
   getRepoAbsorberStatus?: () => unknown;
   getRepoAbsorberHistory?: (limit?: number) => unknown;
+  getIntelligenceStats?: () => unknown;
   triggerAction?: (action: string, params?: unknown) => Promise<unknown>;
 }
 
@@ -235,6 +236,13 @@ export class CommandCenterServer {
       } catch { /* ignore */ }
     }, 30_000));
 
+    // Intelligence (30s)
+    this.timers.push(setInterval(() => {
+      if (this.clients.size === 0) return;
+      if (!this.options.getIntelligenceStats) return;
+      try { this.broadcast('intelligence', this.options.getIntelligenceStats()); } catch { /* ignore */ }
+    }, 30_000));
+
     // Repo Absorber (30s)
     this.timers.push(setInterval(() => {
       if (this.clients.size === 0) return;
@@ -339,12 +347,13 @@ export class CommandCenterServer {
         vulnerable: this.options.getChallengeVulnerable?.(5) ?? [],
       } : null;
 
+      const intelligence = this.options.getIntelligenceStats?.() ?? null;
       const repoAbsorber = this.options.getRepoAbsorberStatus ? {
         status: this.options.getRepoAbsorberStatus(),
         history: this.options.getRepoAbsorberHistory?.(10) ?? [],
       } : null;
 
-      this.json(res, { ecosystem, engines: engineResults, watchdog, plugins, borg, analytics, llm, thoughts, errors, selfmod, missions, knowledge, debates, repoAbsorber });
+      this.json(res, { ecosystem, engines: engineResults, watchdog, plugins, borg, analytics, llm, thoughts, errors, selfmod, missions, knowledge, debates, intelligence, repoAbsorber });
     } catch (err) {
       this.json(res, { error: (err as Error).message }, 500);
     }

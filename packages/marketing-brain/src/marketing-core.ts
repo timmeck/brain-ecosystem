@@ -65,7 +65,7 @@ import { SchedulerService } from './services/scheduler.service.js';
 import { CalendarService } from './services/calendar.service.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine, BorgSyncEngine, DebateEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine, BorgSyncEngine, DebateEngine, RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, UserModel, ProactiveEngine, SemanticCompressor } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
 
 export class MarketingCore {
@@ -314,6 +314,42 @@ export class MarketingCore {
       logger.info('DebateEngine wired into marketing brain');
     } catch (err) {
       logger.warn(`DebateEngine setup failed (non-critical): ${(err as Error).message}`);
+    }
+
+    // ── Intelligence Upgrade (Sessions 55-65) ──
+    try {
+      const ragEngine = new RAGEngine(db, { brainName: 'marketing-brain' });
+      const ragIndexer = new RAGIndexer(db);
+      ragIndexer.setRAGEngine(ragEngine);
+      services.ragEngine = ragEngine;
+      services.ragIndexer = ragIndexer;
+
+      const knowledgeGraph = new KnowledgeGraphEngine(db, { brainName: 'marketing-brain' });
+      const factExtractor = new FactExtractor(db, { brainName: 'marketing-brain' });
+      services.knowledgeGraph = knowledgeGraph;
+      services.factExtractor = factExtractor;
+
+      const semanticCompressor = new SemanticCompressor(db, { brainName: 'marketing-brain' });
+      semanticCompressor.setRAGEngine(ragEngine);
+      services.semanticCompressor = semanticCompressor;
+
+      const feedbackEngine = new FeedbackEngine(db, { brainName: 'marketing-brain' });
+      services.feedbackEngine = feedbackEngine;
+
+      const toolTracker = new ToolTracker(db, { brainName: 'marketing-brain' });
+      const toolPatternAnalyzer = new ToolPatternAnalyzer(db);
+      services.toolTracker = toolTracker;
+      services.toolPatternAnalyzer = toolPatternAnalyzer;
+
+      const proactiveEngine = new ProactiveEngine(db, { brainName: 'marketing-brain' });
+      services.proactiveEngine = proactiveEngine;
+
+      const userModel = new UserModel(db, { brainName: 'marketing-brain' });
+      services.userModel = userModel;
+
+      logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive)');
+    } catch (err) {
+      logger.warn(`Intelligence upgrade failed (non-critical): ${(err as Error).message}`);
     }
 
     // 11. IPC Server
