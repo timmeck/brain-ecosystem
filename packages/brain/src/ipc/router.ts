@@ -154,6 +154,7 @@ export interface Services {
   discordBot?: import('@timmeck/brain-core').DiscordBot;
   benchmarkSuite?: import('@timmeck/brain-core').BenchmarkSuite;
   agentTrainer?: import('@timmeck/brain-core').AgentTrainer;
+  toolScopeManager?: import('@timmeck/brain-core').ToolScopeManager;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -1071,6 +1072,18 @@ export class IpcRouter {
       ['trainer.history',        (params) => { if (!s.agentTrainer) throw new Error('AgentTrainer not available'); return s.agentTrainer.getHistory(p(params).limit); }],
       ['trainer.getSession',     (params) => { if (!s.agentTrainer) throw new Error('AgentTrainer not available'); return s.agentTrainer.getSession(p(params).id); }],
       ['trainer.status',         () => { if (!s.agentTrainer) throw new Error('AgentTrainer not available'); return s.agentTrainer.getStatus(); }],
+
+      // Tool Scoping
+      ['scope.register',         (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); s.toolScopeManager.registerScope(p(params) as import('@timmeck/brain-core').ToolScope); return { ok: true }; }],
+      ['scope.remove',           (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return { removed: s.toolScopeManager.removeScope(p(params).name) }; }],
+      ['scope.get',              (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.getScope(p(params).name); }],
+      ['scope.list',             () => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.listScopes(); }],
+      ['scope.available',        (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.getAvailableTools(p(params)); }],
+      ['scope.check',            (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.checkTool(p(params).tool, p(params)); }],
+      ['scope.byScope',          (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.getToolsByScope(p(params).phase); }],
+      ['scope.history',          (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.getCheckHistory(p(params).limit); }],
+      ['scope.blocked',          (params) => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.getTopBlocked(p(params).limit); }],
+      ['scope.status',           () => { if (!s.toolScopeManager) throw new Error('ToolScopeManager not available'); return s.toolScopeManager.getStatus(); }],
 
       // Status (cross-brain)
       ['status',                  () => ({

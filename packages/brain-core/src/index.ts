@@ -512,3 +512,9 @@ export { AgentTrainer, runTrainerMigration } from './agent-training/index.js';
 export type {
   TrainingConfig, EpochResult, TrainingReport, AgentTrainerStatus,
 } from './agent-training/index.js';
+
+// ── Tool Scoping ────────────────────────────────────────────
+export { ToolScopeManager, runToolScopingMigration } from './tool-scoping/index.js';
+export type {
+  ToolScope, WorkflowContext, ScopeCheckResult, ToolScopeManagerStatus,
+} from './tool-scoping/index.js';
