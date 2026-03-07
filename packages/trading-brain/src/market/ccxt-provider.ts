@@ -172,6 +172,7 @@ export class CCXTProvider implements MarketDataProvider {
     try {
       // Dynamic import — ccxt is optional
       const ccxt = await import('ccxt');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ExchangeClass = (ccxt as any).pro?.[this.exchangeId] ?? (ccxt as any)[this.exchangeId];
 
       if (!ExchangeClass) {

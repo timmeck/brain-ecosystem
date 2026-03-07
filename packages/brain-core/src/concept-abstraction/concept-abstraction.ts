@@ -265,11 +265,10 @@ export class ConceptAbstraction {
     }
 
     // Phase 3b: level 1 → level 2
-    let level2Concepts: number[] = [];
     if (level1Concepts.length >= this.config.minClusterSize) {
       const l1Items = this.conceptsToItems(level1Concepts);
       const level2Clusters = this.clusterItems(l1Items, this.config.level2Threshold);
-      level2Concepts = this.persistClusters(level2Clusters, 2, null);
+      this.persistClusters(level2Clusters, 2, null);
 
       for (const cluster of level2Clusters) {
         const parentId = this.findConceptByTitle(cluster.centroid.text, 2);

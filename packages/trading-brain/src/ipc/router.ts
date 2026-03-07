@@ -712,10 +712,12 @@ export class IpcRouter {
       ['llm.providers',            async () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getProviderStatus(); }],
       ['llm.ollamaStatus',         async () => {
         if (!s.llmService) throw new Error('LLMService not available');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ollamaProvider = s.llmService.getProviders().find((p: any) => p.name === 'ollama');
         if (!ollamaProvider || !('getStatus' in ollamaProvider)) {
           return { available: false, host: 'http://localhost:11434', chatModel: '-', embedModel: '-', installedModels: [], runningModels: [] };
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (ollamaProvider as any).getStatus();
       }],
 

@@ -7,7 +7,7 @@
 
 import { getLogger } from '../utils/logger.js';
 import type { LLMService } from '../llm/llm-service.js';
-import type { TechRadarEntry, TechRadarCategory, TechRadarRing, TechRadarAction } from './types.js';
+import type { TechRadarCategory, TechRadarRing, TechRadarAction } from './types.js';
 
 const log = getLogger();
 

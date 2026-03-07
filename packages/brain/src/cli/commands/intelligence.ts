@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { withIpc } from '../ipc-helper.js';
-import { c, icons, header, keyValue, divider } from '../colors.js';
+import { c, header, keyValue, divider } from '../colors.js';
 
 export function intelligenceCommand(): Command {
   const cmd = new Command('intelligence')
@@ -142,11 +142,12 @@ export function intelligenceCommand(): Command {
     .option('-o, --object <o>', 'Filter by object')
     .action(async (opts: { subject?: string; predicate?: string; object?: string }) => {
       await withIpc(async (client) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const facts = await client.request('kg.query', {
           subject: opts.subject,
           predicate: opts.predicate,
           object: opts.object,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }) as any[];
         console.log(header('Knowledge Graph', '🕸️'));
         if (!facts.length) {
@@ -229,13 +230,14 @@ export function intelligenceCommand(): Command {
     .option('-l, --limit <n>', 'Max results', '15')
     .action(async (opts: { query?: string; category?: string; repo?: string; min: string; limit: string }) => {
       await withIpc(async (client) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const features = await client.request('features.search', {
           query: opts.query,
           category: opts.category,
           repo: opts.repo,
           minUsefulness: parseFloat(opts.min),
           limit: parseInt(opts.limit, 10),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }) as any[];
         console.log(header('Extracted Features', '🧬'));
         if (!Array.isArray(features) || !features.length) {

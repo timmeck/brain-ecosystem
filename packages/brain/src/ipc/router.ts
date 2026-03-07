@@ -146,6 +146,7 @@ export interface Services {
   repoAbsorber?: import('@timmeck/brain-core').RepoAbsorber;
   featureExtractor?: import('@timmeck/brain-core').FeatureExtractor;
   featureRecommender?: import('@timmeck/brain-core').FeatureRecommender;
+  contradictionResolver?: import('@timmeck/brain-core').ContradictionResolver;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -899,6 +900,7 @@ export class IpcRouter {
         if (!ollamaProvider || !('getStatus' in ollamaProvider)) {
           return { available: false, host: 'http://localhost:11434', chatModel: '-', embedModel: '-', installedModels: [], runningModels: [] };
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (ollamaProvider as any).getStatus();
       }],
 
@@ -1018,6 +1020,10 @@ export class IpcRouter {
       ['recommender.status',      () => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); return s.featureRecommender.getStatus(); }],
       ['recommender.adopt',      (params) => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); s.featureRecommender.adoptFeature(p(params).wishId); return { adopted: true }; }],
       ['recommender.dismiss',    (params) => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); s.featureRecommender.dismissWish(p(params).wishId); return { dismissed: true }; }],
+
+      // Contradiction Resolver
+      ['kg.resolve',             () => { if (!s.contradictionResolver) throw new Error('ContradictionResolver not available'); return { resolved: s.contradictionResolver.resolve() }; }],
+      ['kg.resolveStatus',       () => { if (!s.contradictionResolver) throw new Error('ContradictionResolver not available'); return s.contradictionResolver.getStatus(); }],
 
       // Status (cross-brain)
       ['status',                  () => ({

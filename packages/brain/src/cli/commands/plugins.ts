@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { withIpc } from '../ipc-helper.js';
-import { c, header, keyValue, divider } from '../colors.js';
+import { c, header, divider } from '../colors.js';
 
 export function pluginsCommand(): Command {
   const cmd = new Command('plugins')

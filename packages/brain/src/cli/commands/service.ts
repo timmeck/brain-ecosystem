@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import path from 'node:path';
-import { c, header, keyValue, divider } from '../colors.js';
+import { c, header, divider } from '../colors.js';
 import { WindowsServiceManager } from '@timmeck/brain-core';
 
 const BRAINS = [

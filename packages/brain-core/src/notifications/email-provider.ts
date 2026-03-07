@@ -109,6 +109,7 @@ export class EmailProvider implements NotificationProvider {
         user: this.smtpUser,
         pass: this.smtpPass,
       },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- nodemailer transport options
     } as any);
 
     return this.transporter;

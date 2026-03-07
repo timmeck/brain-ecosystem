@@ -527,10 +527,6 @@ export class NarrativeEngine {
     const toStr = to.toISOString().split('T')[0]!;
 
     // Gather data
-    const journalSummary = this.sources.journal?.getSummary(10);
-    const journalEntries = this.sources.journal?.getEntries(undefined, 50) ?? [];
-    const recentJournal = journalEntries.filter(e => (e.timestamp || 0) > from.getTime());
-
     const principlesSummary = this.sources.knowledgeDistiller?.getSummary();
     const hypothesisSummary = this.sources.hypothesisEngine?.getSummary();
     const predictionSummary = this.sources.predictionEngine?.getSummary();
@@ -698,7 +694,6 @@ export class NarrativeEngine {
 
     const principles = this.sources.knowledgeDistiller?.getPrinciples(undefined, 100) ?? [];
     const hypotheses = this.sources.hypothesisEngine?.list(undefined, 100) ?? [];
-    const predictions = this.sources.predictionEngine?.list(undefined, undefined, 100) ?? [];
 
     const filterFn = topic ? (s: string) => this.matches(s, topic) : () => true;
 

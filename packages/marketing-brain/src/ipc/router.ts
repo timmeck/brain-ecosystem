@@ -732,18 +732,24 @@ export class IpcRouter {
       ['llm.providers',            async () => { if (!s.llmService) throw new Error('LLMService not available'); return s.llmService.getProviderStatus(); }],
       ['llm.ollamaStatus',         async () => {
         if (!s.llmService) throw new Error('LLMService not available');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ollamaProvider = s.llmService.getProviders().find((p: any) => p.name === 'ollama');
         if (!ollamaProvider || !('getStatus' in ollamaProvider)) {
           return { available: false, host: 'http://localhost:11434', chatModel: '-', embedModel: '-', installedModels: [], runningModels: [] };
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (ollamaProvider as any).getStatus();
       }],
 
       // Social Service
       ['social.providers',         async () => { if (!s.socialService) throw new Error('SocialService not available'); return s.socialService.getProviderStatus(); }],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ['social.publish',           async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.publish(params.provider as string, params.post as any); }],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ['social.publishAll',        async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.publishAll(params.post as any); }],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ['social.readFeed',          async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.readFeed(params.provider as string | undefined, params.options as any); }],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ['social.search',            async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.search(params.query as string, params.provider as string | undefined, params.options as any); }],
       ['social.engagement',        async (p: unknown) => { if (!s.socialService) throw new Error('SocialService not available'); const params = (p ?? {}) as Record<string, unknown>; return s.socialService.getEngagement(params.provider as string, params.postId as string); }],
 

@@ -48,7 +48,7 @@ import type { LLMService } from '../llm/llm-service.js';
 import type { ResearchMissionEngine } from '../missions/mission-engine.js';
 import type { FactExtractor } from '../knowledge-graph/fact-extractor.js';
 import type { SemanticCompressor } from './semantic-compressor.js';
-import type { ProactiveEngine, ProactiveDataSources } from '../proactive/proactive-engine.js';
+import type { ProactiveEngine } from '../proactive/proactive-engine.js';
 import type { ActiveLearner } from '../active-learning/active-learner.js';
 import type { RAGIndexer } from '../rag/rag-indexer.js';
 import type { TeachingProtocol } from '../teaching/teaching-protocol.js';
@@ -128,6 +128,7 @@ export class ResearchOrchestrator {
   private knowledgeGraph: KnowledgeGraphEngine | null = null;
   private repoAbsorber: RepoAbsorber | null = null;
   private featureRecommender: import('../codegen/feature-recommender.js').FeatureRecommender | null = null;
+  private contradictionResolver: import('../knowledge-graph/contradiction-resolver.js').ContradictionResolver | null = null;
   private lastAutoMissionTime = 0;
   private onSuggestionCallback: ((suggestions: string[]) => void) | null = null;
 
@@ -341,6 +342,7 @@ export class ResearchOrchestrator {
   /** Set the RepoAbsorber — autonomous code learning from discovered repos. */
   setRepoAbsorber(absorber: RepoAbsorber): void { this.repoAbsorber = absorber; }
   setFeatureRecommender(recommender: import('../codegen/feature-recommender.js').FeatureRecommender): void { this.featureRecommender = recommender; }
+  setContradictionResolver(resolver: import('../knowledge-graph/contradiction-resolver.js').ContradictionResolver): void { this.contradictionResolver = resolver; }
 
   /** Set the LLMService — propagates to all engines that can use LLM. */
   setLLMService(llm: LLMService): void {
@@ -558,28 +560,22 @@ export class ResearchOrchestrator {
         const vars = hyp.variables ?? [];
         const statement = hyp.statement.toLowerCase();
         let evidenceType: 'for' | 'against' | null = null;
-        let reason = '';
-
         // Check if cycle metrics match hypothesis variables
         if (vars.includes('journal_entries') || statement.includes('journal')) {
           const journalStats = this.journal.getSummary();
           const entries = (journalStats.total_entries as number) ?? 0;
           if (entries > this.cycleCount) {
             evidenceType = 'for';
-            reason = `journal_entries=${entries} growing (cycle ${this.cycleCount})`;
           } else if (this.cycleCount > 5 && entries < 3) {
             evidenceType = 'against';
-            reason = `journal_entries=${entries} stagnant after ${this.cycleCount} cycles`;
           }
         } else if (vars.includes('anomaly_count') || statement.includes('anomal')) {
           if (anomalies.length > 0) {
             evidenceType = 'for';
-            reason = `${anomalies.length} anomalies detected this cycle`;
           }
         } else if (vars.includes('insight_count') || vars.includes('observation_type_count') || statement.includes('observation')) {
           if (insights.length > 0) {
             evidenceType = 'for';
-            reason = `${insights.length} insights from observations this cycle`;
           }
         } else if (statement.includes('dream') || statement.includes('memor')) {
           // Dream-related: check if dream engine produced output
@@ -588,7 +584,6 @@ export class ResearchOrchestrator {
             const totals = dStatus.totals as Record<string, number> | undefined;
             if ((totals?.memoriesConsolidated ?? 0) > 0) {
               evidenceType = 'for';
-              reason = `dream consolidated ${totals?.memoriesConsolidated} memories`;
             }
           }
         } else if (statement.includes('attention') || statement.includes('focus')) {
@@ -596,7 +591,6 @@ export class ResearchOrchestrator {
             const topTopics = this.attentionEngine.getTopTopics(1);
             if (topTopics.length > 0) {
               evidenceType = 'for';
-              reason = `attention active: top topic "${topTopics[0].topic}" (score=${topTopics[0].score.toFixed(1)})`;
             }
           }
         }
@@ -2094,6 +2088,26 @@ export class ResearchOrchestrator {
       } catch (err) { this.log.warn(`[orchestrator] Step 50 error: ${(err as Error).message}`); }
     }
 
+    // Step 51: ContradictionResolver — resolve knowledge graph contradictions (every 10 cycles)
+    if (this.contradictionResolver && this.cycleCount % this.reflectEvery === 0) {
+      try {
+        ts?.emit('contradiction_resolver', 'analyzing', 'Step 51: Resolving knowledge contradictions...', 'routine');
+        const resolved = this.contradictionResolver.resolve();
+        if (resolved > 0) {
+          this.journal.write({
+            title: `Contradiction Resolver: ${resolved} contradiction(s) resolved`,
+            type: 'discovery',
+            content: `Classified and resolved ${resolved} contradicting facts in the knowledge graph`,
+            tags: [this.brainName, 'knowledge-graph', 'contradiction-resolution'],
+            references: [],
+            significance: resolved > 3 ? 'notable' : 'routine',
+            data: { resolved, status: this.contradictionResolver.getStatus() },
+          });
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('contradiction_resolver', this.cycleCount, { insights: resolved });
+      } catch (err) { this.log.warn(`[orchestrator] Step 51 error: ${(err as Error).message}`); }
+    }
+
     const duration = Date.now() - start;
     ts?.emit('orchestrator', 'reflecting', `Feedback Cycle #${this.cycleCount} complete (${duration}ms)`);
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} complete (${duration}ms) ───`);
@@ -2545,7 +2559,7 @@ export class ResearchOrchestrator {
   }
 
   /** Generate dynamic meta-suggestions based on actual engine state instead of hardcoded feature requests. */
-  private generateDynamicMetaSuggestions(summary: Record<string, unknown>): Array<{ key: string; suggestion: string; alternatives: string[]; priority: number }> {
+  private generateDynamicMetaSuggestions(_summary: Record<string, unknown>): Array<{ key: string; suggestion: string; alternatives: string[]; priority: number }> {
     const result: Array<{ key: string; suggestion: string; alternatives: string[]; priority: number }> = [];
 
     // Performance-Driven: MetaCognition D/F engines

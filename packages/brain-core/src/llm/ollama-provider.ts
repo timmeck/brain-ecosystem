@@ -138,8 +138,6 @@ export class OllamaProvider implements LLMProvider {
   }
 
   async generate(prompt: string, options?: LLMCallOptions): Promise<string> {
-    const start = Date.now();
-
     const response = await fetch(`${this.host}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

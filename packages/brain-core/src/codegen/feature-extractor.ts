@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import { getLogger } from '../utils/logger.js';
-import type { RAGEngine, RAGResult } from '../rag/rag-engine.js';
+import type { RAGEngine } from '../rag/rag-engine.js';
 import type { KnowledgeGraphEngine } from '../knowledge-graph/graph-engine.js';
 import type { LLMService } from '../llm/llm-service.js';
 

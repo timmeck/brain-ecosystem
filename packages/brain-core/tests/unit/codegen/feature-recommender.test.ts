@@ -174,6 +174,55 @@ describe('FeatureRecommender', () => {
     });
   });
 
+  describe('self-awareness (KNOWN_CAPABILITIES)', () => {
+    it('should not create wishes for known capabilities', async () => {
+      // Create tables that would trigger rate limiter and cache layer detectors
+      db.exec(`CREATE TABLE IF NOT EXISTS errors (id INTEGER PRIMARY KEY, fingerprint TEXT, occurrence_count INTEGER DEFAULT 1)`);
+      db.prepare(`INSERT INTO errors (fingerprint, occurrence_count) VALUES (?, ?)`).run('429:rate_limit_exceeded', 5);
+      db.exec(`CREATE TABLE IF NOT EXISTS rag_vectors (id INTEGER PRIMARY KEY, collection TEXT)`);
+      for (let i = 0; i < 15; i++) {
+        db.prepare(`INSERT INTO rag_vectors (collection) VALUES (?)`).run('errors');
+      }
+
+      await recommender.runCycle();
+      const wishes = recommender.getWishlist();
+      const rateLimiter = wishes.find(w => w.need === 'rate limiter');
+      const cacheLayer = wishes.find(w => w.need === 'cache layer');
+      // These should NOT be in open wishes since Brain already has them
+      expect(rateLimiter).toBeUndefined();
+      expect(cacheLayer).toBeUndefined();
+    });
+
+    it('should mark existing wishes as satisfied when they match known capabilities', async () => {
+      // Pre-insert a wish that Brain already has
+      db.prepare(`INSERT INTO feature_wishes (need, reason, priority, status) VALUES (?, ?, ?, ?)`).run('rate limiter', 'test', 0.75, 'open');
+
+      await recommender.runCycle();
+      const wishes = recommender.getWishlist();
+      const rateLimiter = wishes.find(w => w.need === 'rate limiter');
+      expect(rateLimiter).toBeDefined();
+      expect(rateLimiter!.status).toBe('satisfied');
+    });
+
+    it('should include satisfiedWishes count in status', async () => {
+      db.prepare(`INSERT INTO feature_wishes (need, reason, priority, status) VALUES (?, ?, ?, ?)`).run('monitoring/metrics', 'observability', 0.5, 'open');
+
+      await recommender.runCycle();
+      const status = recommender.getStatus();
+      expect(status.satisfiedWishes).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should still detect unknown needs (e.g. retry mechanism)', async () => {
+      db.exec(`CREATE TABLE IF NOT EXISTS errors (id INTEGER PRIMARY KEY, fingerprint TEXT, occurrence_count INTEGER DEFAULT 1)`);
+      db.prepare(`INSERT INTO errors (fingerprint, occurrence_count) VALUES (?, ?)`).run('TypeError:foo', 5);
+
+      await recommender.runCycle();
+      const wishes = recommender.getWishlist('open');
+      const retry = wishes.find(w => w.need === 'retry mechanism');
+      expect(retry).toBeDefined();
+    });
+  });
+
   describe('buildConnections', () => {
     it('should build connections between features with related tags', async () => {
       const extractor = new FeatureExtractor(db);

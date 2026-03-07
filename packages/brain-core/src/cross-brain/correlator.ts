@@ -122,7 +122,7 @@ export class CrossBrainCorrelator {
         // Determine stable ordering (alphabetical by descriptor)
         const descA = `${latest.source}:${latest.event}`;
         const descB = `${other.source}:${other.event}`;
-        const [first, second] = [descA, descB].sort();
+        const [first] = [descA, descB].sort();
         const isSwapped = first !== descA;
 
         const correlation: Correlation = {

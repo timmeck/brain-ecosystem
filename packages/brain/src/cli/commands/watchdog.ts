@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { withIpc } from '../ipc-helper.js';
-import { c, header, keyValue, divider, table } from '../colors.js';
+import { c, header, divider } from '../colors.js';
 
 function fmtUptime(ms: number): string {
   const s = Math.floor(ms / 1000);

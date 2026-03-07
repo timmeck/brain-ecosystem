@@ -13,3 +13,11 @@ export type {
   ExtractedFact,
   FactExtractorConfig,
 } from './fact-extractor.js';
+
+export { ContradictionResolver, runContradictionResolverMigration } from './contradiction-resolver.js';
+export type {
+  ContradictionType,
+  ResolutionStrategy,
+  FactResolution,
+  ContradictionResolverStatus,
+} from './contradiction-resolver.js';

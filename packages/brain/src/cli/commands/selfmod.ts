@@ -26,7 +26,7 @@ export function selfmodCommand(): Command {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mods: any[] = await client.request('selfmod.list', {
           limit: parseInt(opts.limit, 10),
-        }) as any[];
+        }) as Record<string, unknown>[];
 
         if (!mods?.length) {
           console.log(`  ${c.dim('No self-modifications found.')}`);

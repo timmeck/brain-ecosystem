@@ -201,7 +201,6 @@ export class SelfTestEngine {
 
     const tests = allTests.map(r => this.toSelfTest(r));
     const confirmed = tests.filter(t => t.predictionResult === 'confirmed');
-    const contradicted = tests.filter(t => t.predictionResult === 'contradicted');
     const inconclusive = tests.filter(t => t.predictionResult === 'inconclusive');
     const untested = tests.filter(t => t.predictionResult === 'untested');
 

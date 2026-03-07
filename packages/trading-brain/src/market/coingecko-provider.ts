@@ -7,7 +7,7 @@
 
 import { getLogger } from '../utils/logger.js';
 import type { OHLCVCandle } from '../paper/types.js';
-import type { MarketDataProvider, PriceUpdate } from './market-data-provider.js';
+import type { MarketDataProvider } from './market-data-provider.js';
 
 export class CoinGeckoProvider implements MarketDataProvider {
   readonly name = 'coingecko';

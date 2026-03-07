@@ -11,7 +11,7 @@ export interface HubDashboardOptions {
 }
 
 export function createHubDashboard(options: HubDashboardOptions): DashboardServer {
-  const { port, ecosystemService, correlator } = options;
+  const { port, correlator } = options;
 
   const htmlPath = path.resolve(
     path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')),

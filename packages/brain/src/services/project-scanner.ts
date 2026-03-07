@@ -46,7 +46,8 @@ export interface BuildScanResult {
 
 const FIX_PATTERNS = /\b(fix|bug|error|crash|resolve[ds]?|patch|hotfix)\b/i;
 
-const LOG_PATTERNS = ['*.log', '*.err', 'npm-debug.log*', 'crash-*.txt'];
+// Log patterns for future log-scanning feature
+// const LOG_PATTERNS = ['*.log', '*.err', 'npm-debug.log*', 'crash-*.txt'];
 const LOG_EXCLUDE_DIRS = new Set([
   'node_modules', '.git', 'dist', 'build', '.next', '__pycache__',
   'vendor', 'coverage', '.cache', '.turbo', 'target', 'out', 'venv',
@@ -324,7 +325,7 @@ export class ProjectScanner {
 
   // ─── Private Helpers ───────────────────────────────────────
 
-  private extractErrorFromCommit(message: string, diff: string): string | null {
+  private extractErrorFromCommit(message: string, _diff: string): string | null {
     // Try to extract meaningful error description from fix commit
     const msg = message.toLowerCase();
 
@@ -354,7 +355,7 @@ export class ProjectScanner {
     return null;
   }
 
-  private extractSolutionFromCommit(message: string, diff: string): string | null {
+  private extractSolutionFromCommit(message: string, _diff: string): string | null {
     // The commit message itself describes the solution
     const fixMatch = message.match(/^(?:fix|bug|hotfix|patch)(?:\([^)]+\))?:\s*(.+)/i);
     if (fixMatch) return `Fix: ${fixMatch[1]!.trim()}`;

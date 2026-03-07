@@ -597,7 +597,7 @@ export class SignalScanner {
     return { newBreakouts, newSignals };
   }
 
-  private getPhase(score: number): string {
+  private getPhase(_score: number): string {
     // Phase is based on stars, but we need the stars from DB
     // This is a simplified version; real phase is set during scoring
     return 'discovery';

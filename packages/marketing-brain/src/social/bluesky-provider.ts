@@ -84,6 +84,7 @@ export class BlueskyProvider implements SocialProvider {
         cursor: options?.cursor,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (response.data.feed ?? []).map((item: any) => ({
         id: item.post?.uri ?? '',
         author: item.post?.author?.handle ?? '',
@@ -127,6 +128,7 @@ export class BlueskyProvider implements SocialProvider {
         cursor: options?.cursor,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items: FeedItem[] = (response.data.posts ?? []).map((post: any) => ({
         id: post.uri ?? '',
         author: post.author?.handle ?? '',

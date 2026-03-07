@@ -153,7 +153,7 @@ function normalCDF(x: number): number {
 }
 
 /** Rough approximation of the regularized incomplete beta function. */
-function incompleteBetaApprox(x: number, a: number, b: number): number {
+function incompleteBetaApprox(x: number, a: number, _b: number): number {
   // Use a continued fraction approximation (Lentz's method, simplified)
   if (x <= 0) return 0;
   if (x >= 1) return 1;

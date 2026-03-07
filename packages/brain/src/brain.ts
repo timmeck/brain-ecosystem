@@ -66,12 +66,12 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
-import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor, FeatureRecommender } from '@timmeck/brain-core';
+import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor, FeatureRecommender, ContradictionResolver } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -866,6 +866,11 @@ export class BrainCore {
     featureRecommender.setThoughtStream(thoughtStream);
     services.featureRecommender = featureRecommender;
 
+    // 69. ContradictionResolver — resolve knowledge graph contradictions
+    const contradictionResolver = new ContradictionResolver(this.db!);
+    contradictionResolver.setKnowledgeGraph(knowledgeGraph);
+    services.contradictionResolver = contradictionResolver;
+
     // ── Wire intelligence engines into autonomous ResearchOrchestrator ──
     this.orchestrator.setFactExtractor(factExtractor);
     this.orchestrator.setKnowledgeGraph(knowledgeGraph);
@@ -877,6 +882,7 @@ export class BrainCore {
     this.orchestrator.setCodeHealthMonitor(codeHealthMonitor);
     this.orchestrator.setRepoAbsorber(repoAbsorber);
     this.orchestrator.setFeatureRecommender(featureRecommender);
+    this.orchestrator.setContradictionResolver(contradictionResolver);
 
     logger.info('Intelligence upgrade active (RAG, KG, Compression, Feedback, Tool-Learning, Proactive, UserModel, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber — all wired into orchestrator)');
 
@@ -1052,6 +1058,7 @@ export class BrainCore {
         rag: services.ragEngine?.getStatus() ?? null,
         ragIndexer: services.ragIndexer?.getStatus() ?? null,
         kg: services.knowledgeGraph?.getStatus() ?? null,
+        contradictionResolver: services.contradictionResolver?.getStatus() ?? null,
         feedback: services.feedbackEngine?.getStats() ?? null,
         toolStats: services.toolTracker?.getToolStats() ?? [],
         proactive: services.proactiveEngine?.getStatus() ?? null,

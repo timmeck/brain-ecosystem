@@ -15,7 +15,7 @@ export interface FeatureWish {
   matchedFeatureId: number | null; // if a matching extracted feature exists
   matchedFeatureName: string | null;
   matchScore: number;    // how well the match fits (0-1)
-  status: 'open' | 'matched' | 'adopted' | 'dismissed';
+  status: 'open' | 'matched' | 'adopted' | 'dismissed' | 'satisfied';
   createdAt: string;
   updatedAt: string;
 }
@@ -43,9 +43,21 @@ export interface FeatureRecommenderStatus {
   openWishes: number;
   matchedWishes: number;
   adoptedWishes: number;
+  satisfiedWishes: number;
   totalConnections: number;
   lastScanAt: string | null;
 }
+
+// ── Known capabilities (Brain already has these) ────────
+
+/** Features Brain already has — detectNeeds() should skip these. */
+const KNOWN_CAPABILITIES: Record<string, string> = {
+  'rate limiter': 'LLMService (per-hour/per-day rate limiting)',
+  'cache layer': 'LLMService (content-hash caching)',
+  'streaming/pipeline pattern': 'ThoughtStream (event streaming pipeline)',
+  'monitoring/metrics': 'SelfObserver + MetaCognitionLayer',
+  'middleware pattern': 'IPC Router (request handler chain)',
+};
 
 // ── Need detection patterns ──────────────────────────────
 
@@ -253,7 +265,20 @@ export class FeatureRecommender {
   private detectNeeds(): number {
     let created = 0;
 
+    // Mark existing wishes for known capabilities as satisfied
+    for (const [need, capability] of Object.entries(KNOWN_CAPABILITIES)) {
+      try {
+        this.db.prepare(`
+          UPDATE feature_wishes SET status = 'satisfied', reason = ?, updated_at = datetime('now')
+          WHERE need = ? AND status IN ('open', 'matched')
+        `).run(`Already built-in: ${capability}`, need);
+      } catch { /* table may not exist yet */ }
+    }
+
     for (const detector of NEED_DETECTORS) {
+      // Skip needs that Brain already has
+      if (KNOWN_CAPABILITIES[detector.need]) continue;
+
       try {
         const result = this.db.prepare(detector.detectQuery).get() as { c: number } | undefined;
         if (result && result.c > 0) {
@@ -529,6 +554,7 @@ export class FeatureRecommender {
     const open = this.db.prepare(`SELECT COUNT(*) as c FROM feature_wishes WHERE status = 'open'`).get() as { c: number };
     const matched = this.db.prepare(`SELECT COUNT(*) as c FROM feature_wishes WHERE status = 'matched'`).get() as { c: number };
     const adopted = this.db.prepare(`SELECT COUNT(*) as c FROM feature_wishes WHERE status = 'adopted'`).get() as { c: number };
+    const satisfied = this.db.prepare(`SELECT COUNT(*) as c FROM feature_wishes WHERE status = 'satisfied'`).get() as { c: number };
     const connections = this.db.prepare('SELECT COUNT(*) as c FROM feature_connections').get() as { c: number };
 
     return {
@@ -536,6 +562,7 @@ export class FeatureRecommender {
       openWishes: open.c,
       matchedWishes: matched.c,
       adoptedWishes: adopted.c,
+      satisfiedWishes: satisfied.c,
       totalConnections: connections.c,
       lastScanAt: this.lastScanAt,
     };

@@ -246,7 +246,7 @@ export class RepoAbsorber {
           const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
           if (this.knowledgeGraph && pkg.name) {
             const deps = Object.keys(pkg.dependencies ?? {});
-            const devDeps = Object.keys(pkg.devDependencies ?? {});
+            // devDependencies available in pkg.devDependencies if needed
             for (const dep of deps.slice(0, 10)) {
               this.knowledgeGraph.addFact(pkg.name, 'depends_on', dep,
                 `repo:${candidate.name}`, 0.9, 'repo', candidate.name);

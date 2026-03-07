@@ -188,6 +188,7 @@ export class NotificationService {
     sql += ' ORDER BY created_at DESC LIMIT ?';
     params.push(options.limit ?? 50);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw SQLite rows
     return (this.db.prepare(sql).all(...params) as any[]).map(r => ({
       ...r,
       success: r.success === 1,

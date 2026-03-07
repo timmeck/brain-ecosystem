@@ -5,7 +5,7 @@ import type { HyperParameter, ParameterRecommendation } from '../meta-learning/e
 import { CausalGraph } from '../causal/engine.js';
 import type { CausalEdge, CausalPath } from '../causal/engine.js';
 import { HypothesisEngine } from '../hypothesis/engine.js';
-import type { Hypothesis, HypothesisTestResult } from '../hypothesis/engine.js';
+import type { HypothesisTestResult } from '../hypothesis/engine.js';
 
 // ── Types ───────────────────────────────────────────────
 

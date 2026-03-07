@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { withIpc } from '../ipc-helper.js';
-import { c, icons, header, keyValue, divider } from '../colors.js';
+import { c, header, keyValue, divider } from '../colors.js';
 
 const STATUS_ICONS: Record<string, string> = {
   pending: '⏳',
@@ -49,7 +49,7 @@ export function missionsCommand(): Command {
         const missions: any[] = await client.request('mission.list', {
           status: opts.status,
           limit: parseInt(opts.limit, 10),
-        }) as any[];
+        }) as Record<string, unknown>[];
 
         if (!missions?.length) {
           console.log(`  ${c.dim('No missions found.')}`);

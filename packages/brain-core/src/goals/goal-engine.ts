@@ -370,7 +370,7 @@ export class GoalEngine {
 
   // ── Suggest goals based on weaknesses ─────────────────
 
-  suggestGoals(currentCycle: number): GoalSuggestion[] {
+  suggestGoals(_currentCycle: number): GoalSuggestion[] {
     const suggestions: GoalSuggestion[] = [];
     const metrics = this.gatherMetrics();
 

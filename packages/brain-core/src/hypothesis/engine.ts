@@ -253,6 +253,7 @@ export class HypothesisEngine {
 
   /** Get a hypothesis by ID. */
   get(id: number): Hypothesis | null {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw SQLite row with JSON fields
     const row = this.db.prepare('SELECT * FROM hypotheses WHERE id = ?').get(id) as any;
     if (!row) return null;
     return {
@@ -264,6 +265,7 @@ export class HypothesisEngine {
 
   /** List hypotheses by status. */
   list(status?: HypothesisStatus, limit = 50): Hypothesis[] {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw SQLite rows with JSON fields
     let rows: any[];
     if (status) {
       rows = this.db.prepare(
@@ -461,6 +463,7 @@ export class HypothesisEngine {
   private creativeInversion(): Hypothesis | null {
     const confirmed = this.db.prepare(
       "SELECT * FROM hypotheses WHERE status = 'confirmed' ORDER BY RANDOM() LIMIT 1",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw SQLite row
     ).get() as any;
 
     if (!confirmed) return null;
@@ -490,6 +493,7 @@ export class HypothesisEngine {
   private creativeCombination(): Hypothesis | null {
     const pair = this.db.prepare(
       "SELECT * FROM hypotheses WHERE status = 'confirmed' ORDER BY RANDOM() LIMIT 2",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw SQLite rows
     ).all() as any[];
 
     if (pair.length < 2) return null;
@@ -523,6 +527,7 @@ export class HypothesisEngine {
   private creativeAnalogy(): Hypothesis | null {
     const confirmed = this.db.prepare(
       "SELECT * FROM hypotheses WHERE status = 'confirmed' ORDER BY RANDOM() LIMIT 1",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw SQLite row
     ).get() as any;
 
     if (!confirmed) return null;
@@ -559,6 +564,7 @@ export class HypothesisEngine {
   private creativeNegation(): Hypothesis | null {
     const principle = this.db.prepare(
       "SELECT * FROM hypotheses WHERE status = 'confirmed' AND confidence > 0.7 ORDER BY RANDOM() LIMIT 1",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw SQLite row
     ).get() as any;
 
     if (!principle) return null;

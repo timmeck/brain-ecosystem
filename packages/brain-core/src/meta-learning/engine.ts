@@ -268,6 +268,7 @@ export class MetaLearningEngine {
   }> {
     return this.db.prepare(
       'SELECT * FROM meta_learning_optimizations ORDER BY created_at DESC LIMIT ?',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw SQLite rows
     ).all(limit) as any[];
   }
 

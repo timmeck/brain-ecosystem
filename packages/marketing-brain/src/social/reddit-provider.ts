@@ -78,6 +78,7 @@ export class RedditProvider implements SocialProvider {
         body: body.toString(),
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = await response.json() as any;
 
       if (data?.json?.errors?.length > 0) {
@@ -119,7 +120,9 @@ export class RedditProvider implements SocialProvider {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = await response.json() as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data?.data?.children ?? []).map((child: any) => {
         const p = child.data;
         return {
@@ -150,6 +153,7 @@ export class RedditProvider implements SocialProvider {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = await response.json() as any;
       const post = data?.data?.children?.[0]?.data;
 
@@ -178,7 +182,9 @@ export class RedditProvider implements SocialProvider {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = await response.json() as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items: FeedItem[] = (data?.data?.children ?? []).map((child: any) => {
         const p = child.data;
         return {

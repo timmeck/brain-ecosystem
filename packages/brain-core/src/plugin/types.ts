@@ -1,5 +1,3 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
 export interface BrainPlugin {
   /** Unique plugin name (e.g. 'weather-brain'). */
   name: string;

@@ -6,7 +6,6 @@ import type {
   MemoryReplayResult,
   SynapsePruneResult,
   MemoryCompressionResult,
-  MemoryCluster,
   ImportanceDecayResult,
 } from './types.js';
 

@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import { getLogger } from '../utils/logger.js';
 import type { ThoughtStream } from '../consciousness/thought-stream.js';
-import type { Principle, AntiPattern, Strategy, KnowledgeDistiller } from '../research/knowledge-distiller.js';
+import type { Principle, AntiPattern, KnowledgeDistiller } from '../research/knowledge-distiller.js';
 import type { NarrativeEngine } from '../narrative/narrative-engine.js';
 
 // ── Types ───────────────────────────────────────────────

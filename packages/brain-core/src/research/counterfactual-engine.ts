@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import { getLogger } from '../utils/logger.js';
-import type { CausalGraph, CausalEdge } from '../causal/engine.js';
+import type { CausalGraph } from '../causal/engine.js';
 
 // ── Types ───────────────────────────────────────────────
 

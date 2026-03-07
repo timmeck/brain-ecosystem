@@ -12,13 +12,13 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem ist ein System aus drei spezialisierten "Brains", verbunden durch ein Hebbsches Synapsen-Netzwerk. 72+ autonome Engines laufen in Feedback-Loops — beobachten, erkennen Anomalien, bilden Hypothesen, testen sie statistisch, destillieren Prinzipien, träumen, debattieren, denken in Ketten, fühlen Emotionen, entwickeln Strategien genetisch weiter und modifizieren ihren eigenen Quellcode. Multi-Provider LLM-Support (Anthropic + Ollama). Live-Marktdaten via CCXT WebSocket. Social Feeds via Bluesky + Reddit. Web-Recherche via Brave Search + Playwright + Firecrawl. Borg Collective Sync. Plugin SDK für Community Brains. Advocatus Diaboli Prinzip-Challenges. RAG-Vektorsuche über alles Wissen. Knowledge Graph mit transitiver Inferenz. Semantische Kompression. RLHF Feedback-Lernen. Proaktive Vorschläge. Inter-Brain Teaching. Multi-Brain Konsens-Abstimmung. Aktives Lernen mit Wissenslücken-Erkennung. 424+ MCP Tools. 3078 Tests. Das Brain denkt buchstäblich über sich selbst nach, wird neugierig, führt Experimente durch und schreibt Code um sich zu verbessern.
+Brain Ecosystem ist ein System aus drei spezialisierten "Brains", verbunden durch ein Hebbsches Synapsen-Netzwerk. 72+ autonome Engines laufen in Feedback-Loops — beobachten, erkennen Anomalien, bilden Hypothesen, testen sie statistisch, destillieren Prinzipien, träumen, debattieren, denken in Ketten, fühlen Emotionen, entwickeln Strategien genetisch weiter und modifizieren ihren eigenen Quellcode. Multi-Provider LLM-Support (Anthropic + Ollama). Live-Marktdaten via CCXT WebSocket. Social Feeds via Bluesky + Reddit. Web-Recherche via Brave Search + Playwright + Firecrawl. Borg Collective Sync. Plugin SDK für Community Brains. Advocatus Diaboli Prinzip-Challenges. RAG-Vektorsuche über alles Wissen. Knowledge Graph mit transitiver Inferenz. Semantische Kompression. RLHF Feedback-Lernen. Proaktive Vorschläge. Inter-Brain Teaching. Multi-Brain Konsens-Abstimmung. Aktives Lernen mit Wissenslücken-Erkennung. Automatische Widerspruchs-Auflösung im Knowledge Graph. Selbsterkenntnis eigener Fähigkeiten. 424+ MCP Tools. 3.108 Tests. Das Brain denkt buchstäblich über sich selbst nach, wird neugierig, führt Experimente durch und schreibt Code um sich zu verbessern.
 
 ## Pakete
 
 | Paket | Version | Beschreibung | Ports |
 |-------|---------|-------------|-------|
-| [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Fehler-Gedächtnis, Code-Intelligenz, autonome Forschung & Selbst-Modifikation | 7777 / 7778 / 7788 / 7790 |
+| [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Fehler-Gedächtnis, Code-Intelligenz, autonome Forschung & Selbst-Modifikation | 7777 / 7778 / 7790 |
 | [@timmeck/trading-brain](packages/trading-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/trading-brain)](https://www.npmjs.com/package/@timmeck/trading-brain) | Adaptive Trading-Intelligenz mit Signal-Lernen, Paper Trading & Live-Marktdaten | 7779 / 7780 |
 | [@timmeck/marketing-brain](packages/marketing-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/marketing-brain)](https://www.npmjs.com/package/@timmeck/marketing-brain) | Content-Strategie, Social Engagement & Cross-Platform-Optimierung | 7781 / 7782 / 7783 |
 | [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Geteilte Infrastruktur — 72+ Engines, Synapsen, IPC, MCP, LLM, Bewusstsein, Missionen, Benachrichtigungen | — |
@@ -71,12 +71,15 @@ Die meisten KI-Tools vergessen alles zwischen den Sessions. Brain nicht. Es baut
 - **Inter-Brain Teaching** — Brains teilen ihre stärksten Prinzipien miteinander, bewertet nach Relevanz vor Akzeptanz
 - **Konsens-Entscheidungen** — Multi-Brain-Abstimmung für High-Risk-Entscheidungen mit Mehrheits-/Supermehrheits-/Veto-Regeln
 - **Aktives Lernen** — Intelligentes Gap-Closing: Forschungsmissionen, gezielte User-Fragen, Experimente, Lehranfragen
+- **Widerspruchs-Auflösung** — Klassifiziert Knowledge-Graph-Widersprüche (Konfidenz-Gap, temporal, kontextual, Trade-Off) und löst sie automatisch mit Audit-Trail
+- **Selbsterkenntnis** — FeatureRecommender erkennt Brains eigene Fähigkeiten und wünscht sich nur Features die wirklich fehlen
+- **Generische Utilities** — `retryWithBackoff<T>()` mit exponentiellem Backoff + Jitter, `BatchQueue<T,R>` für effiziente Batch-Verarbeitung
 
 ## Was es kann
 
 ### Brain — Fehler-Gedächtnis, Code-Intelligenz & volle Autonomie
 
-158 MCP Tools. Merkt sich Fehler, lernt Lösungen, führt 40-Schritt autonome Forschungszyklen durch, träumt, debattiert, hinterfragt Prinzipien (Advocatus Diaboli), denkt, fühlt und modifiziert seinen eigenen Code.
+162 MCP Tools. Merkt sich Fehler, lernt Lösungen, führt 51-Schritt autonome Forschungszyklen durch, träumt, debattiert, hinterfragt Prinzipien (Advocatus Diaboli), denkt, fühlt und modifiziert seinen eigenen Code.
 
 ### Trading Brain — Adaptive Trading-Intelligenz
 
@@ -90,7 +93,7 @@ Die meisten KI-Tools vergessen alles zwischen den Sessions. Brain nicht. Es baut
 
 Alle drei Brains teilen sich 72+ autonome Engines via Brain Core:
 
-- **40-Schritt Feedback-Loop** — ResearchOrchestrator läuft alle 5 Minuten
+- **51-Schritt Feedback-Loop** — ResearchOrchestrator läuft alle 5 Minuten
 - **Selbst-Verbesserung** — HypothesisEngine generiert Theorien, AutoExperiment testet sie
 - **Traumphase** — Offline-Gedächtniskonsolidierung: Replay, Pruning, Kompression
 - **Wissensdestillation** — Extrahiert Prinzipien und Anti-Patterns aus Roherfahrung
@@ -103,7 +106,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installiert alle Workspace-Abhängigkeiten
 npm run build        # baut alle Pakete (brain-core zuerst)
-npm test             # führt alle 3078 Tests aus
+npm test             # führt alle 3.108 Tests aus
 ```
 
 ## Support

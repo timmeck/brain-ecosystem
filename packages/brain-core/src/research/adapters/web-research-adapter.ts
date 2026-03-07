@@ -3,10 +3,6 @@ import { getLogger } from '../../utils/logger.js';
 
 const log = getLogger();
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 // ── Brave Search Adapter ───────────────────────────────
 
 export class BraveSearchAdapter implements ScoutAdapter {

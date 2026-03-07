@@ -12,13 +12,13 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 72+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Advocatus Diaboli principle challenges. RAG vector search across all knowledge. Knowledge Graph with transitive inference. Semantic compression. RLHF feedback learning. Proactive suggestions. Inter-brain teaching. Multi-brain consensus voting. Active learning with gap detection. Code assimilation from GitHub repos with feature extraction. 424+ MCP tools. 3078 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
+Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 72+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Advocatus Diaboli principle challenges. RAG vector search across all knowledge. Knowledge Graph with transitive inference and automatic contradiction resolution. Semantic compression. RLHF feedback learning. Proactive suggestions. Inter-brain teaching. Multi-brain consensus voting. Active learning with gap detection. Code assimilation from GitHub repos with feature extraction and self-capability awareness. Generic retry and batch-queue utilities. 424+ MCP tools. 3,108 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
 
 ## Packages
 
 | Package | Version | Description | Ports |
 |---------|---------|-------------|-------|
-| [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Error memory, code intelligence, autonomous research & self-modification | 7777 / 7778 / 7788 / 7790 |
+| [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Error memory, code intelligence, autonomous research & self-modification | 7777 / 7778 / 7790 |
 | [@timmeck/trading-brain](packages/trading-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/trading-brain)](https://www.npmjs.com/package/@timmeck/trading-brain) | Adaptive trading intelligence with signal learning, paper trading & live market data | 7779 / 7780 |
 | [@timmeck/marketing-brain](packages/marketing-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/marketing-brain)](https://www.npmjs.com/package/@timmeck/marketing-brain) | Content strategy, social engagement & cross-platform optimization | 7781 / 7782 / 7783 |
 | [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure — 72+ engines, synapses, IPC, MCP, LLM, consciousness, missions, notifications | — |
@@ -74,12 +74,15 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 - **Code Assimilation** — RepoAbsorber clones, scans, and indexes GitHub repos into RAG + Knowledge Graph. FeatureExtractor identifies reusable functions, patterns, and architecture across TypeScript, Go, Python, Rust
 - **Intelligence Dashboard** — Live Command Center page showing RAG vectors, KG facts, tool stats, feedback scores, user model, proactive suggestions
 - **Intelligence CLI** — `brain intel` overview, `brain intel rag <query>`, `brain intel knowledge`, `brain intel features [search/extract/suggest/stats]`, `brain intel llm`
+- **Contradiction Resolver** — Classifies knowledge graph contradictions (confidence gap, temporal, contextual, trade-off) and auto-resolves them with audit trail
+- **Self-Capability Awareness** — FeatureRecommender recognizes Brain's existing abilities (rate limiter, cache, streaming, monitoring, middleware) and only wishes for features it truly lacks
+- **Generic Utilities** — `retryWithBackoff<T>()` with exponential backoff + jitter, `BatchQueue<T,R>` for efficient batch processing
 
 ## What It Does
 
 ### Brain — Error Memory, Code Intelligence & Full Autonomy
 
-162 MCP tools. Remembers errors, learns solutions, runs 49-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, absorbs code from GitHub repos, extracts reusable features, and modifies its own code.
+162 MCP tools. Remembers errors, learns solutions, runs 51-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, absorbs code from GitHub repos, extracts reusable features, and modifies its own code.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
@@ -99,8 +102,7 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 | Dashboard | Port | Description |
 |-----------|------|-------------|
-| **Mission Control** | 7788 | 7-tab dashboard: Overview, Consciousness Entity, Thoughts, CodeGen, Self-Mod, Engines, Intelligence |
-| **Command Center** | 7790 | 9-page ecosystem dashboard: Ecosystem, Learning, Trading, Marketing, Intelligence, Cross-Brain, Debates & Challenges, Activity & Code Assimilation, Infrastructure |
+| **Command Center** | 7790 | 9-page ecosystem dashboard: Ecosystem, Consciousness, Learning, Trading, Marketing, Intelligence, Cross-Brain, Debates & Challenges, Infrastructure |
 
 
 - **Command Center** — Live overview of the entire ecosystem: all 3 brains, 72+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, Borg network with animated sync packets, debate history, Advocatus Diaboli challenges with resilience bars, LLM usage, thought stream
@@ -133,7 +135,7 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 All three brains share 72+ autonomous engines via Brain Core:
 
-- **49-Step Feedback Loop** — ResearchOrchestrator runs every 5 minutes: observe → hypothesize → experiment → measure → distill → adapt → absorb
+- **51-Step Feedback Loop** — ResearchOrchestrator runs every 5 minutes: observe → hypothesize → experiment → measure → distill → adapt → absorb → resolve contradictions
 - **Self-Improvement** — HypothesisEngine generates theories, AutoExperiment tests them, AdaptiveStrategy applies winners
 - **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle
 - **Knowledge Distillation** — Extracts principles and anti-patterns from raw experience
@@ -172,6 +174,8 @@ Brain Core provides the building blocks all brains share:
 | **Semantic Compression** | Insight deduplication via clustering + LLM summarization |
 | **RepoAbsorber** | Autonomous code learning: clone → scan → RAG index → KG facts |
 | **FeatureExtractor** | Extract reusable functions/patterns from absorbed repos (TS, Go, Py, Rust) |
+| **ContradictionResolver** | Classify and resolve knowledge graph contradictions with audit trail |
+| **Retry & BatchQueue** | Generic exponential backoff with jitter + batch processing utilities |
 
 ## Architecture
 
@@ -220,7 +224,6 @@ Watchdog auto-restart with exponential backoff
 | Marketing Brain REST | 7781 | HTTP |
 | Marketing Brain MCP | 7782 | SSE |
 | Marketing Dashboard | 7783 | SSE |
-| Mission Control | 7788 | HTTP + SSE |
 | Command Center | 7790 | HTTP + SSE |
 
 ## CLI Commands
@@ -267,7 +270,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installs all workspace dependencies
 npm run build        # builds all packages (brain-core first)
-npm test             # runs all 3078 tests
+npm test             # runs all 3,108 tests
 ```
 
 ### Package Dependencies
@@ -293,7 +296,7 @@ brain-core          (no internal deps)
 - **Playwright** — Headless browser for web research
 - **Commander** — CLI framework
 - **Winston** — Structured logging with file rotation
-- **Vitest** — 3078 tests across 231 test files
+- **Vitest** — 3,108 tests across 236 test files
 
 ## Docker (Optional)
 

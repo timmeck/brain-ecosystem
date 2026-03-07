@@ -317,7 +317,7 @@ export class CausalGraph {
       FROM causal_events
       GROUP BY type
       ORDER BY count DESC
-    `).all() as any[];
+    `).all() as Array<{ type: string; count: number; first_seen: string; last_seen: string }>;
   }
 
   // ── Confounder & Intervention Methods ──────────────

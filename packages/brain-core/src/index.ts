@@ -7,6 +7,10 @@ export { createLogger, getLogger, resetLogger } from './utils/logger.js';
 export type { LoggerOptions } from './utils/logger.js';
 export { normalizePath, getDataDir, getPipeName } from './utils/paths.js';
 export { TypedEventBus } from './utils/events.js';
+export { retryWithBackoff } from './utils/retry.js';
+export type { RetryOptions } from './utils/retry.js';
+export { BatchQueue } from './utils/batch-queue.js';
+export type { BatchQueueOptions } from './utils/batch-queue.js';
 
 // ── DB ─────────────────────────────────────────────────────
 export { createConnection } from './db/connection.js';
@@ -423,6 +427,8 @@ export { KnowledgeGraphEngine, runKnowledgeGraphMigration } from './knowledge-gr
 export type { KnowledgeGraphConfig, KnowledgeFact, FactQuery, KnowledgeGraphStatus } from './knowledge-graph/index.js';
 export { FactExtractor } from './knowledge-graph/index.js';
 export type { ExtractedFact } from './knowledge-graph/index.js';
+export { ContradictionResolver, runContradictionResolverMigration } from './knowledge-graph/index.js';
+export type { ContradictionType, ResolutionStrategy, FactResolution, ContradictionResolverStatus } from './knowledge-graph/index.js';
 
 // ── Semantic Compression ─────────────────────────────────────
 export { SemanticCompressor, runSemanticCompressorMigration } from './research/semantic-compressor.js';
