@@ -824,13 +824,39 @@ export class ResearchOrchestrator {
         ? attTopics.map((t: { topic: string }) => t.topic).join(', ')
         : 'none';
 
+      // Dynamic type + significance: discoveries get elevated so Distiller + DreamEngine can see them
+      const hasFindings = insights.length > 0 || anomalies.length > 0;
+      const journalType = hasFindings ? 'discovery' : 'insight';
+      const journalSignificance = hasFindings ? 'notable' : 'routine';
+
+      // Enriched content with anomaly/insight details
+      const contentParts = [
+        `Completed feedback cycle #${this.cycleCount} in ${cycleDuration}ms.`,
+        `${insights.length} insights, ${anomalies.length} anomalies detected.`,
+        `Hypotheses: ${hypSummary.proposed} pending, ${hypSummary.confirmed} confirmed.`,
+        `Predictions: accuracy ${predAccuracy}%. Focus: ${focusStr}.`,
+        `Journal: ${(journalStats.total_entries as number) ?? 0} entries.`,
+      ];
+      if (anomalies.length > 0) {
+        contentParts.push('Anomalies:');
+        for (const a of anomalies.slice(0, 5)) {
+          contentParts.push(`- ${a.title ?? a.type ?? 'unknown'}: ${a.metric ?? ''} deviated ${((a.deviation as number) ?? 0).toFixed(1)}%`);
+        }
+      }
+      if (insights.length > 0) {
+        contentParts.push('Insights:');
+        for (const ins of insights.slice(0, 5)) {
+          contentParts.push(`- ${ins.title ?? ins.type ?? 'unknown'}`);
+        }
+      }
+
       this.journal.write({
-        type: 'insight',
+        type: journalType,
         title: `Cycle #${this.cycleCount} summary`,
-        content: `Completed feedback cycle #${this.cycleCount} in ${cycleDuration}ms. ${insights.length} insights, ${anomalies.length} anomalies detected. Hypotheses: ${hypSummary.proposed} pending, ${hypSummary.confirmed} confirmed. Predictions: accuracy ${predAccuracy}%. Focus: ${focusStr}. Journal: ${(journalStats.total_entries as number) ?? 0} entries.`,
+        content: contentParts.join(' '),
         tags: [this.brainName, 'cycle-summary'],
         references: [],
-        significance: 'routine',
+        significance: journalSignificance,
         data: {
           cycle: this.cycleCount, duration_ms: cycleDuration,
           insights: insights.length, anomalies: anomalies.length,
@@ -1418,6 +1444,18 @@ export class ResearchOrchestrator {
       if (reflect !== undefined && reflect !== this.reflectEvery) {
         this.log.info(`[orchestrator] reflectEvery refreshed: ${this.reflectEvery} → ${reflect}`);
         this.reflectEvery = reflect;
+      }
+    }
+
+    // 22b. Sync PredictionEngine params from ParameterRegistry
+    if (this.parameterRegistry && this.predictionEngine) {
+      const alpha = this.parameterRegistry.get('prediction', 'ewmaAlpha');
+      const beta = this.parameterRegistry.get('prediction', 'trendBeta');
+      if (alpha !== undefined || beta !== undefined) {
+        this.predictionEngine.updateConfig({
+          ...(alpha !== undefined ? { ewmaAlpha: alpha } : {}),
+          ...(beta !== undefined ? { trendBeta: beta } : {}),
+        });
       }
     }
 
@@ -2795,6 +2833,18 @@ export class ResearchOrchestrator {
         hypothesis: 'Shorter prediction horizon (30min vs 1h) improves prediction accuracy',
         iv: 'prediction_horizon_ms', dv: 'prediction_accuracy',
         control: 3600000, treatment: 1800000,
+      },
+      {
+        name: 'Prediction Alpha Tuning',
+        hypothesis: 'Higher EWMA alpha (0.5 vs 0.3) makes predictions more responsive to recent data',
+        iv: 'prediction_ewma_alpha', dv: 'prediction_accuracy',
+        control: 0.3, treatment: 0.5,
+      },
+      {
+        name: 'Prediction Trend Beta Tuning',
+        hypothesis: 'Doubling trend beta (0.2 vs 0.1) captures momentum shifts faster',
+        iv: 'prediction_trend_beta', dv: 'prediction_accuracy',
+        control: 0.1, treatment: 0.2,
       },
     ];
 

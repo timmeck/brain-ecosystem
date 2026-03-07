@@ -114,6 +114,23 @@ export class PredictionEngine {
     this.journal = journal;
   }
 
+  /** Update config values at runtime (for A/B testing / parameter sync). */
+  updateConfig(partial: Partial<PredictionEngineConfig>): void {
+    if (partial.ewmaAlpha !== undefined) this.config.ewmaAlpha = partial.ewmaAlpha;
+    if (partial.trendBeta !== undefined) this.config.trendBeta = partial.trendBeta;
+    if (partial.minConfidence !== undefined) this.config.minConfidence = partial.minConfidence;
+    if (partial.minDataPoints !== undefined) this.config.minDataPoints = partial.minDataPoints;
+    if (partial.maxPredictionsPerCycle !== undefined) this.config.maxPredictionsPerCycle = partial.maxPredictionsPerCycle;
+    if (partial.defaultHorizonMs !== undefined) this.config.defaultHorizonMs = partial.defaultHorizonMs;
+    if (partial.expirationMs !== undefined) this.config.expirationMs = partial.expirationMs;
+    if (partial.resolveIntervalMs !== undefined) this.config.resolveIntervalMs = partial.resolveIntervalMs;
+  }
+
+  /** Get current config (read-only copy). */
+  getConfig(): Readonly<Required<PredictionEngineConfig>> {
+    return { ...this.config };
+  }
+
   /** Start periodic resolution timer. */
   start(): void {
     if (this.timer) return;

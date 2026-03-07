@@ -132,7 +132,7 @@ export class KnowledgeDistiller {
     this.db = db;
     this.config = {
       brainName: config.brainName,
-      minEvidence: config.minEvidence ?? 5,
+      minEvidence: config.minEvidence ?? 3,
       minSuccessRate: config.minSuccessRate ?? 0.7,
       minFailureRate: config.minFailureRate ?? 0.6,
     };
@@ -418,7 +418,7 @@ export class KnowledgeDistiller {
     try {
       const journalEntries = this.db.prepare(`
         SELECT title, content, significance, type
-        FROM journal
+        FROM research_journal
         WHERE significance IN ('breakthrough', 'notable') AND type = 'discovery'
         ORDER BY timestamp DESC LIMIT 30
       `).all() as Array<Record<string, unknown>>;
