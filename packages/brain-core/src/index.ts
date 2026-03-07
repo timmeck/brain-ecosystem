@@ -387,6 +387,21 @@ export type {
   OllamaEmbeddingConfig,
 } from './llm/index.js';
 
+// ── Structured Output ──────────────────────────────────────
+export { parseStructuredOutput, extractJson, validateJsonSchema, getBlocks, getTextContent, getToolCalls, hasReasoning } from './llm/index.js';
+export type {
+  ContentBlock, TextBlock, ReasoningBlock, ToolCallBlock, CitationBlock, JsonBlock,
+  StructuredLLMResponse,
+} from './llm/index.js';
+
+// ── LLM Middleware Pipeline ────────────────────────────────
+export { composeMiddleware, retryMiddleware, costTrackingMiddleware, createCostTracker, piiRedactionMiddleware, loggingMiddleware, contextSummarizationMiddleware } from './llm/index.js';
+export type {
+  LLMMiddleware, LLMCallContext, NextFunction,
+  RetryMiddlewareOptions, CostTracker, PiiRedactionOptions,
+  LoggingMiddlewareOptions, LogEntry, ContextSummarizationOptions,
+} from './llm/index.js';
+
 // ── Scanner ──────────────────────────────────────────────
 export { SignalScanner, runScannerMigration } from './scanner/index.js';
 export { GitHubCollector } from './scanner/index.js';

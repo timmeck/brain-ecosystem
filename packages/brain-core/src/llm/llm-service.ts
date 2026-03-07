@@ -5,6 +5,10 @@ import type { LLMProvider } from './provider.js';
 import { TaskRouter } from './provider.js';
 import { AnthropicProvider } from './anthropic-provider.js';
 import type { AnthropicProviderConfig } from './anthropic-provider.js';
+import type { LLMMiddleware, LLMCallContext } from './middleware.js';
+import { composeMiddleware } from './middleware.js';
+import { parseStructuredOutput } from './structured-output.js';
+import type { ContentBlock, StructuredLLMResponse } from './structured-output.js';
 
 // ── Types ───────────────────────────────────────────────
 
@@ -202,6 +206,9 @@ export class LLMService {
   // Prepared statements (lazy-initialized)
   private stmtInsertUsage: Database.Statement | null = null;
 
+  // Middleware pipeline
+  private middlewares: LLMMiddleware[] = [];
+
   constructor(private db: Database.Database, config: LLMServiceConfig = {}) {
     this.model = config.model ?? 'claude-sonnet-4-20250514';
     this.maxTokens = config.maxTokens ?? 2048;
@@ -249,6 +256,19 @@ export class LLMService {
     this.log.debug(`[LLMService] Registered provider: ${provider.name} (${provider.costTier})`);
   }
 
+  /**
+   * Register a middleware in the LLM call pipeline.
+   * Middlewares execute in registration order (first = outermost).
+   */
+  use(middleware: LLMMiddleware): void {
+    this.middlewares.push(middleware);
+  }
+
+  /** Get registered middleware count (for debugging). */
+  getMiddlewareCount(): number {
+    return this.middlewares.length;
+  }
+
   /** Remove a provider by name. */
   removeProvider(name: string): void {
     this.providers = this.providers.filter(p => p.name !== name);
@@ -287,6 +307,49 @@ export class LLMService {
    * - Fallback chain: if preferred provider fails → try next
    */
   async call(
+    template: PromptTemplate,
+    userMessage: string,
+    options?: { maxTokens?: number; temperature?: number; provider?: string },
+  ): Promise<LLMResponse | null> {
+    // If middlewares registered, route through pipeline
+    if (this.middlewares.length > 0) {
+      const ctx: LLMCallContext = {
+        template,
+        userMessage,
+        options: options ?? {},
+        metadata: {},
+        startedAt: Date.now(),
+      };
+
+      const chain = composeMiddleware(this.middlewares, (c) => this.callInternal(c.template, c.userMessage, c.options));
+      return chain(ctx);
+    }
+
+    return this.callInternal(template, userMessage, options);
+  }
+
+  /**
+   * Call LLM and parse response into structured ContentBlocks.
+   * Returns StructuredLLMResponse with both raw text and parsed blocks.
+   */
+  async callStructured(
+    template: PromptTemplate,
+    userMessage: string,
+    options?: { maxTokens?: number; temperature?: number; provider?: string },
+  ): Promise<StructuredLLMResponse | null> {
+    const response = await this.call(template, userMessage, options);
+    if (!response) return null;
+
+    const blocks: ContentBlock[] = parseStructuredOutput(response.text);
+
+    return {
+      ...response,
+      blocks,
+    };
+  }
+
+  /** Internal call implementation (the actual LLM call logic). */
+  private async callInternal(
     template: PromptTemplate,
     userMessage: string,
     options?: { maxTokens?: number; temperature?: number; provider?: string },
