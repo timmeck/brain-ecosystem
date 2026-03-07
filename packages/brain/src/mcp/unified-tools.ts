@@ -23,18 +23,17 @@ function registerUnifiedToolsWithCaller(server: McpServer, call: BrainCall): voi
 
   server.tool(
     'brain_unified_status',
-    'Get Unified Dashboard status: connected clients and dashboard URL. The Unified Dashboard on port 7788 shows all brains, attention, transfer, and notifications in one place.',
+    'Get Command Center Dashboard status: connected clients and dashboard URL. The Command Center on port 7790 shows all engines, analytics, trading, entity, and more.',
     {},
     async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const status: any = await call('unified.clients', {});
       const lines = [
-        'Unified Dashboard:',
+        'Command Center Dashboard:',
         `  URL: http://localhost:${status.port}`,
         `  Connected clients: ${status.clients}`,
         '',
-        'Sections: Overview, Notifications, Attention, Transfer, Engines',
-        'Links: Brain :7784, Trading :7785, Marketing :7786, CodeGen :7787',
+        'Pages: Overview, Learning Cycle, Trading Flow, Code Intelligence, Research, Entity',
       ];
       return textResult(lines.join('\n'));
     },

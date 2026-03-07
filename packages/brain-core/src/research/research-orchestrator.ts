@@ -127,6 +127,7 @@ export class ResearchOrchestrator {
   private codeHealthMonitor: CodeHealthMonitor | null = null;
   private knowledgeGraph: KnowledgeGraphEngine | null = null;
   private repoAbsorber: RepoAbsorber | null = null;
+  private featureRecommender: import('../codegen/feature-recommender.js').FeatureRecommender | null = null;
   private lastAutoMissionTime = 0;
   private onSuggestionCallback: ((suggestions: string[]) => void) | null = null;
 
@@ -339,6 +340,7 @@ export class ResearchOrchestrator {
 
   /** Set the RepoAbsorber — autonomous code learning from discovered repos. */
   setRepoAbsorber(absorber: RepoAbsorber): void { this.repoAbsorber = absorber; }
+  setFeatureRecommender(recommender: import('../codegen/feature-recommender.js').FeatureRecommender): void { this.featureRecommender = recommender; }
 
   /** Set the LLMService — propagates to all engines that can use LLM. */
   setLLMService(llm: LLMService): void {
@@ -2073,6 +2075,23 @@ export class ResearchOrchestrator {
         }
         if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('repo_absorber', this.cycleCount, { insights: result ? 1 : 0 });
       } catch (err) { this.log.warn(`[orchestrator] Step 49 error: ${(err as Error).message}`); }
+    }
+
+    // Step 50: FeatureRecommender — detect needs, match features, build connections (every 15 cycles)
+    if (this.featureRecommender && this.cycleCount % 15 === 0) {
+      try {
+        ts?.emit('feature_recommender', 'analyzing', 'Step 50: Scanning for feature needs & connections...', 'routine');
+        const recResult = await this.featureRecommender.runCycle();
+        if (recResult.wishesCreated > 0 || recResult.matchesFound > 0) {
+          this.journal.write({
+            title: 'Feature Recommendation Cycle',
+            type: 'insight', content: `Wishes: ${recResult.wishesCreated}, Matches: ${recResult.matchesFound}, Connections: ${recResult.connectionsFound} (${recResult.durationMs}ms)`,
+            tags: [this.brainName, 'feature-recommender', 'code-learning'],
+            references: [], significance: recResult.matchesFound > 0 ? 'notable' : 'routine', data: { ...recResult } as Record<string, unknown>,
+          });
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('feature_recommender', this.cycleCount, { insights: recResult.matchesFound });
+      } catch (err) { this.log.warn(`[orchestrator] Step 50 error: ${(err as Error).message}`); }
     }
 
     const duration = Date.now() - start;

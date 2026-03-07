@@ -780,6 +780,9 @@ export class TradingCore {
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'trading-brain', 'trading-brain');
     this.ipcServer.start();
 
+    // Wire local handler so cross-brain self-queries resolve locally
+    this.crossBrain!.setLocalHandler((method, params) => router.handle(method, params));
+
     // Wire subscription manager into IPC router
     router.setSubscriptionManager(this.subscriptionManager, this.ipcServer);
 

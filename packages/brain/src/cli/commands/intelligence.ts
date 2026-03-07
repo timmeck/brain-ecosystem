@@ -337,5 +337,64 @@ export function intelligenceCommand(): Command {
       });
     });
 
+  featuresCmd.command('wishlist')
+    .description('Show Brain\'s feature wishlist — what it needs')
+    .option('-s, --status <status>', 'Filter by status (open/matched/adopted/dismissed)')
+    .action(async (opts) => {
+      await withIpc(async (client) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const wishes = await client.request('recommender.wishlist', { status: opts.status }) as any[];
+        console.log(header('Feature Wishlist', '🎯'));
+        if (!wishes.length) {
+          console.log(`  ${c.dim('No wishes yet. Run a recommendation cycle first.')}`);
+        }
+        for (const w of wishes) {
+          const statusColor = w.status === 'matched' ? c.green : w.status === 'adopted' ? c.cyan : w.status === 'dismissed' ? c.dim : c.orange;
+          console.log(`  ${statusColor(`[${w.status}]`)} ${c.value.bold(w.need)} ${c.dim(`(priority: ${(w.priority * 100).toFixed(0)}%)`)}`);
+          console.log(`    ${c.dim(w.reason)}`);
+          if (w.matchedFeatureName) {
+            console.log(`    ${c.green('→')} Matched: ${c.cyan(w.matchedFeatureName)} ${c.dim(`(${(w.matchScore * 100).toFixed(0)}% match)`)}`);
+          }
+        }
+        console.log(divider());
+      });
+    });
+
+  featuresCmd.command('connections')
+    .description('Show feature connections — what goes well together')
+    .option('-f, --feature <id>', 'Show connections for a specific feature ID')
+    .action(async (opts) => {
+      await withIpc(async (client) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const conns = await client.request('recommender.connections', { featureId: opts.feature ? Number(opts.feature) : undefined }) as any[];
+        console.log(header('Feature Connections', '🔗'));
+        if (!conns.length) {
+          console.log(`  ${c.dim('No connections yet. Absorb some repos and run a cycle.')}`);
+        }
+        for (const conn of conns) {
+          const relColor = conn.relationship === 'prerequisite' ? c.orange : conn.relationship === 'enhances' ? c.green : c.cyan;
+          console.log(`  ${c.value(conn.nameA)} ${relColor(`─${conn.relationship}→`)} ${c.value(conn.nameB)} ${c.dim(`(${(conn.strength * 100).toFixed(0)}%)`)}`);
+          console.log(`    ${c.dim(conn.reason)}`);
+        }
+        console.log(divider());
+      });
+    });
+
+  featuresCmd.command('cycle')
+    .description('Run a feature recommendation cycle now')
+    .action(async () => {
+      await withIpc(async (client) => {
+        console.log(`  ${c.dim('Running recommendation cycle...')}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: any = await client.request('recommender.cycle', {});
+        console.log(header('Recommendation Cycle', '🔄'));
+        console.log(keyValue('Wishes Created', String(result.wishesCreated ?? 0)));
+        console.log(keyValue('Matches Found', String(result.matchesFound ?? 0)));
+        console.log(keyValue('Connections', String(result.connectionsFound ?? 0)));
+        console.log(keyValue('Duration', `${result.durationMs ?? 0}ms`));
+        console.log(divider());
+      });
+    });
+
   return cmd;
 }

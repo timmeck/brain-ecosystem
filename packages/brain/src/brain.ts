@@ -66,12 +66,12 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, UnifiedDashboardServer, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, ConsciousnessServer, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, CodegenServer, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
-import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor } from '@timmeck/brain-core';
+import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor, FeatureRecommender } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -90,7 +90,6 @@ export class BrainCore {
   private orchestrator: ResearchOrchestrator | null = null;
   private attentionEngine: AttentionEngine | null = null;
   private transferEngine: TransferEngine | null = null;
-  private unifiedServer: UnifiedDashboardServer | null = null;
   private commandCenter: CommandCenterServer | null = null;
   private narrativeEngine: NarrativeEngine | null = null;
   private curiosityEngine: CuriosityEngine | null = null;
@@ -859,6 +858,14 @@ export class BrainCore {
     services.featureExtractor = featureExtractor;
     repoAbsorber.setFeatureExtractor(featureExtractor);
 
+    // 68. FeatureRecommender — wishlist, connections, periodic need scanning
+    const featureRecommender = new FeatureRecommender(this.db!);
+    featureRecommender.setFeatureExtractor(featureExtractor);
+    featureRecommender.setRAGEngine(ragEngine);
+    featureRecommender.setKnowledgeGraph(knowledgeGraph);
+    featureRecommender.setThoughtStream(thoughtStream);
+    services.featureRecommender = featureRecommender;
+
     // ── Wire intelligence engines into autonomous ResearchOrchestrator ──
     this.orchestrator.setFactExtractor(factExtractor);
     this.orchestrator.setKnowledgeGraph(knowledgeGraph);
@@ -869,6 +876,7 @@ export class BrainCore {
     this.orchestrator.setTeachingProtocol(teachingProtocol);
     this.orchestrator.setCodeHealthMonitor(codeHealthMonitor);
     this.orchestrator.setRepoAbsorber(repoAbsorber);
+    this.orchestrator.setFeatureRecommender(featureRecommender);
 
     logger.info('Intelligence upgrade active (RAG, KG, Compression, Feedback, Tool-Learning, Proactive, UserModel, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber — all wired into orchestrator)');
 
@@ -961,145 +969,6 @@ export class BrainCore {
       }
     }
 
-    // 11n. Unified Dashboard — single Mission Control UI on :7788
-    const getNetworkState = () => {
-      try {
-        const nodes: { id: string; label: string; type: string; importance: number }[] = [];
-        const projects = this.db!.prepare('SELECT id, name AS label FROM projects LIMIT 20').all() as { id: number; label: string }[];
-        for (const p of projects) nodes.push({ id: `project:${p.id}`, label: p.label, type: 'project', importance: 1.0 });
-        const errors = this.db!.prepare('SELECT id, message AS label FROM errors LIMIT 50').all() as { id: number; label: string }[];
-        for (const e of errors) nodes.push({ id: `error:${e.id}`, label: e.label.substring(0, 60), type: 'error', importance: 0.8 });
-        const solutions = this.db!.prepare('SELECT id, description AS label FROM solutions LIMIT 30').all() as { id: number; label: string }[];
-        for (const s of solutions) nodes.push({ id: `solution:${s.id}`, label: s.label.substring(0, 60), type: 'solution', importance: 0.7 });
-        const modules = this.db!.prepare('SELECT id, name AS label FROM code_modules ORDER BY reusability_score DESC LIMIT 100').all() as { id: number; label: string }[];
-        for (const m of modules) nodes.push({ id: `code_module:${m.id}`, label: m.label, type: 'code_module', importance: 0.5 });
-        const insights = this.db!.prepare('SELECT id, title AS label, type FROM insights WHERE active = 1 ORDER BY priority DESC LIMIT 50').all() as { id: number; label: string; type: string }[];
-        for (const i of insights) nodes.push({ id: `insight:${i.id}`, label: i.label.substring(0, 60), type: 'insight', importance: 0.6 });
-        const memories = this.db!.prepare('SELECT id, content AS label, category AS type, importance FROM memories WHERE active = 1 LIMIT 50').all() as { id: number; label: string; type: string; importance: number }[];
-        for (const m of memories) nodes.push({ id: `memory:${m.id}`, label: m.label.substring(0, 60), type: m.type || 'memory', importance: m.importance });
-        const edges = this.db!.prepare('SELECT source_type, source_id, target_type, target_id, weight FROM synapses ORDER BY weight DESC LIMIT 500').all() as { source_type: string; source_id: number; target_type: string; target_id: number; weight: number }[];
-        const mappedEdges = edges.map(e => ({ source: `${e.source_type}:${e.source_id}`, target: `${e.target_type}:${e.target_id}`, weight: e.weight }));
-        return { nodes, edges: mappedEdges };
-      } catch { return { nodes: [], edges: [] }; }
-    };
-
-    this.unifiedServer = new UnifiedDashboardServer({
-      port: 7788,
-      thoughtStream,
-      getOverview: () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const summary = this.orchestrator?.getSummary() as Record<string, any> | undefined;
-        const attStatus = this.attentionEngine?.getStatus();
-        return {
-          healthScore: typeof summary?.feedbackCycles === 'number' ? Math.min(100, 50 + summary.feedbackCycles) : null,
-          brains: {
-            brain: {
-              status: this.db ? 'running' : 'stopped',
-              cycle: summary?.feedbackCycles ?? 0,
-              principles: summary?.knowledge?.principles ?? 0,
-              hypotheses: summary?.hypotheses?.total ?? 0,
-              experiments: Array.isArray(summary?.experiments) ? summary.experiments.length : 0,
-              focus: attStatus?.currentContext ?? 'unknown',
-            },
-          },
-          transfer: this.transferEngine?.getStatus(),
-          attention: attStatus,
-        };
-      },
-      getTransferStatus: () => {
-        if (!this.transferEngine) return null;
-        const status = this.transferEngine.getStatus();
-        return {
-          ...status,
-          analogies: this.transferEngine.getAnalogies(20),
-          rules: this.transferEngine.getRules(),
-          history: this.transferEngine.getTransferHistory(30),
-          transferScore: this.transferEngine.getTransferScore(),
-        };
-      },
-      getAttentionStatus: () => this.attentionEngine?.getStatus() ?? null,
-      getNotifications: () => thoughtStream.getRecent(100).filter(
-        (t: { significance?: string }) => t.significance === 'breakthrough' || t.significance === 'notable',
-      ),
-      onTriggerFeedback: () => { this.orchestrator?.runFeedbackCycle(); },
-      getNetworkState,
-      getEngineStatus: () => this.orchestrator?.getSummary(),
-      codeGenerator: (services.codeGenerator as CodeGenerator) ?? null,
-      codeMiner: (services.codeMiner as CodeMiner) ?? null,
-      patternExtractor: (patternExtractor as PatternExtractor) ?? null,
-      selfModificationEngine: (services.selfModificationEngine as SelfModificationEngine) ?? null,
-      getEmotionalStatus: () => (services.emotionalModel as EmotionalModel)?.getMood?.() ?? null,
-      onChat: (question: string) => {
-        if (!this.narrativeEngine) return { role: 'brain' as const, content: 'NarrativeEngine not available yet.', timestamp: Date.now() };
-        try {
-          // Store user message as observation (Brain remembers conversations)
-          this.orchestrator?.selfObserver?.record({
-            event_type: 'user_chat',
-            category: 'query_quality',
-            metrics: { message: question, source: 'dashboard_chat' },
-          });
-
-          const explanation = this.narrativeEngine.explain(question);
-          const answer = this.narrativeEngine.ask(question);
-          const mood = (services.emotionalModel as EmotionalModel)?.getMood?.();
-          const parts: string[] = [];
-          if (answer.answer && answer.answer !== 'No relevant knowledge found.') {
-            parts.push(answer.answer);
-          }
-          if (explanation.details.length > 0) {
-            parts.push(explanation.details.slice(0, 5).join('\n'));
-          }
-          if (explanation.confidence > 0) {
-            parts.push(`\nConfidence: ${(explanation.confidence * 100).toFixed(0)}%`);
-          }
-          if (parts.length === 0) {
-            parts.push(`I don't have knowledge about "${question}" yet. This is now a research priority.`);
-            // Add to research agenda
-            this.orchestrator?.researchAgenda?.ask?.(`User asked: "${question}" — investigate and gather data`, 'knowledge_gap');
-          }
-          if (mood) parts.push(`\n[Mood: ${mood.mood}]`);
-          return { role: 'brain' as const, content: parts.join('\n'), timestamp: Date.now(), details: { explanation, answer } };
-        } catch (err) {
-          return { role: 'brain' as const, content: `Error: ${(err as Error).message}`, timestamp: Date.now() };
-        }
-      },
-      onIngest: (content: string, source: string) => {
-        let items = 0;
-        // Split content into lines/paragraphs and store as observations
-        const lines = content.split(/\n+/).filter(l => l.trim().length > 5);
-        for (const line of lines.slice(0, 100)) {
-          this.orchestrator?.selfObserver?.record({
-            event_type: 'data_ingest',
-            category: 'tool_usage',
-            metrics: { content: line.trim(), source },
-          });
-          items++;
-        }
-        // Also store as journal entry for narrative access
-        if (this.orchestrator?.journal) {
-          this.orchestrator.journal.recordDiscovery(
-            `Data Ingested: ${source}`,
-            content.slice(0, 2000),
-            { source, items, timestamp: Date.now() },
-            'routine',
-          );
-        }
-        // Emit thought about ingestion
-        thoughtStream.emit(
-          'knowledge_distiller',
-          'discovering',
-          `Ingested ${items} data points from "${source}"`,
-          items > 10 ? 'notable' : 'routine',
-        );
-        return { stored: true, items };
-      },
-      getLLMStats: () => services.llmService?.getStats() ?? null,
-      getLLMHistory: (hours: number) => services.llmService?.getUsageHistory(hours) ?? [],
-      getLLMByTemplate: () => services.llmService?.getUsageByTemplate() ?? [],
-    });
-    this.unifiedServer.start();
-    services.unifiedServer = this.unifiedServer;
-    logger.info('Unified Mission Control dashboard on :7788');
 
     // 11c. Watchdog — monitoring only (detect peers via PID, run health checks)
     const watchdogConfig = createDefaultWatchdogConfig();
@@ -1189,6 +1058,10 @@ export class BrainCore {
         userModel: services.userModel?.getStatus() ?? null,
         userProfile: services.userModel?.getProfile() ?? null,
       }),
+      getEmotionalStatus: () => {
+        const mood = (services.emotionalModel as EmotionalModel)?.getMood?.();
+        return mood ?? { mood: 'reflective', score: 0.5, valence: 0, arousal: 0, dimensions: {} };
+      },
       getDebateStatus: () => this.debateEngine?.getStatus() ?? null,
       getDebateList: (limit = 10) => this.debateEngine?.listDebates(limit) ?? [],
       getChallengeHistory: (limit = 20) => this.debateEngine?.getChallengeHistory(limit) ?? [],
@@ -1206,12 +1079,16 @@ export class BrainCore {
       },
     });
     this.commandCenter.start();
+    services.commandCenter = this.commandCenter;
     logger.info('Command Center dashboard on :7790');
 
     // 12. IPC Server
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'brain', 'brain');
     this.ipcServer.start();
+
+    // Wire local handler so cross-brain self-queries resolve locally
+    this.crossBrain!.setLocalHandler((method, params) => router.handle(method, params));
 
     // Wire subscription manager into IPC router
     router.setSubscriptionManager(this.subscriptionManager, this.ipcServer);
@@ -1431,7 +1308,6 @@ export class BrainCore {
     this.subscriptionManager?.disconnectAll();
     this.attentionEngine?.stop();
     this.commandCenter?.stop();
-    this.unifiedServer?.stop();
     this.orchestrator?.stop();
     this.researchScheduler?.stop();
     this.researchEngine?.stop();
@@ -1450,7 +1326,6 @@ export class BrainCore {
     this.learningEngine = null;
     this.researchEngine = null;
     this.orchestrator = null;
-    this.unifiedServer = null;
     this.commandCenter = null;
     this.narrativeEngine = null;
     this.curiosityEngine = null;

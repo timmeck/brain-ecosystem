@@ -100,7 +100,7 @@ export interface Services {
   codegenServer?: import('@timmeck/brain-core').CodegenServer;
   attentionEngine?: import('@timmeck/brain-core').AttentionEngine;
   transferEngine?: import('@timmeck/brain-core').TransferEngine;
-  unifiedServer?: import('@timmeck/brain-core').UnifiedDashboardServer;
+  commandCenter?: import('@timmeck/brain-core').CommandCenterServer;
   narrativeEngine?: import('@timmeck/brain-core').NarrativeEngine;
   curiosityEngine?: import('@timmeck/brain-core').CuriosityEngine;
   emergenceEngine?: import('@timmeck/brain-core').EmergenceEngine;
@@ -145,6 +145,7 @@ export interface Services {
   activeLearner?: import('@timmeck/brain-core').ActiveLearner;
   repoAbsorber?: import('@timmeck/brain-core').RepoAbsorber;
   featureExtractor?: import('@timmeck/brain-core').FeatureExtractor;
+  featureRecommender?: import('@timmeck/brain-core').FeatureRecommender;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -665,8 +666,8 @@ export class IpcRouter {
       ['parameter.list',           (params) => { if (!s.parameterRegistry) throw new Error('ParameterRegistry not available'); return s.parameterRegistry.list(p(params)?.engine); }],
       ['parameter.history',        (params) => { if (!s.parameterRegistry) throw new Error('ParameterRegistry not available'); return s.parameterRegistry.getRecentChanges(p(params)?.limit ?? 20); }],
 
-      // ─── Unified Dashboard ─────────────────────────────────
-      ['unified.clients',         () => { return { clients: s.unifiedServer?.getClientCount() ?? 0, port: 7788 }; }],
+      // ─── Command Center Dashboard ─────────────────────────────────
+      ['unified.clients',         () => { return { clients: s.commandCenter?.getClientCount?.() ?? 0, port: 7790 }; }],
 
       // ─── Orchestrator ─────────────────────────────────────
       ['orchestrator.feedback',   () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); s.orchestrator.runFeedbackCycle(); return { triggered: true }; }],
@@ -1008,6 +1009,15 @@ export class IpcRouter {
       ['features.suggest',  async (params) => { if (!s.featureExtractor) throw new Error('FeatureExtractor not available'); return s.featureExtractor.suggest(p(params).context); }],
       ['features.stats',    () => { if (!s.featureExtractor) throw new Error('FeatureExtractor not available'); return s.featureExtractor.getStats(); }],
       ['features.semantic', async (params) => { if (!s.featureExtractor) throw new Error('FeatureExtractor not available'); const pp = p(params); return s.featureExtractor.semanticSearch(pp.query, pp.limit); }],
+
+      // ─── Feature Recommender ────────────────────────────────────
+      ['recommender.cycle',       async () => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); return s.featureRecommender.runCycle(); }],
+      ['recommender.wishlist',    (params) => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); return s.featureRecommender.getWishlist(p(params).status); }],
+      ['recommender.connections', (params) => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); return s.featureRecommender.getConnections(p(params).featureId); }],
+      ['recommender.related',    (params) => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); return s.featureRecommender.getRelatedSuggestions(p(params).featureName); }],
+      ['recommender.status',      () => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); return s.featureRecommender.getStatus(); }],
+      ['recommender.adopt',      (params) => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); s.featureRecommender.adoptFeature(p(params).wishId); return { adopted: true }; }],
+      ['recommender.dismiss',    (params) => { if (!s.featureRecommender) throw new Error('FeatureRecommender not available'); s.featureRecommender.dismissWish(p(params).wishId); return { dismissed: true }; }],
 
       // Status (cross-brain)
       ['status',                  () => ({

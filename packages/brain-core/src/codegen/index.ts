@@ -9,6 +9,8 @@ export { RepoAbsorber } from './repo-absorber.js';
 export type { AbsorbResult, RepoAbsorberStatus } from './repo-absorber.js';
 export { FeatureExtractor } from './feature-extractor.js';
 export type { ExtractedFeature, FeatureCategory, FeatureExtractionResult, FeatureSearchOptions, FeatureStats } from './feature-extractor.js';
+export { FeatureRecommender } from './feature-recommender.js';
+export type { FeatureWish, FeatureConnection, RecommendationResult, FeatureRecommenderStatus } from './feature-recommender.js';
 export type {
   CodeMinerConfig, RepoContent, CodeMinerSummary,
   ExtractedPattern, DependencyPattern, TechStack, ProjectStructure, ReadmePattern,

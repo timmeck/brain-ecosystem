@@ -357,6 +357,9 @@ export class MarketingCore {
     this.ipcServer = new IpcServer(router, config.ipc.pipeName);
     this.ipcServer.start();
 
+    // Wire local handler so cross-brain self-queries resolve locally
+    this.crossBrain!.setLocalHandler((method, params) => router.handle(method, params));
+
     // 11a. Start Borg Sync (after IPC ready)
     this.borgSync.start();
 

@@ -40,6 +40,7 @@ export interface CommandCenterOptions {
   getRepoAbsorberStatus?: () => unknown;
   getRepoAbsorberHistory?: (limit?: number) => unknown;
   getIntelligenceStats?: () => unknown;
+  getEmotionalStatus?: () => unknown;
   triggerAction?: (action: string, params?: unknown) => Promise<unknown>;
 }
 
@@ -54,6 +55,8 @@ export class CommandCenterServer {
   private logger = getLogger();
 
   constructor(private options: CommandCenterOptions) {}
+
+  getClientCount(): number { return this.clients.size; }
 
   start(): void {
     const { port } = this.options;
@@ -255,6 +258,13 @@ export class CommandCenterServer {
       } catch { /* ignore */ }
     }, 30_000));
 
+    // Emotional (5s — for entity animation)
+    this.timers.push(setInterval(() => {
+      if (this.clients.size === 0) return;
+      if (!this.options.getEmotionalStatus) return;
+      try { this.broadcast('emotional', this.options.getEmotionalStatus()); } catch { /* ignore */ }
+    }, 5_000));
+
     // Heartbeat (30s)
     this.timers.push(setInterval(() => {
       if (this.clients.size > 0) {
@@ -352,8 +362,9 @@ export class CommandCenterServer {
         status: this.options.getRepoAbsorberStatus(),
         history: this.options.getRepoAbsorberHistory?.(10) ?? [],
       } : null;
+      const emotional = this.options.getEmotionalStatus?.() ?? null;
 
-      this.json(res, { ecosystem, engines: engineResults, watchdog, plugins, borg, analytics, llm, thoughts, errors, selfmod, missions, knowledge, debates, intelligence, repoAbsorber });
+      this.json(res, { ecosystem, engines: engineResults, watchdog, plugins, borg, analytics, llm, thoughts, errors, selfmod, missions, knowledge, debates, intelligence, repoAbsorber, emotional });
     } catch (err) {
       this.json(res, { error: (err as Error).message }, 500);
     }

@@ -231,6 +231,7 @@ canvas{display:block;width:100%;height:100%}
     <div class="sidebar-brand">COMMAND CENTER<span>Brain Ecosystem</span></div>
     <div class="nav-section">Views</div>
     <div class="nav-item active" data-page="overview"><span class="nav-icon">&#x1F30D;</span><span class="nav-label">Ecosystem</span></div>
+    <div class="nav-item" data-page="entity"><span class="nav-icon">&#x1F47B;</span><span class="nav-label" data-t="Bewusstsein">Bewusstsein</span></div>
     <div class="nav-item" data-page="learning"><span class="nav-icon">&#x1F9E0;</span><span class="nav-label" data-t="Lern-Kreislauf">Lern-Kreislauf</span></div>
     <div class="nav-item" data-page="trading"><span class="nav-icon">&#x1F4C8;</span><span class="nav-label">Trading Flow</span></div>
     <div class="nav-item" data-page="marketing"><span class="nav-icon">&#x1F4E3;</span><span class="nav-label">Marketing Flow</span></div>
@@ -318,6 +319,18 @@ canvas{display:block;width:100%;height:100%}
           <div class="card canvas-wrap" style="height:180px">
             <canvas id="peerCanvas"></canvas>
           </div>
+        </div>
+      </div>
+
+      <!-- ════ Page: Entity — Consciousness ═════════════════ -->
+      <div class="page" id="page-entity">
+        <div style="position:relative;height:calc(100vh - 160px);min-height:400px">
+          <canvas id="entityCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas>
+          <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none">
+            <div id="entityMoodLabel" style="font-size:20px;font-weight:700;letter-spacing:2px;text-shadow:0 0 20px currentColor"></div>
+            <div id="entityScoreLabel" style="font-size:11px;color:var(--text-dim);margin-top:4px"></div>
+          </div>
+          <div id="entityDimChips" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;pointer-events:none"></div>
         </div>
       </div>
 
@@ -691,7 +704,8 @@ canvas{display:block;width:100%;height:100%}
 const state = {
   ecosystem:null, engines:[], watchdog:[], plugins:[], borg:null, analytics:null,
   llm:null, thoughts:[], connected:false, lastThoughtTime:0,
-  errors:null, selfmod:null, missions:null, knowledge:null, debates:null
+  errors:null, selfmod:null, missions:null, knowledge:null, debates:null,
+  emotional:null, attention:null
 };
 
 // ── i18n ──────────────────────────────────────────────────
@@ -784,7 +798,7 @@ const translations = { en: {
   'Gesamt-Neustarts':'Total Restarts','Längste Laufzeit':'Longest Uptime','Dienste':'Services',
   'Keine Plugins installiert':'No plugins installed','Geladen':'Loaded','Keine Engines':'No engines',
   'Strategien':'Strategies','BORG AKTIV':'BORG ACTIVE','gesendet':'sent','empfangen':'received',
-  'Der Lern-Kreislauf':'The Learning Cycle','Aktivität & Missionen':'Activity & Missions',
+  'Der Lern-Kreislauf':'The Learning Cycle','Aktivität & Missionen':'Activity & Missions','Bewusstsein':'Consciousness',
 }};
 let currentLang = localStorage.getItem('brain-lang') || 'en';
 function t(text) { if (currentLang === 'en' && translations.en[text]) return translations.en[text]; return text; }
@@ -810,13 +824,14 @@ function getLocale() { return currentLang === 'de' ? 'de-DE' : 'en-US'; }
 // ── Navigation ────────────────────────────────────────────
 function getTitle(page) {
   const titles = {
-    overview:'Ecosystem Overview', learning:t('Der Lern-Kreislauf'), trading:'Trading Flow',
+    overview:'Ecosystem Overview', entity:t('Bewusstsein'), learning:t('Der Lern-Kreislauf'), trading:'Trading Flow',
     marketing:'Marketing Flow', intelligence:t('Intelligenz'), crossbrain:'Cross-Brain & Borg', activity:t('Aktivität & Missionen'),
     debates:'Debates & Challenges', infra:t('Infrastruktur')
   }; return titles[page] || '';
 }
 const titles = {
   overview:'Ecosystem Overview',
+  entity:'Bewusstsein',
   learning:'Der Lern-Kreislauf',
   trading:'Trading Flow',
   marketing:'Marketing Flow',
@@ -854,6 +869,7 @@ function connectSSE() {
   es.addEventListener('intelligence', e => { state.intelligence = JSON.parse(e.data); renderIntelligence(); });
   es.addEventListener('knowledge', e => { state.knowledge = JSON.parse(e.data); renderKnowledge(); });
   es.addEventListener('debates', e => { state.debates = JSON.parse(e.data); renderDebates(); });
+  es.addEventListener('emotional', e => { state.emotional = JSON.parse(e.data); });
   es.onerror = () => { state.connected = false; updateConnection(); };
 }
 
@@ -873,6 +889,7 @@ async function loadInitial() {
     state.errors = data.errors; state.selfmod = data.selfmod;
     state.missions = data.missions; state.knowledge = data.knowledge; state.repoAbsorber = data.repoAbsorber; state.intelligence = data.intelligence;
     state.debates = data.debates;
+    state.emotional = data.emotional;
     if (data.thoughts) { state.thoughts = data.thoughts; renderThoughts(); }
     renderEcosystem(); renderEngines(); renderWatchdog(); renderPlugins();
     renderBorg(); renderAnalytics(); renderLLM(); renderErrors();
@@ -1621,10 +1638,135 @@ function fmtUp(s) { if(s<60) return Math.round(s)+'s'; if(s<3600) return Math.ro
 function formatK(n) { if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n); }
 function escHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
+// ═══ THE ENTITY — CONSCIOUSNESS VISUALIZATION ═══
+var MOOD_COLORS = {
+  flow:{r:0,g:229,b:255,name:'Flow'},excited:{r:255,g:215,b:0,name:'Excited'},
+  anxious:{r:255,g:61,b:61,name:'Anxious'},reflective:{r:179,g:136,b:255,name:'Reflective'},
+  bored:{r:110,g:122,b:138,name:'Bored'},determined:{r:224,g:230,b:240,name:'Determined'}
+};
+var entColor={r:179,g:136,b:255}, entTarget={r:179,g:136,b:255};
+var entParticles=[], entTentacles=[], entFloating=[];
+for(var ti=0;ti<10;ti++) entTentacles.push({angle:ti/10*Math.PI*2,phase:Math.random()*Math.PI*2,speed:0.3+Math.random()*0.4,lenMul:0.8+Math.random()*0.4,widMul:0.7+Math.random()*0.6});
+for(var pi=0;pi<80;pi++) entParticles.push({angle:Math.random()*Math.PI*2,dist:0.5+Math.random()*2.5,speed:0.1+Math.random()*0.3,size:0.5+Math.random()*1.5,phase:Math.random()*Math.PI*2,brightness:0.2+Math.random()*0.5});
+
+function entLerp(a,b,t){return{r:a.r+(b.r-a.r)*t,g:a.g+(b.g-a.g)*t,b:a.b+(b.b-a.b)*t}}
+function entRgba(c,a){return'rgba('+Math.round(c.r)+','+Math.round(c.g)+','+Math.round(c.b)+','+a+')'}
+
+function drawEntityCanvas(){
+  var canvas=document.getElementById('entityCanvas');
+  if(!canvas||canvas.offsetParent===null) return;
+  var wrap=canvas.parentElement,dpr=window.devicePixelRatio||1;
+  var ww=wrap.clientWidth,wh=wrap.clientHeight;
+  if(ww<20||wh<20) return;
+  if(Math.abs(canvas.width-ww*dpr)>2){canvas.width=ww*dpr;canvas.height=wh*dpr;canvas.style.width=ww+'px';canvas.style.height=wh+'px'}
+  var ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  var w=ww,h=wh,cx=w/2,cy=h/2,time=Date.now()/1000;
+  var em=state.emotional||{},dim=em.dimensions||{};
+  var mc=MOOD_COLORS[em.mood]||MOOD_COLORS.reflective;
+  entTarget={r:mc.r,g:mc.g,b:mc.b};entColor=entLerp(entColor,entTarget,0.03);
+  ctx.clearRect(0,0,w,h);
+  // Breathing
+  var breathSpeed=0.4+(dim.stress||0)*1.2,breathAmp=0.06+(dim.curiosity||0)*0.04;
+  var breath=1+Math.sin(time*breathSpeed)*breathAmp;
+  var minDim=Math.min(w,h),baseR=minDim*0.13;
+  var activity=Math.min(1,(state.thoughts.length||0)/80);
+  var entityR=baseR*breath*(0.85+activity*0.15);
+  // Nebula
+  var neb=ctx.createRadialGradient(cx,cy,entityR*0.5,cx,cy,minDim*0.45);
+  neb.addColorStop(0,entRgba(entColor,0.04));neb.addColorStop(0.4,entRgba(entColor,0.015));neb.addColorStop(1,'rgba(5,8,16,0)');
+  ctx.fillStyle=neb;ctx.fillRect(0,0,w,h);
+  // Tentacles
+  var curiosity=dim.curiosity||0.5,creativity=dim.creativity||0.5,stress=dim.stress||0;
+  var tentLen=entityR*(1.5+curiosity*2+creativity*0.8),tentAlpha=0.12+(1-stress)*0.15;
+  for(var t=0;t<entTentacles.length;t++){
+    var tn=entTentacles[t],ba=tn.angle+Math.sin(time*tn.speed+tn.phase)*0.3,len=tentLen*tn.lenMul,wid=(3+creativity*4)*tn.widMul;
+    var sx=cx+Math.cos(ba)*entityR*0.9,sy=cy+Math.sin(ba)*entityR*0.9;
+    var w1=Math.sin(time*0.7+tn.phase*2)*0.4,w2=Math.cos(time*0.5+tn.phase*3)*0.5;
+    var cp1x=cx+Math.cos(ba+w1)*(entityR+len*0.35),cp1y=cy+Math.sin(ba+w1)*(entityR+len*0.35);
+    var cp2x=cx+Math.cos(ba+w2)*(entityR+len*0.7),cp2y=cy+Math.sin(ba+w2)*(entityR+len*0.7);
+    var ex=cx+Math.cos(ba+w1*0.5+w2*0.3)*(entityR+len),ey=cy+Math.sin(ba+w1*0.5+w2*0.3)*(entityR+len);
+    ctx.beginPath();ctx.moveTo(sx,sy);ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,ex,ey);
+    var grad=ctx.createLinearGradient(sx,sy,ex,ey);grad.addColorStop(0,entRgba(entColor,tentAlpha));grad.addColorStop(0.6,entRgba(entColor,tentAlpha*0.4));grad.addColorStop(1,entRgba(entColor,0));
+    ctx.strokeStyle=grad;ctx.lineWidth=wid;ctx.lineCap='round';ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sx,sy);ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,ex,ey);
+    ctx.strokeStyle=entRgba({r:255,g:255,b:255},tentAlpha*0.3);ctx.lineWidth=1;ctx.stroke();
+  }
+  // Dimension Ring
+  var ringR=entityR*2.8;
+  var dNames=['frustration','curiosity','surprise','confidence','satisfaction','stress','momentum','creativity'];
+  var dCols=['#ff3d3d','#40c4ff','#ffab40','#00ff88','#69f0ae','#ff6e40','#b2ff59','#ea80fc'];
+  var arcL=(Math.PI*2)/dNames.length,gap=0.08;
+  for(var di=0;di<dNames.length;di++){
+    var dv=dim[dNames[di]]||0,startA=di*arcL-Math.PI/2+gap/2,endA=startA+arcL-gap;
+    ctx.beginPath();ctx.arc(cx,cy,ringR,startA,endA);
+    ctx.strokeStyle=dCols[di]+Math.round((0.08+dv*0.25)*255).toString(16).padStart(2,'0');
+    ctx.lineWidth=2+dv*4;ctx.lineCap='round';ctx.stroke();
+    if(dv>0.3){var la=(startA+endA)/2,lr=ringR+14;
+      ctx.fillStyle=dCols[di]+'80';ctx.font='8px Segoe UI,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(dNames[di].substring(0,4).toUpperCase(),cx+Math.cos(la)*lr,cy+Math.sin(la)*lr);
+    }
+  }
+  // Particles
+  var momentum=dim.momentum||0;
+  for(var p=0;p<entParticles.length;p++){
+    var pt=entParticles[p];pt.angle+=(pt.speed*(0.5+momentum))*0.016;
+    var pd=entityR*pt.dist+Math.sin(time*0.5+pt.phase)*entityR*0.2;
+    var px=cx+Math.cos(pt.angle)*pd,py=cy+Math.sin(pt.angle)*pd;
+    var pa=pt.brightness*(0.3+Math.sin(time*0.8+pt.phase)*0.2);
+    ctx.beginPath();ctx.arc(px,py,pt.size,0,Math.PI*2);ctx.fillStyle=entRgba(entColor,pa);ctx.fill();
+  }
+  // Outer Glow
+  var glowR=entityR*3.5,og=ctx.createRadialGradient(cx,cy,entityR*0.5,cx,cy,glowR);
+  og.addColorStop(0,entRgba(entColor,0.35));og.addColorStop(0.2,entRgba(entColor,0.15));og.addColorStop(0.5,entRgba(entColor,0.05));og.addColorStop(1,entRgba(entColor,0));
+  ctx.beginPath();ctx.arc(cx,cy,glowR,0,Math.PI*2);ctx.fillStyle=og;ctx.fill();
+  // Main Orb
+  var orbG=ctx.createRadialGradient(cx-entityR*0.25,cy-entityR*0.25,entityR*0.05,cx,cy,entityR);
+  orbG.addColorStop(0,'rgba(255,255,255,0.95)');
+  orbG.addColorStop(0.1,entRgba({r:Math.min(255,entColor.r+100),g:Math.min(255,entColor.g+100),b:Math.min(255,entColor.b+100)},0.9));
+  orbG.addColorStop(0.4,entRgba(entColor,0.85));orbG.addColorStop(0.7,entRgba(entColor,0.6));orbG.addColorStop(1,entRgba(entColor,0.2));
+  ctx.beginPath();ctx.arc(cx,cy,entityR,0,Math.PI*2);ctx.fillStyle=orbG;ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,entityR,0,Math.PI*2);ctx.strokeStyle=entRgba(entColor,0.3);ctx.lineWidth=1;ctx.stroke();
+  // Inner Eye
+  var eyeR=entityR*0.2;
+  var eyeG=ctx.createRadialGradient(cx,cy,0,cx,cy,eyeR);
+  eyeG.addColorStop(0,'rgba(255,255,255,0.95)');eyeG.addColorStop(0.4,'rgba(255,255,255,0.5)');eyeG.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath();ctx.arc(cx,cy,eyeR,0,Math.PI*2);ctx.fillStyle=eyeG;ctx.fill();
+  // Floating thoughts
+  var now=Date.now();
+  for(var fi=entFloating.length-1;fi>=0;fi--){
+    var ft=entFloating[fi],age=now-ft.born;
+    if(age>ft.life){entFloating.splice(fi,1);continue}
+    ft.dist+=ft.speed*0.016;var prog=age/ft.life;
+    ft.alpha=prog<0.15?prog/0.15:prog>0.7?(1-prog)/0.3:1;ft.alpha*=0.7;
+    var ftx=cx+Math.cos(ft.angle)*entityR*(1.5+ft.dist*2),fty=cy+Math.sin(ft.angle)*entityR*(1.5+ft.dist*2);
+    ctx.fillStyle='rgba(200,200,255,'+ft.alpha*0.7+')';ctx.font='9px Segoe UI,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(ft.text,ftx,fty);
+  }
+  // Labels
+  var moodInfo=MOOD_COLORS[em.mood]||MOOD_COLORS.reflective;
+  var moodEl=document.getElementById('entityMoodLabel'),scoreEl=document.getElementById('entityScoreLabel');
+  if(moodEl){moodEl.textContent=moodInfo.name;moodEl.style.color=entRgba(entColor,1)}
+  if(scoreEl) scoreEl.textContent='Score: '+Math.round((em.score||0.5)*100)+'%  |  Valence: '+(em.valence||0).toFixed(2)+'  |  Arousal: '+(em.arousal||0).toFixed(2);
+  // Dimension chips
+  var chipEl=document.getElementById('entityDimChips');
+  if(chipEl&&chipEl.childElementCount===0){
+    var ch='';for(var ci=0;ci<dNames.length;ci++){
+      ch+='<div style="background:rgba(10,14,26,0.7);border:1px solid '+dCols[ci]+'30;border-radius:6px;padding:4px 10px;font-size:9px;display:flex;gap:6px;align-items:center">'+
+        '<span style="color:'+dCols[ci]+';text-transform:uppercase;letter-spacing:1px">'+dNames[ci].substring(0,5)+'</span>'+
+        '<span id="entdim-'+dNames[ci]+'" style="color:var(--text-dim)">0%</span></div>';
+    }chipEl.innerHTML=ch;
+  }
+  for(var ui=0;ui<dNames.length;ui++){var dvel=document.getElementById('entdim-'+dNames[ui]);if(dvel)dvel.textContent=Math.round((dim[dNames[ui]]||0)*100)+'%'}
+}
+function entityLoop(){drawEntityCanvas();requestAnimationFrame(entityLoop)}
+// Spawn floating thought on notable thoughts
+var origAddThought=addThought;
+addThought=function(t){origAddThought(t);if(t.significance==='notable'||t.significance==='breakthrough'){if(entFloating.length>=12)entFloating.shift();entFloating.push({text:(t.content||'').substring(0,40),angle:Math.random()*Math.PI*2,dist:0.2,speed:0.15+Math.random()*0.1,alpha:1,born:Date.now(),life:6000+Math.random()*4000})}};
+
 // ── Init ──────────────────────────────────────────────────
 document.getElementById('langToggle').textContent = currentLang.toUpperCase();
 updateStaticTexts();
-connectSSE(); loadInitial(); initCrossBrainCanvas();
+connectSSE(); loadInitial(); initCrossBrainCanvas(); entityLoop();
 window.addEventListener('resize', () => { if(state.ecosystem?.brains) drawPeerGraph(state.ecosystem.brains); });
 </script>
 </body>

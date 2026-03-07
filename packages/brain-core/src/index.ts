@@ -225,6 +225,8 @@ export { RepoAbsorber } from './codegen/index.js';
 export type { AbsorbResult, RepoAbsorberStatus } from './codegen/index.js';
 export { FeatureExtractor } from './codegen/index.js';
 export type { ExtractedFeature, FeatureCategory, FeatureExtractionResult, FeatureSearchOptions, FeatureStats } from './codegen/index.js';
+export { FeatureRecommender } from './codegen/index.js';
+export type { FeatureWish, FeatureConnection, RecommendationResult, FeatureRecommenderStatus } from './codegen/index.js';
 
 // ── Attention Engine ──────────────────────────────────
 export { AttentionEngine } from './attention/index.js';
