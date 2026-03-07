@@ -844,9 +844,19 @@ export class BrainCore {
     activeLearner.setThoughtStream(thoughtStream);
     services.activeLearner = activeLearner;
 
-    logger.info('Intelligence upgrade active (RAG, KG, Compression, Feedback, Tool-Learning, Proactive, UserModel, CodeHealth, Teaching, Consensus, ActiveLearning)');
+    // ── Wire intelligence engines into autonomous ResearchOrchestrator ──
+    this.orchestrator.setFactExtractor(factExtractor);
+    this.orchestrator.setKnowledgeGraph(knowledgeGraph);
+    this.orchestrator.setSemanticCompressor(semanticCompressor);
+    this.orchestrator.setProactiveEngine(proactiveEngine);
+    this.orchestrator.setActiveLearner(activeLearner);
+    this.orchestrator.setRAGIndexer(ragIndexer);
+    this.orchestrator.setTeachingProtocol(teachingProtocol);
+    this.orchestrator.setCodeHealthMonitor(codeHealthMonitor);
 
-    logger.info('Research orchestrator started (40+ engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active)');
+    logger.info('Intelligence upgrade active (RAG, KG, Compression, Feedback, Tool-Learning, Proactive, UserModel, CodeHealth, Teaching, Consensus, ActiveLearning — all wired into orchestrator)');
+
+    logger.info('Research orchestrator started (48+ steps, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active)');
 
     // 11k. Signal Scanner — GitHub/HN/Crypto signal tracking
     if (config.scanner.enabled) {

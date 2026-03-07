@@ -193,22 +193,37 @@ export class IpcRouter {
       throw new Error(`Unknown method: ${method}`);
     }
 
+    const start = Date.now();
     try {
       logger.debug(`IPC: ${method}`, { params });
       const result = handler(params);
       // Wrap async results to catch rejections
       if (result instanceof Promise) {
-        return result.catch((err: Error) => {
-          logger.error(`IPC handler error (async) in ${method}: ${err.message}`);
-          throw err;
-        });
+        return result.then(
+          (res) => { this.trackToolCall(method, Date.now() - start, true); return res; },
+          (err: Error) => {
+            logger.error(`IPC handler error (async) in ${method}: ${err.message}`);
+            this.trackToolCall(method, Date.now() - start, false);
+            throw err;
+          },
+        );
       }
       logger.debug(`IPC: ${method} → done`);
+      this.trackToolCall(method, Date.now() - start, true);
       return result;
     } catch (err) {
       logger.error(`IPC handler error in ${method}: ${(err as Error).message}`);
+      this.trackToolCall(method, Date.now() - start, false);
       throw err;
     }
+  }
+
+  /** Fire-and-forget: record tool usage in ToolTracker + UserModel. */
+  private trackToolCall(method: string, durationMs: number, success: boolean): void {
+    try {
+      this.services.toolTracker?.recordUsage(method, null, durationMs, success ? 'success' : 'failure');
+      this.services.userModel?.updateFromInteraction(method, null, success ? 'success' : 'failure');
+    } catch { /* best effort — never disrupt IPC flow */ }
   }
 
   /** Register a dynamic route (e.g. from plugins). */

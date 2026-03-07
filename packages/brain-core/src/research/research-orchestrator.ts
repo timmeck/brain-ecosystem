@@ -46,6 +46,14 @@ import type { BootstrapService } from './bootstrap-service.js';
 import type { ConceptAbstraction } from '../concept-abstraction/concept-abstraction.js';
 import type { LLMService } from '../llm/llm-service.js';
 import type { ResearchMissionEngine } from '../missions/mission-engine.js';
+import type { FactExtractor } from '../knowledge-graph/fact-extractor.js';
+import type { SemanticCompressor } from './semantic-compressor.js';
+import type { ProactiveEngine, ProactiveDataSources } from '../proactive/proactive-engine.js';
+import type { ActiveLearner } from '../active-learning/active-learner.js';
+import type { RAGIndexer } from '../rag/rag-indexer.js';
+import type { TeachingProtocol } from '../teaching/teaching-protocol.js';
+import type { CodeHealthMonitor } from '../code-health/health-monitor.js';
+import type { KnowledgeGraphEngine } from '../knowledge-graph/graph-engine.js';
 import { AutoResponder } from './auto-responder.js';
 
 // ── Types ───────────────────────────────────────────────
@@ -109,6 +117,14 @@ export class ResearchOrchestrator {
   private conceptAbstraction: ConceptAbstraction | null = null;
   private llmService: LLMService | null = null;
   private missionEngine: ResearchMissionEngine | null = null;
+  private factExtractor: FactExtractor | null = null;
+  private semanticCompressor: SemanticCompressor | null = null;
+  private proactiveEngine: ProactiveEngine | null = null;
+  private activeLearner: ActiveLearner | null = null;
+  private ragIndexer: RAGIndexer | null = null;
+  private teachingProtocol: TeachingProtocol | null = null;
+  private codeHealthMonitor: CodeHealthMonitor | null = null;
+  private knowledgeGraph: KnowledgeGraphEngine | null = null;
   private lastAutoMissionTime = 0;
   private onSuggestionCallback: ((suggestions: string[]) => void) | null = null;
 
@@ -292,6 +308,32 @@ export class ResearchOrchestrator {
 
   /** Set the ConceptAbstraction — clusters knowledge into abstract concepts. */
   setConceptAbstraction(engine: ConceptAbstraction): void { this.conceptAbstraction = engine; }
+
+  // ── Intelligence Upgrade Setters (Sessions 55-65) ──────────
+
+  /** Set the FactExtractor — extracts typed facts for the Knowledge Graph. */
+  setFactExtractor(extractor: FactExtractor): void { this.factExtractor = extractor; }
+
+  /** Set the SemanticCompressor — deduplicates similar insights. */
+  setSemanticCompressor(compressor: SemanticCompressor): void { this.semanticCompressor = compressor; }
+
+  /** Set the ProactiveEngine — trigger-based improvement suggestions. */
+  setProactiveEngine(engine: ProactiveEngine): void { this.proactiveEngine = engine; }
+
+  /** Set the ActiveLearner — identifies and closes knowledge gaps. */
+  setActiveLearner(learner: ActiveLearner): void { this.activeLearner = learner; }
+
+  /** Set the RAGIndexer — incremental vector indexing of all knowledge. */
+  setRAGIndexer(indexer: RAGIndexer): void { this.ragIndexer = indexer; }
+
+  /** Set the TeachingProtocol — inter-brain knowledge transfer. */
+  setTeachingProtocol(protocol: TeachingProtocol): void { this.teachingProtocol = protocol; }
+
+  /** Set the CodeHealthMonitor — periodic codebase quality scanning. */
+  setCodeHealthMonitor(monitor: CodeHealthMonitor): void { this.codeHealthMonitor = monitor; }
+
+  /** Set the KnowledgeGraphEngine — typed fact storage and inference. */
+  setKnowledgeGraph(graph: KnowledgeGraphEngine): void { this.knowledgeGraph = graph; }
 
   /** Set the LLMService — propagates to all engines that can use LLM. */
   setLLMService(llm: LLMService): void {
@@ -1832,6 +1874,158 @@ export class ResearchOrchestrator {
 
         if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('concept_abstraction', this.cycleCount, { insights: result.newConcepts });
       } catch (err) { this.log.warn(`[orchestrator] Step 41 error: ${(err as Error).message}`); }
+    }
+
+    // ── Intelligence Upgrade Steps (Sessions 55-65) ─────────
+
+    // Step 42: FactExtractor — extract typed facts from recent insights (every 5 cycles)
+    if (this.factExtractor && this.knowledgeGraph && this.cycleCount % this.distillEvery === 0) {
+      try {
+        ts?.emit('fact_extractor', 'analyzing', 'Step 42: Extracting facts from insights...', 'routine');
+        let factsAdded = 0;
+        // Extract from recent insights
+        try {
+          const recentInsights = this.db.prepare(
+            `SELECT id, content FROM research_insights WHERE created_at > datetime('now', '-1 day') ORDER BY id DESC LIMIT 20`
+          ).all() as Array<{ id: number; content: string }>;
+          for (const ins of recentInsights) {
+            const facts = this.factExtractor.extractFromInsight(ins.content, `insight:${ins.id}`);
+            for (const f of facts) {
+              this.knowledgeGraph.addFact(f.subject, f.predicate, f.object, f.context, f.confidence);
+              factsAdded++;
+            }
+          }
+        } catch { /* table may not exist */ }
+        // Extract from rules
+        try {
+          const recentRules = this.db.prepare(
+            `SELECT id, condition_pattern, action FROM rules WHERE created_at > datetime('now', '-1 day') ORDER BY id DESC LIMIT 10`
+          ).all() as Array<{ id: number; condition_pattern: string; action: string }>;
+          for (const rule of recentRules) {
+            const facts = this.factExtractor.extractFromRule(rule.condition_pattern, rule.action, `rule:${rule.id}`);
+            for (const f of facts) {
+              this.knowledgeGraph.addFact(f.subject, f.predicate, f.object, f.context, f.confidence);
+              factsAdded++;
+            }
+          }
+        } catch { /* table may not exist */ }
+        if (factsAdded > 0) {
+          this.journal.write({
+            title: `Knowledge Graph: ${factsAdded} new facts extracted`,
+            type: 'discovery', content: `Extracted ${factsAdded} facts from recent insights and rules`,
+            tags: [this.brainName, 'knowledge-graph', 'fact-extraction'],
+            references: [], significance: 'routine', data: { factsAdded },
+          });
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('fact_extractor', this.cycleCount, { insights: factsAdded });
+      } catch (err) { this.log.warn(`[orchestrator] Step 42 error: ${(err as Error).message}`); }
+    }
+
+    // Step 43: SemanticCompressor — compress similar insights (every 20 cycles)
+    if (this.semanticCompressor && this.cycleCount % 20 === 0) {
+      try {
+        ts?.emit('semantic_compressor', 'analyzing', 'Step 43: Compressing similar insights...', 'routine');
+        const result = await this.semanticCompressor.compress('insights');
+        if (result.clustersFound > 0) {
+          this.journal.write({
+            title: `Semantic Compression: ${result.clustersFound} clusters, ${result.itemsCompressed} merged`,
+            type: 'discovery', content: `Compressed ${result.itemsCompressed} similar insights into ${result.metaInsightsCreated} meta-insights`,
+            tags: [this.brainName, 'compression', 'knowledge-management'],
+            references: [], significance: result.itemsCompressed > 0 ? 'notable' : 'routine', data: { ...result } as Record<string, unknown>,
+          });
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('semantic_compressor', this.cycleCount, { insights: result.itemsCompressed });
+      } catch (err) { this.log.warn(`[orchestrator] Step 43 error: ${(err as Error).message}`); }
+    }
+
+    // Step 44: ProactiveEngine — analyze for improvement suggestions (every 3 cycles)
+    if (this.proactiveEngine && this.cycleCount % this.agendaEvery === 0) {
+      try {
+        ts?.emit('proactive', 'analyzing', 'Step 44: Checking for proactive suggestions...', 'routine');
+        const count = this.proactiveEngine.analyze({ db: this.db });
+        if (count > 0) {
+          ts?.emit('proactive', 'discovering', `${count} new proactive suggestion(s)`, 'notable');
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('proactive', this.cycleCount, { insights: count });
+      } catch (err) { this.log.warn(`[orchestrator] Step 44 error: ${(err as Error).message}`); }
+    }
+
+    // Step 45: ActiveLearner — identify knowledge gaps (every 10 cycles)
+    if (this.activeLearner && this.cycleCount % this.reflectEvery === 0) {
+      try {
+        ts?.emit('active_learner', 'analyzing', 'Step 45: Identifying knowledge gaps...', 'routine');
+        const gaps = this.activeLearner.identifyGaps();
+        if (gaps.length > 0) {
+          this.journal.write({
+            title: `Active Learning: ${gaps.length} knowledge gap(s) identified`,
+            type: 'insight', content: gaps.slice(0, 3).map(g => g.topic).join(', '),
+            tags: [this.brainName, 'active-learning', 'knowledge-gaps'],
+            references: [], significance: 'routine', data: { gapCount: gaps.length },
+          });
+          // Plan learning for the highest-priority gap
+          const topGap = gaps[0];
+          if (topGap?.id) {
+            try { this.activeLearner.planLearning(topGap.id); } catch { /* not critical */ }
+          }
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('active_learner', this.cycleCount, { insights: gaps.length });
+      } catch (err) { this.log.warn(`[orchestrator] Step 45 error: ${(err as Error).message}`); }
+    }
+
+    // Step 46: RAG Indexer — incremental re-index (every 10 cycles)
+    if (this.ragIndexer && this.cycleCount % this.reflectEvery === 0) {
+      try {
+        ts?.emit('rag_indexer', 'analyzing', 'Step 46: Incremental RAG indexing...', 'routine');
+        const count = await this.ragIndexer.indexAll();
+        if (count > 0) {
+          ts?.emit('rag_indexer', 'perceiving', `Indexed ${count} new vectors`, 'routine');
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('rag_indexer', this.cycleCount, { insights: count });
+      } catch (err) { this.log.warn(`[orchestrator] Step 46 error: ${(err as Error).message}`); }
+    }
+
+    // Step 47: TeachingProtocol — broadcast strongest principles to peer brains (every 20 cycles)
+    if (this.teachingProtocol && this.cycleCount % 20 === 0) {
+      try {
+        ts?.emit('teaching', 'reflecting', 'Step 47: Sharing knowledge with peer brains...', 'routine');
+        // Gather top principles and broadcast as lessons
+        const principles = this.knowledgeDistiller.getPrinciples(undefined, 5);
+        let taught = 0;
+        for (const p of principles) {
+          if ((p.confidence ?? 0) >= 0.7) {
+            try {
+              this.teachingProtocol.teach(this.brainName === 'brain' ? 'trading-brain' : 'brain', {
+                domain: p.domain, principle: p.statement, evidence: `confidence: ${p.confidence}, samples: ${p.sample_size}`,
+                applicability: 0.5,
+              });
+              taught++;
+            } catch { /* peer may not be available */ }
+          }
+        }
+        if (taught > 0) {
+          ts?.emit('teaching', 'discovering', `Taught ${taught} principle(s) to peer brain(s)`, 'routine');
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('teaching', this.cycleCount, { insights: taught });
+      } catch (err) { this.log.warn(`[orchestrator] Step 47 error: ${(err as Error).message}`); }
+    }
+
+    // Step 48: CodeHealthMonitor — scan project health (every 20 cycles)
+    if (this.codeHealthMonitor && this.cycleCount % 20 === 0) {
+      try {
+        ts?.emit('code_health', 'analyzing', 'Step 48: Scanning codebase health...', 'routine');
+        // Scan the brain-ecosystem project root if available
+        const projectRoot = process.env.BRAIN_PROJECT_ROOT || process.cwd();
+        const result = this.codeHealthMonitor.scan(projectRoot);
+        if (result.techDebtScore > 0) {
+          this.journal.write({
+            title: `Code Health: Tech Debt Score ${result.techDebtScore}/100`,
+            type: 'insight', content: `Files: ${result.fileCount}, Complexity: ${result.complexityScore}, Duplication: ${result.duplicationScore}`,
+            tags: [this.brainName, 'code-health', 'tech-debt'],
+            references: [], significance: result.techDebtScore > 60 ? 'notable' : 'routine', data: { ...result } as Record<string, unknown>,
+          });
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('code_health', this.cycleCount, { insights: result.techDebtScore > 0 ? 1 : 0 });
+      } catch (err) { this.log.warn(`[orchestrator] Step 48 error: ${(err as Error).message}`); }
     }
 
     const duration = Date.now() - start;
