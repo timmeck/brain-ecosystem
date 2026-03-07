@@ -155,18 +155,18 @@ describe('CodeSandbox', () => {
   // ── Docker Detection ───────────────────────────────────
 
   describe('isDockerAvailable', () => {
-    it('should return boolean', async () => {
+    it('should return boolean', { timeout: 15000 }, async () => {
       const result = await sandbox.isDockerAvailable();
       expect(typeof result).toBe('boolean');
     });
 
-    it('should cache result', async () => {
+    it('should cache result', { timeout: 15000 }, async () => {
       const first = await sandbox.isDockerAvailable();
       const second = await sandbox.isDockerAvailable();
       expect(first).toBe(second);
     });
 
-    it('should reset cache', async () => {
+    it('should reset cache', { timeout: 15000 }, async () => {
       await sandbox.isDockerAvailable();
       sandbox.resetDockerCache();
       // After reset, next call re-checks
