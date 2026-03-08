@@ -77,7 +77,7 @@ export class DocService {
               devDependencies: Object.keys(pkg.devDependencies ?? {}),
               scripts: Object.keys(pkg.scripts ?? {}),
             });
-          } catch { /* ignore parse errors */ }
+          } catch (err) { this.logger.debug(`Failed to parse package.json for ${filePath}: ${(err as Error).message}`); }
         } else if (docType === 'tsconfig') {
           try {
             const tsconfig = JSON.parse(content);
@@ -87,7 +87,7 @@ export class DocService {
               strict: tsconfig.compilerOptions?.strict,
               outDir: tsconfig.compilerOptions?.outDir,
             });
-          } catch { /* ignore parse errors */ }
+          } catch (err) { this.logger.debug(`Failed to parse tsconfig.json for ${filePath}: ${(err as Error).message}`); }
         }
 
         this.docRepo.upsert({
@@ -119,8 +119,8 @@ export class DocService {
     if (input.query) {
       try {
         return this.docRepo.search(input.query, input.projectId, input.limit ?? 20);
-      } catch {
-        // FTS syntax error
+      } catch (err) {
+        this.logger.debug(`[doc] FTS query error: ${(err as Error).message}`);
       }
     }
 

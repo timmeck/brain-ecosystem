@@ -209,7 +209,7 @@ export class SocialService {
         let available = false;
         try {
           available = await p.isAvailable();
-        } catch { /* not available */ }
+        } catch (err) { this.log.debug(`[Social] ${p.name} availability check failed: ${(err as Error).message}`); }
         return {
           name: p.name,
           available,
@@ -223,7 +223,7 @@ export class SocialService {
   async shutdown(): Promise<void> {
     for (const provider of this.providers) {
       if (provider.shutdown) {
-        try { await provider.shutdown(); } catch { /* best effort */ }
+        try { await provider.shutdown(); } catch (err) { this.log.debug(`[Social] ${provider.name} shutdown error: ${(err as Error).message}`); }
       }
     }
   }

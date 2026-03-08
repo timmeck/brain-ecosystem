@@ -116,4 +116,46 @@ describe('PriceFetcher', () => {
       expect(symbols).toContain('AAPL');
     });
   });
+
+  describe('Stale detection', () => {
+    it('should initially have no stale symbols', () => {
+      const repo = createMockRepo();
+      const fetcher = new PriceFetcher(mockConfig, repo as any);
+      expect(fetcher.isStale('AAPL')).toBe(false);
+      expect(fetcher.getStaleSymbols()).toHaveLength(0);
+    });
+
+    it('should track stale symbols', () => {
+      const repo = createMockRepo();
+      const fetcher = new PriceFetcher(mockConfig, repo as any);
+      (fetcher as any).staleSymbols.add('AAPL');
+      expect(fetcher.isStale('AAPL')).toBe(true);
+      expect(fetcher.getStaleSymbols()).toContain('AAPL');
+    });
+  });
+
+  describe('pruneOldPrices', () => {
+    it('should call repo.pruneOldPrices with correct cutoff', () => {
+      const repo = createMockRepo();
+      const fetcher = new PriceFetcher(mockConfig, repo as any);
+
+      fetcher.pruneOldPrices(30);
+
+      expect(repo.pruneOldPrices).toHaveBeenCalled();
+      const cutoffArg = repo.pruneOldPrices.mock.calls[0][0] as number;
+      // Should be approximately 30 days ago
+      const expectedCutoff = Date.now() - 30 * 86_400_000;
+      expect(Math.abs(cutoffArg - expectedCutoff)).toBeLessThan(1000);
+    });
+
+    it('should handle repo errors gracefully', () => {
+      const repo = createMockRepo();
+      repo.pruneOldPrices.mockImplementation(() => { throw new Error('DB locked'); });
+      const fetcher = new PriceFetcher(mockConfig, repo as any);
+
+      // Should not throw
+      const result = fetcher.pruneOldPrices(30);
+      expect(result).toBe(0);
+    });
+  });
 });

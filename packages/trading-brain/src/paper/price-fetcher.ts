@@ -23,12 +23,43 @@ interface YahooChartResult {
   };
 }
 
+/** Max age in ms before a price is considered stale (15 minutes) */
+const STALE_THRESHOLD_MS = 15 * 60 * 1000;
+
 export class PriceFetcher {
   private priceCache = new Map<string, number>();
   private candleCache = new Map<string, OHLCVCandle[]>();
   private lastOHLCVFetch = 0;
   private readonly OHLCV_INTERVAL = 900_000; // 15 minutes
   private logger = getLogger();
+  /** Track which symbols have stale prices */
+  private staleSymbols = new Set<string>();
+
+  /** Check if a symbol's price is stale */
+  isStale(symbol: string): boolean {
+    return this.staleSymbols.has(symbol);
+  }
+
+  /** Get all symbols with stale prices */
+  getStaleSymbols(): string[] {
+    return [...this.staleSymbols];
+  }
+
+  /**
+   * Prune old prices from DB. Default: 30 days retention.
+   * Called at startup and periodically by trading-core retention cleanup.
+   */
+  pruneOldPrices(retentionDays = 30): number {
+    const cutoff = Date.now() - retentionDays * 86_400_000;
+    try {
+      this.repo.pruneOldPrices(cutoff);
+      this.logger.debug(`[price-fetcher] Pruned prices older than ${retentionDays} days`);
+      return retentionDays;
+    } catch (err) {
+      this.logger.debug(`[price-fetcher] Prune failed: ${(err as Error).message}`);
+      return 0;
+    }
+  }
 
   // Per-provider rate limiting
   private providerErrors = new Map<string, number>();
@@ -135,12 +166,24 @@ export class PriceFetcher {
         const result = data?.chart?.result?.[0];
         const quotes = result?.indicators?.quote?.[0];
         const closes = quotes?.close;
+        const timestamps = result?.timestamp;
 
         if (closes && closes.length > 0) {
           // Get last valid close
           for (let i = closes.length - 1; i >= 0; i--) {
             if (closes[i] != null) {
               this.priceCache.set(symbol, closes[i]!);
+
+              // Stale detection
+              if (timestamps && timestamps[i] != null) {
+                const priceAgeMs = Date.now() - timestamps[i]! * 1000;
+                if (priceAgeMs > STALE_THRESHOLD_MS) {
+                  this.staleSymbols.add(symbol);
+                  this.logger.warn(`[price-fetcher] ${symbol} price is stale (${Math.round(priceAgeMs / 60_000)}min old)`);
+                } else {
+                  this.staleSymbols.delete(symbol);
+                }
+              }
               break;
             }
           }

@@ -28,6 +28,10 @@ export function logCrash(config: BrainConfig | null, type: string, err: Error): 
   } catch { /* best effort */ }
 }
 
+/** Track last VACUUM time to avoid running too often */
+let lastVacuumTime = 0;
+const VACUUM_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
+
 export function runRetentionCleanup(db: Database.Database, config: BrainConfig): void {
   const logger = getLogger();
   try {
@@ -46,6 +50,15 @@ export function runRetentionCleanup(db: Database.Database, config: BrainConfig):
 
     // Optimize DB
     db.pragma('optimize');
+
+    // VACUUM weekly to reclaim disk space
+    if (now - lastVacuumTime > VACUUM_INTERVAL_MS) {
+      db.pragma('wal_checkpoint(TRUNCATE)');
+      db.exec('VACUUM');
+      lastVacuumTime = now;
+      logger.info('[retention] DB vacuumed');
+    }
+
     logger.debug('[retention] DB optimized');
   } catch (err) {
     logger.warn(`[retention] Cleanup failed (non-critical): ${(err as Error).message}`);

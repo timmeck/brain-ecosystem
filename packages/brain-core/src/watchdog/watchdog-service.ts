@@ -145,8 +145,8 @@ export class WatchdogService {
         try {
           process.kill(state.pid, 'SIGTERM');
           this.logger.info(`Sent SIGTERM to ${name} (PID: ${state.pid})`);
-        } catch {
-          // Already dead
+        } catch (err) {
+          this.logger.debug(`${name} already dead (PID: ${state.pid}): ${(err as Error).message}`);
         }
       }
       state.running = false;
@@ -194,7 +194,7 @@ export class WatchdogService {
     if (!state) return false;
 
     if (state.pid) {
-      try { process.kill(state.pid, 'SIGTERM'); } catch { /* already dead */ }
+      try { process.kill(state.pid, 'SIGTERM'); } catch (err) { this.logger.debug(`${name} already dead: ${(err as Error).message}`); }
     }
     state.running = false;
     state.process = null;
@@ -220,7 +220,7 @@ export class WatchdogService {
     }
 
     // Clean stale PID
-    try { fs.unlinkSync(config.pidPath); } catch { /* ignore */ }
+    try { fs.unlinkSync(config.pidPath); } catch (err) { this.logger.debug(`PID file cleanup (${name}): ${(err as Error).message}`); }
 
     // Spawn
     const isTsSource = !fs.existsSync(config.entryPoint);
@@ -269,7 +269,7 @@ export class WatchdogService {
 
       if (recent.length > this.maxRestarts) {
         this.logger.error(`${name} crashed ${this.maxRestarts} times in ${this.restartWindowMs / 1000}s — giving up`);
-        try { fs.unlinkSync(config.pidPath); } catch { /* ignore */ }
+        try { fs.unlinkSync(config.pidPath); } catch (err) { this.logger.debug(`PID file cleanup (${name}): ${(err as Error).message}`); }
         return;
       }
 

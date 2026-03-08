@@ -695,12 +695,12 @@ export class TradingCore {
           for (const r of services.ruleRepo.getAll().slice(0, 100)) {
             items.push({ type: 'rule', id: `rule-${r.id}`, title: r.pattern, content: `Trading rule: ${r.pattern} (win_rate: ${r.win_rate}, avg_profit: ${r.avg_profit})`, confidence: r.confidence, source: 'trading-brain', createdAt: r.created_at });
           }
-        } catch { /* no rules */ }
+        } catch (err) { logger.debug(`[borg] Failed to load rules: ${(err as Error).message}`); }
         try {
           for (const i of services.insight.getAll().slice(0, 50)) {
             items.push({ type: 'insight', id: `insight-${i.id}`, title: i.title, content: i.description, confidence: 0.7, source: 'trading-brain', createdAt: i.created_at });
           }
-        } catch { /* no insights */ }
+        } catch (err) { logger.debug(`[borg] Failed to load insights: ${(err as Error).message}`); }
         return items;
       },
       importItems: (incoming: SyncItem[], source: string): number => {
@@ -710,7 +710,7 @@ export class TradingCore {
           try {
             services.memory.remember({ key: `borg:${source}:${item.id}`, content: `[${item.type}] ${item.title}: ${item.content}`, category: 'fact', source: 'inferred', tags: ['borg', source] });
             accepted++;
-          } catch { /* duplicate or DB error */ }
+          } catch (err) { logger.debug(`[borg] Import item failed: ${(err as Error).message}`); }
         }
         return accepted;
       },
@@ -743,7 +743,7 @@ export class TradingCore {
           const h = this.orchestrator?.hypothesisEngine?.list(undefined, 1000) ?? [];
           const e = this.orchestrator?.experimentEngine?.list(undefined, 1000) ?? [];
           return { principles: p.length, hypotheses: h.length, experiments: e.length };
-        } catch { return { principles: 0, hypotheses: 0, experiments: 0 }; }
+        } catch (err) { logger.debug(`[peer-network] Knowledge summary failed: ${(err as Error).message}`); return { principles: 0, hypotheses: 0, experiments: 0 }; }
       },
     });
     this.peerNetwork.onPeerDiscovered((peer) => {
@@ -804,16 +804,16 @@ export class TradingCore {
     process.on('uncaughtException', (err) => {
       // EPIPE = writing to closed stdout/stderr (daemon mode) — ignore silently
       if ((err as NodeJS.ErrnoException).code === 'EPIPE') return;
-      try { logger.error('Uncaught exception', { error: err.message, stack: err.stack }); } catch { /* logger may be broken */ }
+      try { logger.error('Uncaught exception', { error: err.message, stack: err.stack }); } catch { /* logger may be broken — cannot log */ }
       this.logCrash('uncaughtException', err);
       if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
-        try { logger.error('Port conflict during restart — stopping to prevent crash loop'); } catch { /* ignore */ }
+        try { logger.error('Port conflict during restart — stopping to prevent crash loop'); } catch { /* logger may be broken — cannot log */ }
         return;
       }
       this.restart();
     });
     process.on('unhandledRejection', (reason) => {
-      try { logger.error('Unhandled rejection', { reason: String(reason) }); } catch { /* logger may be broken */ }
+      try { logger.error('Unhandled rejection', { reason: String(reason) }); } catch { /* logger may be broken — cannot log */ }
       this.logCrash('unhandledRejection', reason instanceof Error ? reason : new Error(String(reason)));
       this.restart();
     });
@@ -831,23 +831,56 @@ export class TradingCore {
         const stat = fs.statSync(crashLog);
         if (stat.size > 5 * 1024 * 1024) {
           const rotated = crashLog.replace('.log', '.1.log');
-          try { fs.unlinkSync(rotated); } catch { /* no previous rotation */ }
+          try { fs.unlinkSync(rotated); } catch { /* no previous rotation — safe to ignore */ }
           fs.renameSync(crashLog, rotated);
         }
-      } catch { /* file doesn't exist yet */ }
+      } catch { /* crash log file doesn't exist yet — safe to ignore */ }
       fs.appendFileSync(crashLog, entry);
-    } catch { /* best effort */ }
+    } catch { /* crash handler itself failed — cannot log further */ }
   }
+
+  private lastVacuumTime = 0;
+  private readonly VACUUM_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
 
   private runRetentionCleanup(db: Database.Database): void {
     const logger = getLogger();
     try {
-      const insightCutoff = new Date(Date.now() - 60 * 86_400_000).toISOString(); // 60 days
-      const result = db.prepare("DELETE FROM insights WHERE created_at < ?").run(insightCutoff);
-      if (Number(result.changes) > 0) {
-        logger.info(`[retention] Cleaned up ${result.changes} old insights`);
+      const now = Date.now();
+
+      // Clean old insights (> 60 days)
+      const insightCutoff = new Date(now - 60 * 86_400_000).toISOString();
+      const insightResult = db.prepare("DELETE FROM insights WHERE created_at < ?").run(insightCutoff);
+      if (Number(insightResult.changes) > 0) {
+        logger.info(`[retention] Cleaned up ${insightResult.changes} old insights`);
       }
+
+      // Clean old price cache (> 30 days)
+      const priceCutoff = now - 30 * 86_400_000;
+      try {
+        const priceResult = db.prepare("DELETE FROM paper_price_cache WHERE timestamp < ?").run(priceCutoff);
+        if (Number(priceResult.changes) > 0) {
+          logger.info(`[retention] Cleaned up ${priceResult.changes} old cached prices`);
+        }
+      } catch (err) { logger.debug(`[retention] Price cache cleanup skipped: ${(err as Error).message}`); }
+
+      // Clean old signals (> 90 days)
+      const signalCutoff = new Date(now - 90 * 86_400_000).toISOString();
+      try {
+        const signalResult = db.prepare("DELETE FROM signals WHERE created_at < ?").run(signalCutoff);
+        if (Number(signalResult.changes) > 0) {
+          logger.info(`[retention] Cleaned up ${signalResult.changes} old signals`);
+        }
+      } catch (err) { logger.debug(`[retention] Signal cleanup skipped: ${(err as Error).message}`); }
+
       db.pragma('optimize');
+
+      // VACUUM weekly
+      if (now - this.lastVacuumTime > this.VACUUM_INTERVAL_MS) {
+        db.pragma('wal_checkpoint(TRUNCATE)');
+        db.exec('VACUUM');
+        this.lastVacuumTime = now;
+        logger.info('[retention] DB vacuumed');
+      }
     } catch (err) {
       logger.warn(`[retention] Cleanup failed (non-critical): ${(err as Error).message}`);
     }

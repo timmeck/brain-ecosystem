@@ -77,8 +77,17 @@ export class PlaywrightAdapter implements ScoutAdapter {
     description: string;
     screenshot?: Buffer;
   } | null> {
+    // Global timeout guard: abort entire extraction after 30s
+    const extractTimeout = options.timeout ?? 30_000;
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), extractTimeout + 5_000);
+
     try {
       if (!(await this.checkAvailable())) return null;
+      if (abortController.signal.aborted) {
+        log.warn(`[playwright] Extraction aborted before start: ${url}`);
+        return null;
+      }
 
       const browser = await this.getBrowser();
       const context = await browser.newContext({
@@ -89,7 +98,7 @@ export class PlaywrightAdapter implements ScoutAdapter {
       try {
         await page.goto(url, {
           waitUntil: 'networkidle',
-          timeout: options.timeout ?? 30_000,
+          timeout: extractTimeout,
         });
 
         if (options.waitForSelector) {
@@ -125,11 +134,26 @@ export class PlaywrightAdapter implements ScoutAdapter {
     } catch (err) {
       log.warn(`[playwright] Error extracting ${url}: ${(err as Error).message}`);
       return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async getBrowser(): Promise<any> {
+    // Health check: verify cached browser is still connected
+    if (this.browser) {
+      try {
+        if (typeof this.browser.isConnected === 'function' && !this.browser.isConnected()) {
+          log.warn('[playwright] Browser disconnected — relaunching');
+          this.browser = null;
+        }
+      } catch {
+        log.warn('[playwright] Browser health check failed — relaunching');
+        this.browser = null;
+      }
+    }
+
     if (this.browser) return this.browser;
 
     const pwPath = 'playwright';
@@ -141,7 +165,7 @@ export class PlaywrightAdapter implements ScoutAdapter {
   /** Graceful shutdown — close the browser */
   async shutdown(): Promise<void> {
     if (this.browser) {
-      try { await this.browser.close(); } catch { /* best effort */ }
+      try { await this.browser.close(); } catch (err) { log.debug(`[playwright] Browser close error: ${(err as Error).message}`); }
       this.browser = null;
     }
   }

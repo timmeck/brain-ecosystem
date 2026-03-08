@@ -25,12 +25,27 @@ interface YahooChartResult {
   };
 }
 
+/** Max age in ms before a price is considered stale (15 minutes) */
+const STALE_THRESHOLD_MS = 15 * 60 * 1000;
+
 export class YahooProvider implements MarketDataProvider {
   readonly name = 'yahoo';
   readonly assetTypes = ['stock'] as const;
   readonly supportsStreaming = false;
 
   private readonly log = getLogger();
+  /** Track which symbols returned stale prices */
+  private staleSymbols = new Set<string>();
+
+  /** Check if last fetched price for a symbol was stale */
+  isStale(symbol: string): boolean {
+    return this.staleSymbols.has(symbol);
+  }
+
+  /** Get all currently stale symbols */
+  getStaleSymbols(): string[] {
+    return [...this.staleSymbols];
+  }
 
   async isAvailable(): Promise<boolean> {
     try {
@@ -58,11 +73,24 @@ export class YahooProvider implements MarketDataProvider {
         if (!response.ok) continue;
 
         const data = await response.json() as YahooChartResult;
-        const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+        const result = data?.chart?.result?.[0];
+        const closes = result?.indicators?.quote?.[0]?.close;
+        const timestamps = result?.timestamp;
         if (closes && closes.length > 0) {
           for (let i = closes.length - 1; i >= 0; i--) {
             if (closes[i] != null) {
               prices.set(symbol, closes[i]!);
+
+              // Stale detection: check timestamp of last valid data point
+              if (timestamps && timestamps[i] != null) {
+                const priceAgeMs = Date.now() - timestamps[i]! * 1000;
+                if (priceAgeMs > STALE_THRESHOLD_MS) {
+                  this.staleSymbols.add(symbol);
+                  this.log.warn(`[yahoo] ${symbol} price is stale (${Math.round(priceAgeMs / 60_000)}min old)`);
+                } else {
+                  this.staleSymbols.delete(symbol);
+                }
+              }
               break;
             }
           }

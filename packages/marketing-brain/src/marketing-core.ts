@@ -427,15 +427,39 @@ export class MarketingCore {
     } catch { /* best effort */ }
   }
 
+  private lastVacuumTime = 0;
+  private readonly VACUUM_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
+
   private runRetentionCleanup(db: Database.Database): void {
     const logger = getLogger();
     try {
-      const insightCutoff = new Date(Date.now() - 60 * 86_400_000).toISOString(); // 60 days
+      const now = Date.now();
+
+      // Clean old inactive insights (> 60 days)
+      const insightCutoff = new Date(now - 60 * 86_400_000).toISOString();
       const result = db.prepare("DELETE FROM insights WHERE active = 0 AND created_at < ?").run(insightCutoff);
       if (Number(result.changes) > 0) {
         logger.info(`[retention] Cleaned up ${result.changes} old inactive insights`);
       }
+
+      // Clean old engagement data (> 90 days)
+      const engagementCutoff = new Date(now - 90 * 86_400_000).toISOString();
+      try {
+        const engResult = db.prepare("DELETE FROM engagements WHERE created_at < ?").run(engagementCutoff);
+        if (Number(engResult.changes) > 0) {
+          logger.info(`[retention] Cleaned up ${engResult.changes} old engagement records`);
+        }
+      } catch (err) { logger.debug(`[retention] Engagement cleanup skipped: ${(err as Error).message}`); }
+
       db.pragma('optimize');
+
+      // VACUUM weekly
+      if (now - this.lastVacuumTime > this.VACUUM_INTERVAL_MS) {
+        db.pragma('wal_checkpoint(TRUNCATE)');
+        db.exec('VACUUM');
+        this.lastVacuumTime = now;
+        logger.info('[retention] DB vacuumed');
+      }
     } catch (err) {
       logger.warn(`[retention] Cleanup failed (non-critical): ${(err as Error).message}`);
     }

@@ -179,7 +179,7 @@ export class MarketDataService {
       if (provider.stopStreaming) {
         try {
           await provider.stopStreaming();
-        } catch { /* best effort */ }
+        } catch (err) { this.log.debug(`[MarketData] ${provider.name} stopStreaming error: ${(err as Error).message}`); }
       }
     }
   }
@@ -221,7 +221,7 @@ export class MarketDataService {
     await this.stopStreaming();
     for (const provider of this.providers) {
       if (provider.shutdown) {
-        try { await provider.shutdown(); } catch { /* best effort */ }
+        try { await provider.shutdown(); } catch (err) { this.log.debug(`[MarketData] ${provider.name} shutdown error: ${(err as Error).message}`); }
       }
     }
     this.listeners = [];

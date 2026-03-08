@@ -259,7 +259,7 @@ export class GuardrailEngine {
             severity: 'medium',
           });
         }
-      } catch { /* engine not available */ }
+      } catch (err) { this.log.debug(`[guardrails] Goal engine check failed: ${(err as Error).message}`); }
     }
 
     // 2. Check fitness trend (last 5 changes)
@@ -279,7 +279,7 @@ export class GuardrailEngine {
           });
         }
       }
-    } catch { /* table empty */ }
+    } catch (err) { this.log.debug(`[guardrails] Fitness trend check failed: ${(err as Error).message}`); }
 
     // 3. Check parameter change frequency (too many changes = instability)
     try {
@@ -294,7 +294,7 @@ export class GuardrailEngine {
           severity: 'medium',
         });
       }
-    } catch { /* empty */ }
+    } catch (err) { this.log.debug(`[guardrails] Change frequency check failed: ${(err as Error).message}`); }
 
     // 4. Check memory/DB size (pragmatic check)
     try {
@@ -307,7 +307,7 @@ export class GuardrailEngine {
           severity: heapUsedMB > 1024 ? 'high' : 'medium',
         });
       }
-    } catch { /* empty */ }
+    } catch (err) { this.log.debug(`[guardrails] Memory check failed: ${(err as Error).message}`); }
 
     // Calculate health score
     const severityWeights = { low: 0.1, medium: 0.25, high: 0.4 };
