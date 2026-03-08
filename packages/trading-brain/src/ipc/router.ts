@@ -122,6 +122,10 @@ export interface Services {
   consensusEngine?: import('@timmeck/brain-core').ConsensusEngine;
   activeLearner?: import('@timmeck/brain-core').ActiveLearner;
   repoAbsorber?: import('@timmeck/brain-core').RepoAbsorber;
+  guardrailEngine?: import('@timmeck/brain-core').GuardrailEngine;
+  causalPlanner?: import('@timmeck/brain-core').CausalPlanner;
+  researchRoadmap?: import('@timmeck/brain-core').ResearchRoadmap;
+  creativeEngine?: import('@timmeck/brain-core').CreativeEngine;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -750,6 +754,40 @@ export class IpcRouter {
       ['activeLearning.status',   () => { if (!s.activeLearner) throw new Error('ActiveLearner not available'); return s.activeLearner.getStatus(); }],
       ['repoAbsorber.status',     () => { if (!s.repoAbsorber) throw new Error('RepoAbsorber not available'); return s.repoAbsorber.getStatus(); }],
       ['repoAbsorber.absorb',     async () => { if (!s.repoAbsorber) throw new Error('RepoAbsorber not available'); return s.repoAbsorber.absorbNext(); }],
+
+      // Guardrail Engine
+      ['guardrail.status',         () => { if (!s.guardrailEngine) throw new Error('GuardrailEngine not available'); return s.guardrailEngine.getStatus(); }],
+      ['guardrail.health',         () => { if (!s.guardrailEngine) throw new Error('GuardrailEngine not available'); return s.guardrailEngine.checkHealth(); }],
+      ['guardrail.validate',       (params) => { if (!s.guardrailEngine) throw new Error('GuardrailEngine not available'); return s.guardrailEngine.validateParameterChange(p(params).param, p(params).oldVal, p(params).newVal); }],
+      ['guardrail.rollback',       (params) => { if (!s.guardrailEngine) throw new Error('GuardrailEngine not available'); return s.guardrailEngine.rollbackParameters(p(params).steps ?? 1); }],
+      ['guardrail.tripBreaker',    (params) => { if (!s.guardrailEngine) throw new Error('GuardrailEngine not available'); s.guardrailEngine.tripCircuitBreaker(p(params).reason); return { tripped: true }; }],
+      ['guardrail.resetBreaker',   () => { if (!s.guardrailEngine) throw new Error('GuardrailEngine not available'); s.guardrailEngine.resetCircuitBreaker(); return { reset: true }; }],
+      ['guardrail.protectedPaths', () => { if (!s.guardrailEngine) throw new Error('GuardrailEngine not available'); return s.guardrailEngine.getProtectedPaths(); }],
+
+      // Causal Planner
+      ['causal.diagnose',          (params) => { if (!s.causalPlanner) throw new Error('CausalPlanner not available'); return s.causalPlanner.diagnose(p(params).metric); }],
+      ['causal.interventions',     (params) => { if (!s.causalPlanner) throw new Error('CausalPlanner not available'); return s.causalPlanner.suggestInterventions(p(params).metric); }],
+      ['causal.predict',           (params) => { if (!s.causalPlanner) throw new Error('CausalPlanner not available'); return s.causalPlanner.predictOutcome(p(params).intervention); }],
+      ['causal.stagnant',          () => { if (!s.causalPlanner) throw new Error('CausalPlanner not available'); return s.causalPlanner.diagnoseStagnantGoals(); }],
+
+      // Research Roadmap
+      ['roadmap.list',             (params) => { if (!s.researchRoadmap) throw new Error('ResearchRoadmap not available'); return s.researchRoadmap.listRoadmaps(p(params)?.status); }],
+      ['roadmap.create',           (params) => { if (!s.researchRoadmap) throw new Error('ResearchRoadmap not available'); return s.researchRoadmap.createRoadmap(p(params).title, p(params).finalGoalId); }],
+      ['roadmap.decompose',        (params) => { if (!s.researchRoadmap || !s.goalEngine) throw new Error('ResearchRoadmap not available'); const goal = s.goalEngine.getGoal(p(params).goalId); if (!goal) throw new Error('Goal not found'); return s.researchRoadmap.decompose(goal, p(params).currentCycle ?? 0); }],
+      ['roadmap.dag',              (params) => { if (!s.researchRoadmap) throw new Error('ResearchRoadmap not available'); return s.researchRoadmap.toDAG(p(params).roadmapId); }],
+      ['roadmap.progress',         (params) => { if (!s.researchRoadmap) throw new Error('ResearchRoadmap not available'); return s.researchRoadmap.getProgress(p(params).roadmapId); }],
+      ['roadmap.ready',            () => { if (!s.researchRoadmap) throw new Error('ResearchRoadmap not available'); return s.researchRoadmap.getReadyGoals(); }],
+      ['roadmap.dependencies',     (params) => { if (!s.researchRoadmap) throw new Error('ResearchRoadmap not available'); return s.researchRoadmap.getDependencies(p(params).goalId); }],
+      ['roadmap.setDependencies',  (params) => { if (!s.researchRoadmap) throw new Error('ResearchRoadmap not available'); s.researchRoadmap.setDependencies(p(params).goalId, p(params).deps); return { set: true }; }],
+
+      // Creative Engine
+      ['creative.crossPollinate',  () => { if (!s.creativeEngine) throw new Error('CreativeEngine not available'); return s.creativeEngine.crossPollinate(); }],
+      ['creative.analogies',       (params) => { if (!s.creativeEngine) throw new Error('CreativeEngine not available'); return s.creativeEngine.findAnalogies(p(params).concept); }],
+      ['creative.speculate',       () => { if (!s.creativeEngine) throw new Error('CreativeEngine not available'); return s.creativeEngine.speculate(); }],
+      ['creative.imagine',         (params) => { if (!s.creativeEngine) throw new Error('CreativeEngine not available'); return s.creativeEngine.imagine(p(params).premise); }],
+      ['creative.insights',        (params) => { if (!s.creativeEngine) throw new Error('CreativeEngine not available'); return s.creativeEngine.getInsights(p(params)?.limit ?? 20, p(params)?.status); }],
+      ['creative.convert',         (params) => { if (!s.creativeEngine) throw new Error('CreativeEngine not available'); return { converted: s.creativeEngine.convertTopInsights(p(params)?.minNovelty ?? 0.5) }; }],
+      ['creative.status',          () => { if (!s.creativeEngine) throw new Error('CreativeEngine not available'); return s.creativeEngine.getStatus(); }],
 
       ['status', () => ({
         name: 'trading-brain',

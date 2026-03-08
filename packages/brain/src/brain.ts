@@ -1178,6 +1178,9 @@ export class BrainCore {
         const mood = (services.emotionalModel as EmotionalModel)?.getMood?.();
         return mood ?? { mood: 'reflective', score: 0.5, valence: 0, arousal: 0, dimensions: {} };
       },
+      getGuardrailHealth: () => services.guardrailEngine?.checkHealth() ?? null,
+      getRoadmaps: () => services.researchRoadmap?.listRoadmaps() ?? [],
+      getCreativeInsights: () => services.creativeEngine?.getInsights(20) ?? [],
       getDebateStatus: () => this.debateEngine?.getStatus() ?? null,
       getDebateList: (limit = 10) => this.debateEngine?.listDebates(limit) ?? [],
       getChallengeHistory: (limit = 20) => this.debateEngine?.getChallengeHistory(limit) ?? [],

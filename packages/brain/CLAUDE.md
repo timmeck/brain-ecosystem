@@ -30,15 +30,22 @@ brain network            Explore synapse network
 brain dashboard          HTML dashboard (--live for SSE streaming)
 brain config             View/set configuration
 brain peers              Ecosystem peer status
+brain guardrail          Guardrail status, health, rollback, circuit breaker reset
+brain roadmap            Research roadmaps: list, show, ready, create
+brain creative           Creative engine: status, insights, pollinate, analogies
 ```
 
-## MCP Tools (17)
+## MCP Tools (26)
 
 `brain_report_error`, `brain_query_error`, `brain_report_solution`, `brain_report_attempt`,
 `brain_find_reusable_code`, `brain_register_code`, `brain_check_code_similarity`,
 `brain_explore`, `brain_connections`, `brain_insights`, `brain_rate_insight`,
 `brain_suggest`, `brain_status`, `brain_notifications`,
-`brain_ecosystem_status`, `brain_query_peer`, `brain_error_trading_context`
+`brain_ecosystem_status`, `brain_query_peer`, `brain_error_trading_context`,
+`brain_guardrail_status`, `brain_guardrail_health`,
+`brain_causal_diagnose`, `brain_causal_interventions`,
+`brain_roadmap_list`, `brain_roadmap_progress`,
+`brain_creative_pollinate`, `brain_creative_insights`, `brain_creative_analogies`
 
 ## Architecture
 

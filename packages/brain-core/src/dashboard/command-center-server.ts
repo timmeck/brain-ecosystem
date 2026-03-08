@@ -41,6 +41,9 @@ export interface CommandCenterOptions {
   getRepoAbsorberHistory?: (limit?: number) => unknown;
   getIntelligenceStats?: () => unknown;
   getEmotionalStatus?: () => unknown;
+  getGuardrailHealth?: () => unknown;
+  getRoadmaps?: () => unknown;
+  getCreativeInsights?: () => unknown;
   triggerAction?: (action: string, params?: unknown) => Promise<unknown>;
 }
 
@@ -112,6 +115,9 @@ export class CommandCenterServer {
         if (url.pathname === '/api/debates') { this.handleDebates(res); return; }
         if (url.pathname === '/api/borg/toggle' && req.method === 'POST') { this.handleBorgToggle(req, res); return; }
         if (url.pathname === '/api/action' && req.method === 'POST') { this.handleAction(req, res); return; }
+        if (url.pathname === '/api/guardrails') { this.handleGuardrails(res); return; }
+        if (url.pathname === '/api/roadmaps') { this.handleRoadmaps(res); return; }
+        if (url.pathname === '/api/creative') { this.handleCreative(res); return; }
         if (url.pathname === '/events') { this.handleSSE(req, res); return; }
 
         res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -265,6 +271,27 @@ export class CommandCenterServer {
       try { this.broadcast('emotional', this.options.getEmotionalStatus()); } catch { /* ignore */ }
     }, 5_000));
 
+    // Guardrail Health (30s)
+    this.timers.push(setInterval(() => {
+      if (this.clients.size === 0) return;
+      if (!this.options.getGuardrailHealth) return;
+      try { this.broadcast('guardrail-health', this.options.getGuardrailHealth()); } catch { /* ignore */ }
+    }, 30_000));
+
+    // Roadmaps (30s)
+    this.timers.push(setInterval(() => {
+      if (this.clients.size === 0) return;
+      if (!this.options.getRoadmaps) return;
+      try { this.broadcast('roadmaps', this.options.getRoadmaps()); } catch { /* ignore */ }
+    }, 30_000));
+
+    // Creative Insights (30s)
+    this.timers.push(setInterval(() => {
+      if (this.clients.size === 0) return;
+      if (!this.options.getCreativeInsights) return;
+      try { this.broadcast('creative-insights', this.options.getCreativeInsights()); } catch { /* ignore */ }
+    }, 30_000));
+
     // Heartbeat (30s)
     this.timers.push(setInterval(() => {
       if (this.clients.size > 0) {
@@ -363,8 +390,11 @@ export class CommandCenterServer {
         history: this.options.getRepoAbsorberHistory?.(10) ?? [],
       } : null;
       const emotional = this.options.getEmotionalStatus?.() ?? null;
+      const guardrailHealth = this.options.getGuardrailHealth?.() ?? null;
+      const roadmaps = this.options.getRoadmaps?.() ?? [];
+      const creativeInsights = this.options.getCreativeInsights?.() ?? [];
 
-      this.json(res, { ecosystem, engines: engineResults, watchdog, plugins, borg, analytics, llm, thoughts, errors, selfmod, missions, knowledge, debates, intelligence, repoAbsorber, emotional });
+      this.json(res, { ecosystem, engines: engineResults, watchdog, plugins, borg, analytics, llm, thoughts, errors, selfmod, missions, knowledge, debates, intelligence, repoAbsorber, emotional, guardrailHealth, roadmaps, creativeInsights });
     } catch (err) {
       this.json(res, { error: (err as Error).message }, 500);
     }
@@ -495,6 +525,18 @@ export class CommandCenterServer {
       challenges: this.options.getChallengeHistory?.(20) ?? [],
       vulnerable: this.options.getChallengeVulnerable?.(5) ?? [],
     });
+  }
+
+  private handleGuardrails(res: http.ServerResponse): void {
+    this.json(res, this.options.getGuardrailHealth?.() ?? null);
+  }
+
+  private handleRoadmaps(res: http.ServerResponse): void {
+    this.json(res, this.options.getRoadmaps?.() ?? []);
+  }
+
+  private handleCreative(res: http.ServerResponse): void {
+    this.json(res, this.options.getCreativeInsights?.() ?? []);
   }
 
   private handleBorgToggle(req: http.IncomingMessage, res: http.ServerResponse): void {

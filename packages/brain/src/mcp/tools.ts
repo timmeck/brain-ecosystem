@@ -919,6 +919,114 @@ function registerToolsWithCaller(server: McpServer, call: BrainCall): void {
       return textResult(lines.join('\n'));
     },
   );
+
+  // === Guardrail Tools ===
+
+  server.tool(
+    'brain_guardrail_status',
+    'Get the current guardrail engine status: circuit breaker state, parameter bounds, protected paths.',
+    {},
+    async () => {
+      const result = await call('guardrail.status');
+      return textResult(result);
+    },
+  );
+
+  server.tool(
+    'brain_guardrail_health',
+    'Run a guardrail health check: validates parameter drift, goal regression, and overall system health score.',
+    {},
+    async () => {
+      const result = await call('guardrail.health');
+      return textResult(result);
+    },
+  );
+
+  // === Causal Planner Tools ===
+
+  server.tool(
+    'brain_causal_diagnose',
+    'Diagnose root causes for a stagnant or declining metric using causal graph analysis.',
+    {
+      metric: z.string().describe('The metric to diagnose (e.g. "win_rate", "error_count")'),
+    },
+    async (params) => {
+      const result = await call('causal.diagnose', { metric: params.metric });
+      return textResult(result);
+    },
+  );
+
+  server.tool(
+    'brain_causal_interventions',
+    'Suggest interventions to improve a metric based on causal inference.',
+    {
+      metric: z.string().describe('The metric to improve'),
+    },
+    async (params) => {
+      const result = await call('causal.interventions', { metric: params.metric });
+      return textResult(result);
+    },
+  );
+
+  // === Roadmap Tools ===
+
+  server.tool(
+    'brain_roadmap_list',
+    'List all research roadmaps with their status (active, completed, blocked).',
+    {},
+    async () => {
+      const result = await call('roadmap.list');
+      return textResult(result);
+    },
+  );
+
+  server.tool(
+    'brain_roadmap_progress',
+    'Get progress details for a specific roadmap: completed goals, blocked goals, overall completion %.',
+    {
+      roadmapId: z.number().describe('The roadmap ID to check progress for'),
+    },
+    async (params) => {
+      const result = await call('roadmap.progress', { roadmapId: params.roadmapId });
+      return textResult(result);
+    },
+  );
+
+  // === Creative Engine Tools ===
+
+  server.tool(
+    'brain_creative_pollinate',
+    'Trigger cross-pollination: find unexpected connections between knowledge domains.',
+    {},
+    async () => {
+      const result = await call('creative.crossPollinate');
+      return textResult(result);
+    },
+  );
+
+  server.tool(
+    'brain_creative_insights',
+    'Get recent creative insights with novelty scores and plausibility ratings.',
+    {
+      limit: z.number().optional().describe('Max number of insights to return (default 20)'),
+    },
+    async (params) => {
+      const result = await call('creative.insights', { limit: params.limit ?? 20 });
+      return textResult(result);
+    },
+  );
+
+  server.tool(
+    'brain_creative_analogies',
+    'Find analogies for a concept by searching across knowledge domains.',
+    {
+      concept: z.string().describe('The concept to find analogies for'),
+    },
+    async (params) => {
+      const result = await call('creative.analogies', { concept: params.concept });
+      return textResult(result);
+    },
+  );
 }
 
 function detectLanguage(filePath: string): string {

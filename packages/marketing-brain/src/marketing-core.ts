@@ -65,7 +65,7 @@ import { SchedulerService } from './services/scheduler.service.js';
 import { CalendarService } from './services/calendar.service.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine, BorgSyncEngine, DebateEngine, RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, UserModel, ProactiveEngine, SemanticCompressor } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine, BorgSyncEngine, DebateEngine, RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, UserModel, ProactiveEngine, SemanticCompressor, GuardrailEngine, CausalPlanner, CausalGraph, ResearchRoadmap, runRoadmapMigration, CreativeEngine, runCreativeMigration, GoalEngine } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
 
 export class MarketingCore {
@@ -347,7 +347,28 @@ export class MarketingCore {
       const userModel = new UserModel(db, { brainName: 'marketing-brain' });
       services.userModel = userModel;
 
-      logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive)');
+      // GuardrailEngine — self-protection
+      const guardrailEngine = new GuardrailEngine(db, { brainName: 'marketing-brain' });
+      services.guardrailEngine = guardrailEngine;
+
+      // CausalPlanner — root-cause diagnosis
+      const causalGraph = new CausalGraph(db);
+      const causalPlanner = new CausalPlanner(causalGraph);
+      services.causalPlanner = causalPlanner;
+
+      // GoalEngine + ResearchRoadmap — goal dependencies
+      const goalEngine = new GoalEngine(db, { brainName: 'marketing-brain' });
+      services.goalEngine = goalEngine;
+      runRoadmapMigration(db);
+      const researchRoadmap = new ResearchRoadmap(db, goalEngine);
+      services.researchRoadmap = researchRoadmap;
+
+      // CreativeEngine — cross-domain idea generation
+      runCreativeMigration(db);
+      const creativeEngine = new CreativeEngine(db, { brainName: 'marketing-brain' });
+      services.creativeEngine = creativeEngine;
+
+      logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive, Guardrails, CausalPlanner, Roadmap, Creative)');
     } catch (err) {
       logger.warn(`Intelligence upgrade failed (non-critical): ${(err as Error).message}`);
     }

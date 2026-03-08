@@ -306,6 +306,28 @@ canvas{display:block;width:100%;height:100%}
           </div>
         </div>
 
+        <!-- Guardrail Ampel -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F6E1;&#xFE0F;</span> Guardrails</div>
+          <div class="card" id="guardrailCard">
+            <div class="grid grid-3" style="text-align:center">
+              <div>
+                <div id="guardrailAmpel" style="width:24px;height:24px;border-radius:50%;margin:0 auto 6px;background:var(--text-dim)"></div>
+                <div style="font-size:11px;color:var(--text-dim)" data-t="Health Score">Health Score</div>
+                <div id="guardrailScore" style="font-size:18px;font-weight:700">--</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text-dim)">Circuit Breaker</div>
+                <div id="guardrailBreaker" style="font-size:14px;font-weight:600">--</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text-dim)" data-t="Geschützte Pfade">Geschützte Pfade</div>
+                <div id="guardrailPaths" style="font-size:14px;font-weight:600">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Error Log -->
         <div class="section">
           <div class="section-title"><span class="icon">&#x26A0;</span> <span data-t="Letzte Fehler & Warnungen">Letzte Fehler & Warnungen</span> <span id="errorCount" style="color:var(--text-dim);font-weight:400;font-size:12px"></span></div>
@@ -605,6 +627,20 @@ canvas{display:block;width:100%;height:100%}
             <div class="card" style="text-align:center"><div class="card-value" id="int-tr-cost" style="color:var(--magenta)">$0.00</div><div class="card-sub" data-t="Gesamtkosten">Gesamtkosten</div></div>
           </div>
         </div>
+
+        <!-- Research Roadmaps (DAG) -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F5FA;&#xFE0F;</span> Research Roadmaps — <span data-t="Forschungs-Pläne">Forschungs-Pläne</span></div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px" data-t="Multi-step Forschungspläne mit Abhängigkeiten. Grün=erreicht, Blau=aktiv, Grau=blockiert.">Multi-step Forschungspläne mit Abhängigkeiten. Grün=erreicht, Blau=aktiv, Grau=blockiert.</p>
+          <div id="roadmapList"><div class="empty" data-t="Keine Roadmaps">Keine Roadmaps</div></div>
+        </div>
+
+        <!-- Creative Insights -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x2728;</span> Creative Insights — <span data-t="Kreative Verbindungen">Kreative Verbindungen</span></div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px" data-t="Cross-Domain Ideen mit Neuheits- und Plausibilitäts-Scores.">Cross-Domain Ideen mit Neuheits- und Plausibilitäts-Scores.</p>
+          <div id="creativeInsightsList"><div class="empty" data-t="Keine Creative Insights">Keine Creative Insights</div></div>
+        </div>
       </div>
 
       <!-- ════ Page 6: Cross-Brain & Borg ═════════════════ -->
@@ -860,6 +896,12 @@ const translations = { en: {
   'Traces & Spans':'Traces & Spans','Traces gesamt':'Total Traces','Aktiv':'Active','Spans gesamt':'Total Spans','Gesamtkosten':'Total Cost',
   'Noch keine Feature-Wünsche — Brain analysiert automatisch':'No feature wishes yet — Brain analyzes automatically',
   'Brain erkennt was ihm fehlt und sucht nach passenden Features aus absorbierten Repos.':'Brain detects what it needs and searches for matching features from absorbed repos.',
+  'Geschützte Pfade':'Protected Paths','Forschungs-Pläne':'Research Plans',
+  'Multi-step Forschungspläne mit Abhängigkeiten. Grün=erreicht, Blau=aktiv, Grau=blockiert.':'Multi-step research plans with dependencies. Green=achieved, Blue=active, Gray=blocked.',
+  'Keine Roadmaps':'No roadmaps','erreicht':'achieved',
+  'Kreative Verbindungen':'Creative Connections',
+  'Cross-Domain Ideen mit Neuheits- und Plausibilitäts-Scores.':'Cross-domain ideas with novelty and plausibility scores.',
+  'Keine Creative Insights':'No creative insights','Neuheit':'Novelty','Plausibilität':'Plausibility',
 }};
 let currentLang = localStorage.getItem('brain-lang') || 'en';
 function t(text) { if (currentLang === 'en' && translations.en[text]) return translations.en[text]; return text; }
@@ -931,6 +973,9 @@ function connectSSE() {
   es.addEventListener('knowledge', e => { state.knowledge = JSON.parse(e.data); renderKnowledge(); });
   es.addEventListener('debates', e => { state.debates = JSON.parse(e.data); renderDebates(); });
   es.addEventListener('emotional', e => { state.emotional = JSON.parse(e.data); });
+  es.addEventListener('guardrail-health', e => { state.guardrailHealth = JSON.parse(e.data); renderGuardrails(); });
+  es.addEventListener('roadmaps', e => { state.roadmaps = JSON.parse(e.data); renderRoadmaps(); });
+  es.addEventListener('creative-insights', e => { state.creativeInsights = JSON.parse(e.data); renderCreativeInsights(); });
   es.onerror = () => { state.connected = false; updateConnection(); };
 }
 
@@ -951,10 +996,14 @@ async function loadInitial() {
     state.missions = data.missions; state.knowledge = data.knowledge; state.repoAbsorber = data.repoAbsorber; state.intelligence = data.intelligence;
     state.debates = data.debates;
     state.emotional = data.emotional;
+    state.guardrailHealth = data.guardrailHealth;
+    state.roadmaps = data.roadmaps;
+    state.creativeInsights = data.creativeInsights;
     if (data.thoughts) { state.thoughts = data.thoughts; renderThoughts(); }
     renderEcosystem(); renderEngines(); renderWatchdog(); renderPlugins();
     renderBorg(); renderAnalytics(); renderLLM(); renderErrors();
     renderSelfMod(); renderMissions(); renderRepoAbsorber(); renderIntelligence(); renderKnowledge(); renderDebates();
+    renderGuardrails(); renderRoadmaps(); renderCreativeInsights();
   } catch {}
 }
 
@@ -1680,6 +1729,68 @@ function renderDebates() {
       </div>`;
     }).join('');
   }
+}
+
+// ── Guardrails ───────────────────────────────────────────
+function renderGuardrails() {
+  const d = state.guardrailHealth; if (!d) return;
+  const score = d.score ?? d.healthScore ?? 0;
+  const ampel = document.getElementById('guardrailAmpel');
+  const scoreEl = document.getElementById('guardrailScore');
+  const breakerEl = document.getElementById('guardrailBreaker');
+  const pathsEl = document.getElementById('guardrailPaths');
+  if (ampel) {
+    const col = score > 0.8 ? 'var(--green)' : score > 0.5 ? 'var(--yellow)' : 'var(--red)';
+    ampel.style.background = col;
+    ampel.style.boxShadow = `0 0 12px ${col}`;
+  }
+  if (scoreEl) scoreEl.textContent = (score * 100).toFixed(0) + '%';
+  if (breakerEl) {
+    const tripped = d.circuitBreakerTripped ?? d.circuitBreaker?.tripped ?? false;
+    breakerEl.textContent = tripped ? 'TRIPPED' : 'OK';
+    breakerEl.style.color = tripped ? 'var(--red)' : 'var(--green)';
+  }
+  if (pathsEl) pathsEl.textContent = d.protectedPaths ?? d.protected ?? '-';
+}
+
+// ── Roadmaps ─────────────────────────────────────────────
+function renderRoadmaps() {
+  const list = state.roadmaps; if (!list) return;
+  const el = document.getElementById('roadmapList'); if (!el) return;
+  const items = Array.isArray(list) ? list : [];
+  if (!items.length) { el.innerHTML = `<div class="empty">${t('Keine Roadmaps')}</div>`; return; }
+  el.innerHTML = items.map(rm => {
+    const statusCol = rm.status === 'completed' ? 'var(--green)' : rm.status === 'active' ? 'var(--cyan)' : 'var(--text-dim)';
+    return `<div class="card" style="margin-bottom:8px;padding:10px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="color:var(--cyan)">#${rm.id}: ${(rm.title||'').substring(0,80)}</strong>
+        <span style="color:${statusCol};font-size:11px;text-transform:uppercase">${rm.status||'?'}</span>
+      </div>
+      ${rm.goalCount ? `<div style="font-size:11px;color:var(--text-dim);margin-top:4px">${rm.goalCount} Goals | ${rm.achievedCount ?? 0} ${t('erreicht')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Creative Insights ────────────────────────────────────
+function renderCreativeInsights() {
+  const list = state.creativeInsights; if (!list) return;
+  const el = document.getElementById('creativeInsightsList'); if (!el) return;
+  const items = Array.isArray(list) ? list : [];
+  if (!items.length) { el.innerHTML = `<div class="empty">${t('Keine Creative Insights')}</div>`; return; }
+  el.innerHTML = items.slice(0, 10).map(ins => {
+    const novelty = ins.noveltyScore ?? ins.novelty ?? 0;
+    const plaus = ins.plausibility ?? 0;
+    const nCol = novelty > 0.7 ? 'var(--green)' : novelty > 0.4 ? 'var(--yellow)' : 'var(--text-dim)';
+    const pCol = plaus > 0.7 ? 'var(--green)' : plaus > 0.4 ? 'var(--yellow)' : 'var(--text-dim)';
+    return `<div class="card" style="margin-bottom:6px;padding:8px 14px">
+      <div style="font-size:13px;color:var(--text)">${(ins.title ?? ins.description ?? '').substring(0,120)}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">
+        ${t('Neuheit')}: <span style="color:${nCol}">${(novelty*100).toFixed(0)}%</span> &nbsp;|&nbsp;
+        ${t('Plausibilität')}: <span style="color:${pCol}">${(plaus*100).toFixed(0)}%</span> &nbsp;|&nbsp;
+        Status: ${ins.status || '-'}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── Quick Actions ─────────────────────────────────────────
