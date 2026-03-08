@@ -161,14 +161,62 @@ export class ChatEngine {
 
     // Keyword mapping — ordered specific-first (longer routes before generic)
     const keywords: [string, string[]][] = [
+      // Cross-Brain & Signals
       ['signal.cross.status', ['signal', 'cross-brain', 'cross brain']],
+      ['borg.status', ['borg', 'collective', 'sync']],
+      ['debate.status', ['debate', 'debatte', 'challenge']],
+
+      // Trading / Paper
       ['paper.status', ['paper', 'trading', 'positionen', 'positions']],
       ['paper.portfolio', ['portfolio', 'balance', 'equity', 'guthaben']],
+
+      // Forges & Actions
       ['action.status', ['action', 'bridge', 'queue', 'aktionen']],
       ['content.status', ['content', 'forge', 'draft', 'publish', 'inhalt']],
-      ['strategy.status', ['strateg', 'rules', 'regeln']],
+      ['codeforge.status', ['codeforge', 'code forge', 'pattern']],
+      ['strategy.status', ['strateg', 'strategy']],
+
+      // Error & Solution (brain)
+      ['error.query', ['error', 'fehler', 'bug', 'problem', 'exception']],
+      ['solution.recent', ['solution', 'lösung', 'fix', 'solved']],
+
+      // Code Intelligence
+      ['code.stats', ['code', 'modul', 'module', 'dependency']],
+      ['synapse.stats', ['synapse', 'netzwerk', 'network', 'graph', 'verbindung']],
+
+      // Research & Knowledge
       ['insight.list', ['insight', 'erkenntnisse', 'einsichten']],
       ['rule.list', ['rules', 'regeln', 'learned']],
+      ['research.status', ['research', 'forschung', 'agenda']],
+
+      // Guardrails & Safety
+      ['guardrail.status', ['guardrail', 'circuit', 'safety', 'schutz']],
+      ['guardrail.health', ['health check', 'gesundheit']],
+
+      // Goals & Roadmap
+      ['goal.status', ['goal', 'ziel', 'target']],
+      ['roadmap.list', ['roadmap', 'plan', 'milestone']],
+
+      // Creative & Causal
+      ['creative.status', ['creative', 'kreativ', 'idea', 'idee', 'pollinate']],
+      ['causal.status', ['causal', 'kausal', 'root cause', 'ursache']],
+
+      // Knowledge Graph & RAG
+      ['kg.status', ['knowledge graph', 'wissensgraph', 'fact']],
+      ['rag.status', ['rag', 'vector', 'embedding', 'retrieval']],
+
+      // LLM & Tools
+      ['llm.status', ['llm', 'anthropic', 'ollama', 'model', 'token']],
+      ['tool.stats', ['tool', 'werkzeug', 'usage']],
+
+      // System services
+      ['watchdog.status', ['watchdog', 'daemon', 'prozess', 'process']],
+      ['dream.status', ['dream', 'traum', 'consolidat', 'sleep']],
+      ['prediction.status', ['predict', 'vorhersage', 'forecast']],
+      ['mission.list', ['mission', 'research mission', 'forschungsmission']],
+      ['selfmod.status', ['selfmod', 'self-mod', 'modification', 'evolution']],
+
+      // Memory & General
       ['memory.stats', ['memory', 'gedächtnis', 'speicher']],
       ['ecosystem.status', ['ecosystem', 'peers', 'ökosystem']],
       ['status', ['status', 'wie geht', 'how are', 'overview', 'übersicht']],

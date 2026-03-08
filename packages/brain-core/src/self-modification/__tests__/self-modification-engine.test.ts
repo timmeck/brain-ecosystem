@@ -301,7 +301,7 @@ describe('SelfModificationEngine', () => {
 
   // ── 13. testModification guard ───────────────────────────
 
-  it('should throw when testing without projectRoot configured', () => {
+  it('should throw when testing without projectRoot configured', async () => {
     engine.proposeModification('No root', 'Problem', ['packages/brain-core/src/foo.ts']);
     db.prepare(
       `UPDATE self_modifications SET generated_diff = ? WHERE id = 1`,
@@ -314,13 +314,13 @@ describe('SelfModificationEngine', () => {
         },
       ]),
     );
-    expect(() => engine.testModification(1)).toThrow('projectRoot');
+    await expect(engine.testModification(1)).rejects.toThrow('projectRoot');
   });
 
-  it('should throw when testing a modification with no generated code', () => {
+  it('should throw when testing a modification with no generated code', async () => {
     engine.proposeModification('No code', 'Problem', ['packages/brain-core/src/foo.ts']);
     // generated_diff is null by default
-    expect(() => engine.testModification(1)).toThrow('no generated code');
+    await expect(engine.testModification(1)).rejects.toThrow('no generated code');
   });
 
   // ── 14. Multiple target files ────────────────────────────
@@ -338,5 +338,88 @@ describe('SelfModificationEngine', () => {
       'packages/brain-core/src/beta.ts',
       'packages/brain-core/src/gamma.ts',
     ]);
+  });
+
+  // ── 15. Sandbox integration (Session 105) ────────────────
+
+  it('should call sandbox validation before npm test when sandbox is set', async () => {
+    const mockSandbox = {
+      execute: vi.fn().mockResolvedValue({ exitCode: 0, stdout: 'ok', stderr: '', timedOut: false }),
+      getStatus: () => ({ totalExecutions: 0, successCount: 0, failCount: 0, timeoutCount: 0, avgDurationMs: 0, dockerAvailable: false }),
+    };
+    engine.setSandbox(mockSandbox as any);
+
+    engine.proposeModification('Sandbox test', 'Test sandbox flow', ['packages/brain-core/src/foo.ts']);
+    db.prepare(`UPDATE self_modifications SET generated_diff = ? WHERE id = 1`).run(
+      JSON.stringify([{ filePath: 'packages/brain-core/src/foo.ts', oldContent: 'a', newContent: 'b' }]),
+    );
+
+    // Will fail on projectRoot check since engine has no projectRoot, but sandbox.execute should have been called
+    await expect(engine.testModification(1)).rejects.toThrow('projectRoot');
+    expect(mockSandbox.execute).toHaveBeenCalledOnce();
+    expect(mockSandbox.execute.mock.calls[0][0]).toMatchObject({ language: 'typescript' });
+  });
+
+  it('should stop pipeline when sandbox validation fails (no npm test)', async () => {
+    const mockSandbox = {
+      execute: vi.fn().mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'SyntaxError: bad code', timedOut: false }),
+      getStatus: () => ({ totalExecutions: 0, successCount: 0, failCount: 0, timeoutCount: 0, avgDurationMs: 0, dockerAvailable: false }),
+    };
+    engine.setSandbox(mockSandbox as any);
+
+    engine.proposeModification('Bad code', 'Syntax error', ['packages/brain-core/src/foo.ts']);
+    db.prepare(`UPDATE self_modifications SET generated_diff = ? WHERE id = 1`).run(
+      JSON.stringify([{ filePath: 'packages/brain-core/src/foo.ts', oldContent: 'a', newContent: 'invalid{{{' }]),
+    );
+
+    const result = await engine.testModification(1);
+    expect(result.status).toBe('failed');
+    expect(result.test_result).toBe('failed');
+    expect(result.test_output).toContain('SANDBOX VALIDATION FAILED');
+  });
+
+  it('should stop pipeline when sandbox throws an error', async () => {
+    const mockSandbox = {
+      execute: vi.fn().mockRejectedValue(new Error('Docker unavailable')),
+      getStatus: () => ({ totalExecutions: 0, successCount: 0, failCount: 0, timeoutCount: 0, avgDurationMs: 0, dockerAvailable: false }),
+    };
+    engine.setSandbox(mockSandbox as any);
+
+    engine.proposeModification('Sandbox crash', 'Sandbox error', ['packages/brain-core/src/foo.ts']);
+    db.prepare(`UPDATE self_modifications SET generated_diff = ? WHERE id = 1`).run(
+      JSON.stringify([{ filePath: 'packages/brain-core/src/foo.ts', oldContent: 'a', newContent: 'b' }]),
+    );
+
+    const result = await engine.testModification(1);
+    expect(result.status).toBe('failed');
+    expect(result.test_output).toContain('SANDBOX ERROR');
+  });
+
+  it('should fall back to direct npm test when no sandbox is set', async () => {
+    // Default engine has no sandbox — testModification should proceed to projectRoot check
+    engine.proposeModification('No sandbox', 'Direct test', ['packages/brain-core/src/foo.ts']);
+    db.prepare(`UPDATE self_modifications SET generated_diff = ? WHERE id = 1`).run(
+      JSON.stringify([{ filePath: 'packages/brain-core/src/foo.ts', oldContent: 'a', newContent: 'b' }]),
+    );
+
+    // Should throw projectRoot error (not sandbox error) — confirming sandbox was skipped
+    await expect(engine.testModification(1)).rejects.toThrow('projectRoot');
+  });
+
+  it('should proceed to npm test when sandbox validation passes', async () => {
+    const mockSandbox = {
+      execute: vi.fn().mockResolvedValue({ exitCode: 0, stdout: 'compiled ok', stderr: '', timedOut: false }),
+      getStatus: () => ({ totalExecutions: 0, successCount: 0, failCount: 0, timeoutCount: 0, avgDurationMs: 0, dockerAvailable: false }),
+    };
+    engine.setSandbox(mockSandbox as any);
+
+    engine.proposeModification('Good code', 'Should pass sandbox', ['packages/brain-core/src/foo.ts']);
+    db.prepare(`UPDATE self_modifications SET generated_diff = ? WHERE id = 1`).run(
+      JSON.stringify([{ filePath: 'packages/brain-core/src/foo.ts', oldContent: 'a', newContent: 'b' }]),
+    );
+
+    // Sandbox passes but no projectRoot → continues to npm test phase which throws
+    await expect(engine.testModification(1)).rejects.toThrow('projectRoot');
+    expect(mockSandbox.execute).toHaveBeenCalledOnce();
   });
 });

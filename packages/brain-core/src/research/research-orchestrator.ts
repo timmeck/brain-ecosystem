@@ -2072,7 +2072,7 @@ export class ResearchOrchestrator {
             // Try to generate + test
             try {
               await this.selfModificationEngine.generateCode(mod.id);
-              this.selfModificationEngine.testModification(mod.id);
+              await this.selfModificationEngine.testModification(mod.id);
               const tested = this.selfModificationEngine.getModification(mod.id);
               if (tested?.status === 'ready') {
                 ts?.emit('self-modification', 'discovering', `Self-modification ready for review: ${mod.title}`, 'breakthrough');

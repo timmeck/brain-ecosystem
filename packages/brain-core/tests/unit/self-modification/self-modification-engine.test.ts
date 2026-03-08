@@ -155,7 +155,7 @@ describe('SelfModificationEngine', () => {
     expect(mod!.test_output).toContain('crash');
   });
 
-  it('should test modification with real files', () => {
+  it('should test modification with real files', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'selfmod-test-'));
     const pkgDir = path.join(tmpDir, 'packages', 'brain-core', 'src');
     fs.mkdirSync(pkgDir, { recursive: true });
@@ -184,7 +184,7 @@ describe('SelfModificationEngine', () => {
       }]),
     );
 
-    const result = engine2.testModification(1);
+    const result = await engine2.testModification(1);
     expect(result.test_result).toBe('passed');
     expect(result.status).toBe('ready');
 
@@ -278,10 +278,10 @@ describe('SelfModificationEngine', () => {
     expect(() => engine.rollbackModification(1)).toThrow('not applied');
   });
 
-  it('should require projectRoot for testing', () => {
+  it('should require projectRoot for testing', async () => {
     engine.proposeModification('No root', 'Problem', ['packages/brain-core/src/foo.ts']);
     db.prepare(`UPDATE self_modifications SET generated_diff = '[{"filePath":"packages/brain-core/src/foo.ts","oldContent":"a","newContent":"b"}]' WHERE id = 1`).run();
-    expect(() => engine.testModification(1)).toThrow('projectRoot');
+    await expect(engine.testModification(1)).rejects.toThrow('projectRoot');
   });
 
   it('should handle multiple target files', () => {
@@ -332,7 +332,7 @@ describe('SelfModificationEngine', () => {
     // manually trigger the parsing logic. Since parseGeneratedFiles is private,
     // we test via the public testModification path with pre-set diffs.
 
-    it('should handle CRLF line endings in generated diffs', () => {
+    it('should handle CRLF line endings in generated diffs', async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'selfmod-crlf-'));
       const pkgDir = path.join(tmpDir, 'packages', 'brain-core', 'src');
       fs.mkdirSync(pkgDir, { recursive: true });
@@ -358,7 +358,7 @@ describe('SelfModificationEngine', () => {
         }]),
       );
 
-      const result = engine2.testModification(1);
+      const result = await engine2.testModification(1);
       expect(result.test_result).toBe('passed');
 
       fs.rmSync(tmpDir, { recursive: true, force: true });

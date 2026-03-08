@@ -48,6 +48,7 @@ import { PaperEngine } from './paper/paper-engine.js';
 import { PaperService } from './paper/paper.service.js';
 import { PaperRepository } from './db/repositories/paper.repository.js';
 import { PortfolioOptimizer } from './paper/portfolio-optimizer.js';
+import { createIntelligenceEngines } from './init/engine-factory.js';
 
 // Market Data
 import { MarketDataService } from './market/market-data-service.js';
@@ -64,7 +65,7 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, BorgSyncEngine, RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, UserModel, ProactiveEngine, SemanticCompressor, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, GuardrailEngine, CausalPlanner, ResearchRoadmap, runRoadmapMigration, CreativeEngine, runCreativeMigration, ActionBridgeEngine, runActionBridgeMigration, createTradeHandler, ContentForge, runContentForgeMigration, CodeForge, runCodeForgeMigration, StrategyForge, runStrategyForgeMigration, CrossBrainSignalRouter, runSignalRouterMigration, StrategyMutator } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, BorgSyncEngine } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem, HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
 
 export class TradingCore {
@@ -678,157 +679,12 @@ export class TradingCore {
     });
     this.orchestrator.setBootstrapService(bootstrapService);
 
-    // ── Intelligence Upgrade (Sessions 55-65) ──
-    const ragEngine = new RAGEngine(this.db!, { brainName: 'trading-brain' });
-    const ragIndexer = new RAGIndexer(this.db!);
-    ragIndexer.setRAGEngine(ragEngine);
-    services.ragEngine = ragEngine;
-    services.ragIndexer = ragIndexer;
-
-    const knowledgeGraph = new KnowledgeGraphEngine(this.db!, { brainName: 'trading-brain' });
-    const factExtractor = new FactExtractor(this.db!, { brainName: 'trading-brain' });
-    services.knowledgeGraph = knowledgeGraph;
-    services.factExtractor = factExtractor;
-
-    const semanticCompressor = new SemanticCompressor(this.db!, { brainName: 'trading-brain' });
-    semanticCompressor.setRAGEngine(ragEngine);
-    services.semanticCompressor = semanticCompressor;
-
-    const feedbackEngine = new FeedbackEngine(this.db!, { brainName: 'trading-brain' });
-    services.feedbackEngine = feedbackEngine;
-
-    const toolTracker = new ToolTracker(this.db!, { brainName: 'trading-brain' });
-    const toolPatternAnalyzer = new ToolPatternAnalyzer(this.db!);
-    services.toolTracker = toolTracker;
-    services.toolPatternAnalyzer = toolPatternAnalyzer;
-
-    const proactiveEngine = new ProactiveEngine(this.db!, { brainName: 'trading-brain' });
-    proactiveEngine.setThoughtStream(thoughtStream);
-    services.proactiveEngine = proactiveEngine;
-
-    const userModel = new UserModel(this.db!, { brainName: 'trading-brain' });
-    services.userModel = userModel;
-
-    const codeHealthMonitor = new CodeHealthMonitor(this.db!, { brainName: 'trading-brain' });
-    codeHealthMonitor.setThoughtStream(thoughtStream);
-    services.codeHealthMonitor = codeHealthMonitor;
-
-    const teachingProtocol = new TeachingProtocol(this.db!, { brainName: 'trading-brain' });
-    services.teachingProtocol = teachingProtocol;
-    const curriculum = new Curriculum(this.db!);
-    services.curriculum = curriculum;
-
-    const consensusEngine = new ConsensusEngine(this.db!, { brainName: 'trading-brain' });
-    services.consensusEngine = consensusEngine;
-
-    const activeLearner = new ActiveLearner(this.db!, { brainName: 'trading-brain' });
-    activeLearner.setThoughtStream(thoughtStream);
-    services.activeLearner = activeLearner;
-
-    const repoAbsorber = new RepoAbsorber(this.db!);
-    repoAbsorber.setThoughtStream(thoughtStream);
-    repoAbsorber.setRAGEngine(ragEngine);
-    repoAbsorber.setKnowledgeGraph(knowledgeGraph);
-    services.repoAbsorber = repoAbsorber;
-
-    // GuardrailEngine — self-protection: parameter bounds, circuit breaker, health checks
-    const guardrailEngine = new GuardrailEngine(this.db!, { brainName: 'trading-brain' });
-    guardrailEngine.setParameterRegistry(parameterRegistry);
-    if (goalEngine) guardrailEngine.setGoalEngine(goalEngine);
-    guardrailEngine.setThoughtStream(thoughtStream);
-    services.guardrailEngine = guardrailEngine;
-
-    // CausalPlanner — root-cause diagnosis + intervention planning
-    const causalPlanner = new CausalPlanner(researchScheduler.causalGraph);
-    causalPlanner.setGoalEngine(goalEngine);
-    services.causalPlanner = causalPlanner;
-
-    // ResearchRoadmap — goal dependencies + multi-step research plans
-    runRoadmapMigration(this.db!);
-    const researchRoadmap = new ResearchRoadmap(this.db!, goalEngine);
-    researchRoadmap.setThoughtStream(thoughtStream);
-    services.researchRoadmap = researchRoadmap;
-
-    // CreativeEngine — cross-domain idea generation
-    runCreativeMigration(this.db!);
-    const creativeEngine = new CreativeEngine(this.db!, { brainName: 'trading-brain' });
-    creativeEngine.setKnowledgeDistiller(this.orchestrator.knowledgeDistiller);
-    creativeEngine.setHypothesisEngine(researchScheduler.hypothesisEngine);
-    if (llmService) creativeEngine.setLLMService(llmService);
-    creativeEngine.setThoughtStream(thoughtStream);
-    services.creativeEngine = creativeEngine;
-
-    // ActionBridge — risk-assessed auto-execution
-    runActionBridgeMigration(this.db!);
-    const actionBridge = new ActionBridgeEngine(this.db!, { brainName: 'trading-brain' });
-    services.actionBridge = actionBridge;
-
-    // Register execute_trade handler → StrategyForge proposals trigger PaperEngine
-    const paperEngineRef = this.paperEngine;
-    const paperServiceRef = services.paper;
-    if (paperEngineRef) {
-      actionBridge.registerHandler('execute_trade', createTradeHandler({
-        runCycle: () => paperEngineRef.runCycle(),
-        getPortfolio: paperServiceRef ? () => paperServiceRef.getPortfolio() : undefined,
-      }));
-      logger.info('Registered execute_trade handler → PaperEngine');
-    }
-
-    // ContentForge — autonomous content pipeline
-    runContentForgeMigration(this.db!);
-    const contentForge = new ContentForge(this.db!, { brainName: 'trading-brain' });
-    if (llmService) contentForge.setLLMService(llmService);
-    contentForge.setActionBridge(actionBridge);
-    services.contentForge = contentForge;
-
-    // CodeForge — pattern extraction & code generation
-    runCodeForgeMigration(this.db!);
-    const codeForge = new CodeForge(this.db!, { brainName: 'trading-brain' });
-    codeForge.setActionBridge(actionBridge);
-    if (guardrailEngine) codeForge.setGuardrailEngine(guardrailEngine);
-    services.codeForge = codeForge;
-
-    // StrategyForge — autonomous strategy creation & execution
-    runStrategyForgeMigration(this.db!);
-    const strategyForge = new StrategyForge(this.db!, { brainName: 'trading-brain' });
-    strategyForge.setActionBridge(actionBridge);
-    strategyForge.setKnowledgeDistiller(this.orchestrator.knowledgeDistiller);
-    services.strategyForge = strategyForge;
-
-    // StrategyMutator — evolutionary strategy operations
-    const strategyMutator = new StrategyMutator(this.db!);
-    services.strategyMutator = strategyMutator;
-
-    // PortfolioOptimizer — dynamic position sizing + health checks
-    const portfolioOptimizer = new PortfolioOptimizer(this.db!);
-    services.portfolioOptimizer = portfolioOptimizer;
-
-    // Wire intelligence engines into orchestrator
-    this.orchestrator.setFactExtractor(factExtractor);
-    this.orchestrator.setKnowledgeGraph(knowledgeGraph);
-    this.orchestrator.setSemanticCompressor(semanticCompressor);
-    this.orchestrator.setProactiveEngine(proactiveEngine);
-    this.orchestrator.setActiveLearner(activeLearner);
-    this.orchestrator.setRAGIndexer(ragIndexer);
-    this.orchestrator.setTeachingProtocol(teachingProtocol);
-    this.orchestrator.setCodeHealthMonitor(codeHealthMonitor);
-    this.orchestrator.setRepoAbsorber(repoAbsorber);
-    this.orchestrator.setGuardrailEngine(guardrailEngine);
-    this.orchestrator.setCausalPlanner(causalPlanner);
-    this.orchestrator.setResearchRoadmap(researchRoadmap);
-    this.orchestrator.setCreativeEngine(creativeEngine);
-    this.orchestrator.setActionBridge(actionBridge);
-    this.orchestrator.setContentForge(contentForge);
-    this.orchestrator.setCodeForge(codeForge);
-    this.orchestrator.setStrategyForge(strategyForge);
-
-    // CrossBrainSignalRouter — bidirectional signal routing
-    runSignalRouterMigration(this.db!);
-    const signalRouter = new CrossBrainSignalRouter(this.db!, 'trading-brain');
-    if (this.notifier) signalRouter.setNotifier(this.notifier);
-    services.signalRouter = signalRouter;
-
-    logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber, Guardrails, CausalPlanner, Roadmap, Creative, ActionBridge, ContentForge, CodeForge, StrategyForge, SignalRouter)');
+    // ── Intelligence Upgrade (Sessions 55-76) — extracted to init/engine-factory.ts ──
+    createIntelligenceEngines({
+      db: this.db!, services, orchestrator: this.orchestrator,
+      researchScheduler, thoughtStream, llmService, goalEngine,
+      parameterRegistry, paperEngine: this.paperEngine, notifier: this.notifier,
+    });
     logger.info('Research orchestrator started (40+ engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active)');
 
     // 12e. Borg Sync Engine — collective knowledge sync (opt-in, default: disabled)

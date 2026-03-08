@@ -189,4 +189,73 @@ describe('CrossBrainSignalRouter', () => {
     const status = router.getStatus();
     expect(status.totalSignals).toBe(0);
   });
+
+  // ── Signal handler registration tests (Session 105) ──
+
+  it('trade_signal handler receives correct payload on brain', async () => {
+    const router = new CrossBrainSignalRouter(db, 'brain');
+    const insightCreated = vi.fn();
+    router.onSignal('trade_signal', (signal) => {
+      const symbol = (signal.payload.symbol as string) ?? 'unknown';
+      const direction = (signal.payload.direction as string) ?? 'neutral';
+      insightCreated({ symbol, direction, source: signal.sourceBrain });
+    });
+
+    await router.handleIncoming({
+      id: 'sig-trade-1',
+      sourceBrain: 'trading-brain',
+      targetBrain: 'brain',
+      signalType: 'trade_signal',
+      payload: { symbol: 'BTC', direction: 'bullish' },
+      confidence: 0.85,
+      timestamp: Date.now(),
+      processed: false,
+    });
+
+    expect(insightCreated).toHaveBeenCalledWith({ symbol: 'BTC', direction: 'bullish', source: 'trading-brain' });
+  });
+
+  it('engagement_signal handler receives correct payload on trading-brain', async () => {
+    const router = new CrossBrainSignalRouter(db, 'trading-brain');
+    const insightCreated = vi.fn();
+    router.onSignal('engagement_signal', (signal) => {
+      const topic = (signal.payload.topic as string) ?? 'unknown';
+      insightCreated({ topic, source: signal.sourceBrain });
+    });
+
+    await router.handleIncoming({
+      id: 'sig-engage-1',
+      sourceBrain: 'marketing-brain',
+      targetBrain: 'trading-brain',
+      signalType: 'engagement_signal',
+      payload: { topic: 'crypto-adoption', summary: 'High engagement on crypto posts' },
+      confidence: 0.7,
+      timestamp: Date.now(),
+      processed: false,
+    });
+
+    expect(insightCreated).toHaveBeenCalledWith({ topic: 'crypto-adoption', source: 'marketing-brain' });
+  });
+
+  it('research_insight handler receives correct payload on marketing-brain', async () => {
+    const router = new CrossBrainSignalRouter(db, 'marketing-brain');
+    const contentGenerated = vi.fn();
+    router.onSignal('research_insight', (signal) => {
+      const topic = (signal.payload.topic as string) ?? 'unknown';
+      contentGenerated({ topic, source: signal.sourceBrain });
+    });
+
+    await router.handleIncoming({
+      id: 'sig-research-1',
+      sourceBrain: 'brain',
+      targetBrain: 'marketing-brain',
+      signalType: 'research_insight',
+      payload: { topic: 'new-framework', summary: 'Discovered emerging JS framework' },
+      confidence: 0.6,
+      timestamp: Date.now(),
+      processed: false,
+    });
+
+    expect(contentGenerated).toHaveBeenCalledWith({ topic: 'new-framework', source: 'brain' });
+  });
 });

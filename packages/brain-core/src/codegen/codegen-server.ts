@@ -323,7 +323,7 @@ export class CodegenServer {
     }
   }
 
-  private handleSelfmodAction(res: http.ServerResponse, id: number, action: 'approve' | 'reject' | 'test'): void {
+  private async handleSelfmodAction(res: http.ServerResponse, id: number, action: 'approve' | 'reject' | 'test'): Promise<void> {
     const engine = this.options.selfModificationEngine;
     if (!engine) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -342,7 +342,7 @@ export class CodegenServer {
           this.broadcast('selfmod:rejected', result);
           break;
         case 'test':
-          result = engine.testModification(id);
+          result = await engine.testModification(id);
           this.broadcast(result.test_result === 'passed' ? 'selfmod:ready' : 'selfmod:failed', result);
           break;
       }

@@ -4,7 +4,6 @@ import type Database from 'better-sqlite3';
 import { loadConfig } from './config.js';
 import type { BrainConfig } from './types/config.types.js';
 import { createLogger, getLogger } from './utils/logger.js';
-import { getEventBus } from './utils/events.js';
 import { getCurrentVersion } from './cli/update-check.js';
 import { createConnection } from '@timmeck/brain-core';
 import { runMigrations } from './db/migrations/index.js';
@@ -66,12 +65,14 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, TechRadarEngine, runTechRadarMigration, NotificationService as MultiChannelNotificationService, runNotificationMigration, DiscordProvider, TelegramProvider, EmailProvider, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine } from '@timmeck/brain-core';
-import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
-import type { HypothesisStatus } from '@timmeck/brain-core';
-import type { ExperimentStatus } from '@timmeck/brain-core';
-import type { AnomalyType } from '@timmeck/brain-core';
-import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor, FeatureRecommender, ContradictionResolver, CheckpointManager, TraceCollector, MessageRouter, TelegramBot, DiscordBot, BenchmarkSuite, AgentTrainer, ToolScopeManager, PluginMarketplace, CodeSandbox, GuardrailEngine, CausalPlanner, ResearchRoadmap, runRoadmapMigration, CreativeEngine, runCreativeMigration, ActionBridgeEngine, runActionBridgeMigration, ContentForge, runContentForgeMigration, CodeForge, runCodeForgeMigration, StrategyForge, runStrategyForgeMigration, CrossBrainSignalRouter, runSignalRouterMigration, ChatEngine, runChatMigration, SubAgentFactory, runSubAgentMigration } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine, GuardrailEngine, CausalPlanner, ResearchRoadmap, CreativeEngine, TelegramBot, DiscordBot } from '@timmeck/brain-core';
+import type { BorgDataProvider, SyncItem, HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
+
+// Init modules (extracted from God-Class)
+import { setupEventListeners, setupCrossBrainSubscriptions } from './init/events-init.js';
+import { logCrash as logCrashHelper, runRetentionCleanup as runRetentionHelper, cleanup as cleanupEngines, setupCrashRecovery } from './init/lifecycle.js';
+import { createCommandCenter } from './init/dashboard-init.js';
+import { createIntelligenceEngines } from './init/engine-factory.js';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -774,339 +775,19 @@ export class BrainCore {
     this.orchestrator.setMissionEngine(missionEngine);
     logger.info('ResearchMissionEngine activated — "brain missions create <topic>" ready');
 
-    // ── Intelligence Upgrade (Sessions 55-65) ────────────────
-
-    // 55. RAG Pipeline — vector search across all knowledge
-    const ragEngine = new RAGEngine(this.db!, { brainName: 'brain' });
-    if (this.embeddingEngine) ragEngine.setEmbeddingEngine(this.embeddingEngine);
-    ragEngine.setThoughtStream(thoughtStream);
-    if (llmService.isAvailable()) ragEngine.setLLMService(llmService);
-    services.ragEngine = ragEngine;
-
-    const ragIndexer = new RAGIndexer(this.db!);
-    ragIndexer.setRAGEngine(ragEngine);
-    services.ragIndexer = ragIndexer;
-    // Background: initial RAG indexing after 30s startup delay
-    setTimeout(() => {
-      ragIndexer.indexAll().then(count => {
-        if (count > 0) logger.info(`[RAG] Initial indexing: ${count} vectors`);
-      }).catch(err => logger.debug(`[RAG] Initial indexing skipped: ${(err as Error).message}`));
-    }, 30_000);
-
-    // 56. Knowledge Graph 2.0 — typed fact relations
-    const knowledgeGraph = new KnowledgeGraphEngine(this.db!, { brainName: 'brain' });
-    knowledgeGraph.setThoughtStream(thoughtStream);
-    services.knowledgeGraph = knowledgeGraph;
-
-    const factExtractor = new FactExtractor(this.db!, { brainName: 'brain' });
-    if (llmService.isAvailable()) factExtractor.setLLMService(llmService);
-    services.factExtractor = factExtractor;
-
-    // 57. Semantic Compression — deduplicate knowledge
-    const semanticCompressor = new SemanticCompressor(this.db!, { brainName: 'brain' });
-    semanticCompressor.setRAGEngine(ragEngine);
-    if (llmService.isAvailable()) semanticCompressor.setLLMService(llmService);
-    semanticCompressor.setThoughtStream(thoughtStream);
-    services.semanticCompressor = semanticCompressor;
-
-    // 58. Feedback Learning — RLHF reward signals
-    const feedbackEngine = new FeedbackEngine(this.db!, { brainName: 'brain' });
-    feedbackEngine.setThoughtStream(thoughtStream);
-    services.feedbackEngine = feedbackEngine;
-
-    // 59. Tool-Use Learning — track tool outcomes
-    const toolTracker = new ToolTracker(this.db!, { brainName: 'brain' });
-    const toolPatternAnalyzer = new ToolPatternAnalyzer(this.db!);
-    services.toolTracker = toolTracker;
-    services.toolPatternAnalyzer = toolPatternAnalyzer;
-
-    // 60. Proactive Suggestions — trigger-based improvement proposals
-    const proactiveEngine = new ProactiveEngine(this.db!, { brainName: 'brain' });
-    proactiveEngine.setThoughtStream(thoughtStream);
-    services.proactiveEngine = proactiveEngine;
-
-    // 61. User Modeling — adaptive responses
-    const userModel = new UserModel(this.db!, { brainName: 'brain' });
-    services.userModel = userModel;
-
-    // 62. Code Health Monitor — codebase quality tracking
-    const codeHealthMonitor = new CodeHealthMonitor(this.db!, { brainName: 'brain' });
-    codeHealthMonitor.setThoughtStream(thoughtStream);
-    services.codeHealthMonitor = codeHealthMonitor;
-
-    // 63. Inter-Brain Teaching — knowledge transfer protocol
-    const teachingProtocol = new TeachingProtocol(this.db!, { brainName: 'brain' });
-    services.teachingProtocol = teachingProtocol;
-    const curriculum = new Curriculum(this.db!);
-    services.curriculum = curriculum;
-
-    // 64. Consensus Decisions — multi-brain voting
-    const consensusEngine = new ConsensusEngine(this.db!, { brainName: 'brain' });
-    services.consensusEngine = consensusEngine;
-
-    // 65. Active Learning — gap identification & closing strategies
-    const activeLearner = new ActiveLearner(this.db!, { brainName: 'brain' });
-    activeLearner.setThoughtStream(thoughtStream);
-    services.activeLearner = activeLearner;
-
-    // 66. RepoAbsorber — autonomous code learning from discovered repos
-    const repoAbsorber = new RepoAbsorber(this.db!);
-    repoAbsorber.setThoughtStream(thoughtStream);
-    repoAbsorber.setRAGEngine(ragEngine);
-    repoAbsorber.setKnowledgeGraph(knowledgeGraph);
-    services.repoAbsorber = repoAbsorber;
-
-    // 67. FeatureExtractor — extract useful functions/patterns from absorbed repos
-    const featureExtractor = new FeatureExtractor(this.db!);
-    featureExtractor.setRAGEngine(ragEngine);
-    featureExtractor.setKnowledgeGraph(knowledgeGraph);
-    if (services.llmService) featureExtractor.setLLMService(services.llmService);
-    services.featureExtractor = featureExtractor;
-    repoAbsorber.setFeatureExtractor(featureExtractor);
-
-    // 68. FeatureRecommender — wishlist, connections, periodic need scanning
-    const featureRecommender = new FeatureRecommender(this.db!);
-    featureRecommender.setFeatureExtractor(featureExtractor);
-    featureRecommender.setRAGEngine(ragEngine);
-    featureRecommender.setKnowledgeGraph(knowledgeGraph);
-    featureRecommender.setThoughtStream(thoughtStream);
-    services.featureRecommender = featureRecommender;
-
-    // 69. ContradictionResolver — resolve knowledge graph contradictions
-    const contradictionResolver = new ContradictionResolver(this.db!);
-    contradictionResolver.setKnowledgeGraph(knowledgeGraph);
-    services.contradictionResolver = contradictionResolver;
-
-    // 70. CheckpointManager — workflow state persistence for crash recovery & time-travel
-    const checkpointManager = new CheckpointManager(this.db!);
-    services.checkpointManager = checkpointManager;
-
-    // 71. TraceCollector — observability & tracing for all workflows
-    const traceCollector = new TraceCollector(this.db!);
-    services.traceCollector = traceCollector;
-
-    // 72. Messaging Bots — bidirectional Telegram/Discord (optional, if tokens configured)
-    const messageRouter = new MessageRouter({ brainName: 'brain' });
-    services.messageRouter = messageRouter;
-    this.telegramBot = new TelegramBot();
-    this.telegramBot.setRouter(messageRouter);
-    services.telegramBot = this.telegramBot;
-    this.discordBot = new DiscordBot();
-    this.discordBot.setRouter(messageRouter);
-    services.discordBot = this.discordBot;
-
-    // 73. Agent Training — BenchmarkSuite + AgentTrainer (eval harness with curriculum learning)
-    const benchmarkSuite = new BenchmarkSuite(this.db!);
-    const agentTrainer = new AgentTrainer(this.db!);
-    agentTrainer.setBenchmarkSuite(benchmarkSuite);
-    services.benchmarkSuite = benchmarkSuite;
-    services.agentTrainer = agentTrainer;
-
-    // 74. Tool Scoping — dynamic tool availability per workflow phase (LangGraph-inspired)
-    const toolScopeManager = new ToolScopeManager(this.db!);
-    toolScopeManager.registerDefaults();
-    services.toolScopeManager = toolScopeManager;
-
-    // 75. Plugin Marketplace — browse, install, rate plugins (OpenClaw-inspired)
-    const pluginMarketplace = new PluginMarketplace(this.db!, { brainVersion: getCurrentVersion() });
-    services.pluginMarketplace = pluginMarketplace;
-
-    // 76. Code Sandbox — isolated code execution with Docker/local fallback (AutoGen-inspired)
-    const codeSandbox = new CodeSandbox(this.db!);
-    services.codeSandbox = codeSandbox;
-
-    // 89. GuardrailEngine — self-protection: parameter bounds, circuit breaker, health checks
-    const guardrailEngine = new GuardrailEngine(this.db!, { brainName: 'brain' });
-    guardrailEngine.setParameterRegistry(parameterRegistry);
-    if (goalEngine) guardrailEngine.setGoalEngine(goalEngine);
-    guardrailEngine.setThoughtStream(thoughtStream);
-    this.guardrailEngine = guardrailEngine;
-    services.guardrailEngine = guardrailEngine;
-
-    // 86. CausalPlanner — root-cause diagnosis + intervention planning
-    const causalPlanner = new CausalPlanner(researchScheduler.causalGraph);
-    causalPlanner.setGoalEngine(goalEngine);
-    this.causalPlanner = causalPlanner;
-    services.causalPlanner = causalPlanner;
-
-    // 87. ResearchRoadmap — goal dependencies + multi-step research plans
-    runRoadmapMigration(this.db!);
-    const researchRoadmap = new ResearchRoadmap(this.db!, goalEngine);
-    researchRoadmap.setThoughtStream(thoughtStream);
-    this.researchRoadmap = researchRoadmap;
-    services.researchRoadmap = researchRoadmap;
-
-    // 88. CreativeEngine — cross-domain idea generation
-    runCreativeMigration(this.db!);
-    const creativeEngine = new CreativeEngine(this.db!, { brainName: 'brain' });
-    creativeEngine.setKnowledgeDistiller(this.orchestrator.knowledgeDistiller);
-    creativeEngine.setHypothesisEngine(researchScheduler.hypothesisEngine);
-    if (llmService) creativeEngine.setLLMService(llmService);
-    creativeEngine.setThoughtStream(thoughtStream);
-    this.creativeEngine = creativeEngine;
-    services.creativeEngine = creativeEngine;
-
-    // 91. ActionBridgeEngine — risk-assessed auto-execution of proposed actions
-    runActionBridgeMigration(this.db!);
-    const actionBridge = new ActionBridgeEngine(this.db!, { brainName: 'brain' });
-    services.actionBridge = actionBridge;
-
-    // 92. ContentForge — autonomous content generation + publishing
-    runContentForgeMigration(this.db!);
-    const contentForge = new ContentForge(this.db!, { brainName: 'brain' });
-    if (llmService) contentForge.setLLMService(llmService);
-    contentForge.setActionBridge(actionBridge);
-    services.contentForge = contentForge;
-
-    // 93. CodeForge — pattern extraction + auto-apply code changes
-    runCodeForgeMigration(this.db!);
-    const codeForge = new CodeForge(this.db!, { brainName: 'brain' });
-    codeForge.setActionBridge(actionBridge);
-    if (services.guardrailEngine) codeForge.setGuardrailEngine(services.guardrailEngine);
-    if (services.selfModificationEngine) codeForge.setSelfModificationEngine(services.selfModificationEngine);
-    if (services.codeHealthMonitor) codeForge.setCodeHealthMonitor(services.codeHealthMonitor);
-    services.codeForge = codeForge;
-
-    // 94. StrategyForge — autonomous strategy creation + execution
-    runStrategyForgeMigration(this.db!);
-    const strategyForge = new StrategyForge(this.db!, { brainName: 'brain' });
-    strategyForge.setActionBridge(actionBridge);
-    strategyForge.setKnowledgeDistiller(this.orchestrator.knowledgeDistiller);
-    services.strategyForge = strategyForge;
-
-    // CrossBrainSignalRouter — bidirectional signal routing
-    runSignalRouterMigration(this.db!);
-    const signalRouter = new CrossBrainSignalRouter(this.db!, 'brain');
-    if (this.notifier) signalRouter.setNotifier(this.notifier);
-    services.signalRouter = signalRouter;
-
-    // 100. ChatEngine — NLU-routed chat interface
-    runChatMigration(this.db!);
-    const chatEngine = new ChatEngine(this.db!, { brainName: 'brain' });
-    services.chatEngine = chatEngine;
-
-    // 101. SubAgentFactory — spawn specialized sub-agents
-    runSubAgentMigration(this.db!);
-    const subAgentFactory = new SubAgentFactory(this.db!);
-    services.subAgentFactory = subAgentFactory;
-
-    // ── Wire intelligence engines into autonomous ResearchOrchestrator ──
-    this.orchestrator.setFactExtractor(factExtractor);
-    this.orchestrator.setKnowledgeGraph(knowledgeGraph);
-    this.orchestrator.setSemanticCompressor(semanticCompressor);
-    this.orchestrator.setProactiveEngine(proactiveEngine);
-    this.orchestrator.setActiveLearner(activeLearner);
-    this.orchestrator.setRAGIndexer(ragIndexer);
-    this.orchestrator.setTeachingProtocol(teachingProtocol);
-    this.orchestrator.setCodeHealthMonitor(codeHealthMonitor);
-    this.orchestrator.setRepoAbsorber(repoAbsorber);
-    this.orchestrator.setFeatureRecommender(featureRecommender);
-    this.orchestrator.setFeatureExtractor(featureExtractor);
-    this.orchestrator.setContradictionResolver(contradictionResolver);
-    this.orchestrator.setCheckpointManager(checkpointManager);
-    this.orchestrator.setFeedbackEngine(feedbackEngine);
-    this.orchestrator.setUserModel(userModel);
-    this.orchestrator.setConsensusEngine(consensusEngine);
-    this.orchestrator.setTraceCollector(traceCollector);
-    this.orchestrator.setGuardrailEngine(guardrailEngine);
-    this.orchestrator.setCausalPlanner(causalPlanner);
-    this.orchestrator.setResearchRoadmap(researchRoadmap);
-    this.orchestrator.setCreativeEngine(creativeEngine);
-    this.orchestrator.setActionBridge(actionBridge);
-    this.orchestrator.setContentForge(contentForge);
-    this.orchestrator.setCodeForge(codeForge);
-    this.orchestrator.setStrategyForge(strategyForge);
-
-    logger.info('Intelligence upgrade active (RAG, KG, Compression, Feedback, Tool-Learning, Proactive, UserModel, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber, Guardrails, CausalPlanner, Roadmap, Creative — all wired into orchestrator)');
-
-    logger.info('Research orchestrator started (48+ steps, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active)');
-
-    // 11k. Signal Scanner — GitHub/HN/Crypto signal tracking
-    if (config.scanner.enabled) {
-      const signalScanner = new SignalScanner(this.db!, config.scanner);
-      this.orchestrator.setSignalScanner(signalScanner);
-      signalScanner.start();
-      services.signalScanner = signalScanner;
-      logger.info(`Signal scanner started (interval: ${config.scanner.scanIntervalMs}ms, token: ${config.scanner.githubToken ? 'yes' : 'NO — set GITHUB_TOKEN'})`);
-    }
-
-    // 11k2. TechRadar Engine — daily tech trend scanning + relevance analysis
-    try {
-      runTechRadarMigration(this.db!);
-      const techRadar = new TechRadarEngine(this.db!, {
-        githubToken: config.scanner.githubToken,
-      });
-      if (llmService) techRadar.setLLMService(llmService);
-      techRadar.start();
-      services.techRadar = techRadar;
-      logger.info('TechRadar engine started');
-    } catch (err) {
-      logger.warn(`TechRadar setup failed (non-critical): ${(err as Error).message}`);
-    }
-
-    // 11k3. NotificationService — multi-channel notifications
-    try {
-      runNotificationMigration(this.db!);
-      const notificationService = new MultiChannelNotificationService(this.db!);
-      // Auto-register available providers
-      const discordProvider = new DiscordProvider();
-      const telegramProvider = new TelegramProvider();
-      const emailProvider = new EmailProvider();
-      discordProvider.isAvailable().then(ok => {
-        if (ok) { notificationService.registerProvider(discordProvider); logger.info('Discord notification provider registered'); }
-      }).catch(() => {});
-      telegramProvider.isAvailable().then(ok => {
-        if (ok) { notificationService.registerProvider(telegramProvider); logger.info('Telegram notification provider registered'); }
-      }).catch(() => {});
-      emailProvider.isAvailable().then(ok => {
-        if (ok) { notificationService.registerProvider(emailProvider); logger.info('Email notification provider registered'); }
-      }).catch(() => {});
-      services.multiChannelNotifications = notificationService;
-      logger.info('NotificationService initialized');
-    } catch (err) {
-      logger.warn(`NotificationService setup failed (non-critical): ${(err as Error).message}`);
-    }
-
-    // 11l. CodeMiner — mine repo contents from GitHub (needs GITHUB_TOKEN)
-    let patternExtractor: PatternExtractor | undefined;
-    if (config.scanner.githubToken) {
-      const codeMiner = new CodeMiner(this.db!, { githubToken: config.scanner.githubToken });
-      patternExtractor = new PatternExtractor(this.db!);
-      this.orchestrator.setCodeMiner(codeMiner);
-      services.codeMiner = codeMiner;
-      services.patternExtractor = patternExtractor;
-      void codeMiner.bootstrap();
-      logger.info('CodeMiner activated (GITHUB_TOKEN set)');
-    }
-
-    // 11m. CodeGenerator — autonomous code generation (needs ANTHROPIC_API_KEY)
-    if (process.env.ANTHROPIC_API_KEY) {
-      const codeGenerator = new CodeGenerator(this.db!, { brainName: 'brain', apiKey: process.env.ANTHROPIC_API_KEY });
-      const contextBuilder = new ContextBuilder(
-        this.orchestrator.knowledgeDistiller,
-        this.orchestrator.journal,
-        patternExtractor ?? null,
-        services.signalScanner ?? null,
-      );
-      codeGenerator.setContextBuilder(contextBuilder);
-      codeGenerator.setThoughtStream(thoughtStream);
-      this.orchestrator.setCodeGenerator(codeGenerator);
-      services.codeGenerator = codeGenerator;
-
-      logger.info('CodeGenerator activated (ANTHROPIC_API_KEY set)');
-
-      // Wire ContextBuilder with SelfScanner into SelfModificationEngine
-      if (services.selfModificationEngine && services.selfScanner) {
-        const selfmodCtx = new ContextBuilder(
-          this.orchestrator.knowledgeDistiller,
-          this.orchestrator.journal,
-          patternExtractor ?? null,
-          services.signalScanner ?? null,
-        );
-        selfmodCtx.setSelfScanner(services.selfScanner);
-        services.selfModificationEngine.setContextBuilder(selfmodCtx);
-      }
-    }
+    // ── Intelligence Upgrade + Forges + Scanners (extracted to engine-factory.ts) ──
+    const intelligenceResult = createIntelligenceEngines({
+      db: this.db!, config, services, embeddingEngine: this.embeddingEngine,
+      orchestrator: this.orchestrator, researchScheduler, thoughtStream,
+      llmService, notifier: this.notifier, goalEngine,
+    });
+    this.guardrailEngine = intelligenceResult.guardrailEngine;
+    this.causalPlanner = intelligenceResult.causalPlanner;
+    this.researchRoadmap = intelligenceResult.researchRoadmap;
+    this.creativeEngine = intelligenceResult.creativeEngine;
+    this.telegramBot = intelligenceResult.telegramBot;
+    this.discordBot = intelligenceResult.discordBot;
+    const chatEngine = services.chatEngine!;
 
 
     // 11c. Watchdog — monitoring only (detect peers via PID, run health checks)
@@ -1149,108 +830,10 @@ export class BrainCore {
     services.borgSync = this.borgSync;
 
     // 11f. Command Center Dashboard
-    this.commandCenter = new CommandCenterServer({
-      port: 7790,
-      selfName: 'brain',
-      crossBrain: this.crossBrain,
-      ecosystemService: this.ecosystemService!,
-      correlator: this.correlator!,
-      watchdog,
-      pluginRegistry: this.pluginRegistry,
-      borgSync: this.borgSync,
-      thoughtStream,
-      getLLMStats: () => services.llmService?.getStats() ?? null,
-      getLLMHistory: (hours: number) => services.llmService?.getUsageHistory(hours) ?? [],
-      getErrors: () => {
-        const errors = services.error?.query({ limit: 20 }) ?? [];
-        const summary = services.analytics?.getSummary() ?? null;
-        return { errors, summary };
-      },
-      getSelfModStatus: () => services.selfModificationEngine?.getStatus() ?? null,
-      getSelfModHistory: (limit = 10) => services.selfModificationEngine?.getHistory(limit) ?? [],
-      selfmodApprove: (id: number) => services.selfModificationEngine?.approveModification(id),
-      selfmodReject: (id: number, notes?: string) => services.selfModificationEngine?.rejectModification(id, notes),
-      getMissions: () => services.missionEngine?.getStatus() ?? null,
-      getMissionList: (status?: string, limit = 20) => services.missionEngine?.listMissions(status as never, limit) ?? [],
-      getKnowledgeStats: () => {
-        const timeSeries = services.analytics?.getTimeSeries(undefined, 30) ?? [];
-        const summary = services.analytics?.getSummary();
-        const kgFacts = services.knowledgeGraph?.getStatus()?.totalFacts ?? 0;
-        const selfModStatus = services.selfModificationEngine?.getStatus();
-        return {
-          totals: {
-            principles: kgFacts + (summary?.rules?.active ?? 0),
-            hypotheses: summary?.insights?.active ?? 0,
-            experiments: (selfModStatus?.totalModifications ?? 0) + (summary?.antipatterns?.total ?? 0),
-            solutions: (summary?.solutions?.total ?? 0) + (selfModStatus?.byStatus?.['applied'] ?? 0),
-          },
-          timeSeries,
-        };
-      },
-      getRepoAbsorberStatus: () => services.repoAbsorber?.getStatus() ?? null,
-      getRepoAbsorberHistory: (limit = 10) => services.repoAbsorber?.getHistory(limit) ?? [],
-      getIntelligenceStats: () => ({
-        rag: services.ragEngine?.getStatus() ?? null,
-        ragIndexer: services.ragIndexer?.getStatus() ?? null,
-        kg: services.knowledgeGraph?.getStatus() ?? null,
-        contradictionResolver: services.contradictionResolver?.getStatus() ?? null,
-        feedback: services.feedbackEngine?.getStats() ?? null,
-        toolStats: services.toolTracker?.getToolStats() ?? [],
-        proactive: services.proactiveEngine?.getStatus() ?? null,
-        userModel: services.userModel?.getStatus() ?? null,
-        userProfile: services.userModel?.getProfile() ?? null,
-        goals: services.goalEngine ? (() => {
-          const status = services.goalEngine.getStatus();
-          const activeGoals = services.goalEngine.listGoals('active');
-          const progressList = activeGoals.map(g => ({
-            ...g,
-            progress: services.goalEngine!.getProgress(g.id!),
-          }));
-          return { ...status, progressList };
-        })() : null,
-        recommender: services.featureRecommender ? {
-          ...services.featureRecommender.getStatus(),
-          wishlist: services.featureRecommender.getWishlist()
-            .filter(w => w.status !== 'satisfied' && w.status !== 'dismissed'),
-          connections: services.featureRecommender.getConnections(),
-        } : null,
-        checkpoints: services.checkpointManager?.getStatus() ?? null,
-        traces: services.traceCollector?.getStatus() ?? null,
-        benchmark: services.benchmarkSuite?.getStatus() ?? null,
-        trainer: services.agentTrainer?.getStatus() ?? null,
-        toolScoping: services.toolScopeManager?.getStatus() ?? null,
-        marketplace: services.pluginMarketplace?.getStatus() ?? null,
-        sandbox: services.codeSandbox?.getStatus() ?? null,
-      }),
-      getEmotionalStatus: () => {
-        const mood = (services.emotionalModel as EmotionalModel)?.getMood?.();
-        return mood ?? { mood: 'reflective', score: 0.5, valence: 0, arousal: 0, dimensions: {} };
-      },
-      getGuardrailHealth: () => services.guardrailEngine?.checkHealth() ?? null,
-      getRoadmaps: () => services.researchRoadmap?.listRoadmaps() ?? [],
-      getCreativeInsights: () => services.creativeEngine?.getInsights(20) ?? [],
-      getActionBridgeStatus: () => services.actionBridge?.getStatus() ?? null,
-      getContentForgeStatus: () => services.contentForge?.getStatus() ?? null,
-      getStrategyForgeStatus: () => services.strategyForge?.getStatus() ?? null,
-      getSignalRouterStatus: () => services.signalRouter?.getStatus() ?? null,
-      chatMessage: async (sessionId: string, content: string) => services.chatEngine?.processMessage(sessionId, content) ?? null,
-      chatHistory: (sessionId: string) => services.chatEngine?.getHistory(sessionId) ?? [],
-      chatStatus: () => services.chatEngine?.getStatus() ?? null,
-      getDebateStatus: () => this.debateEngine?.getStatus() ?? null,
-      getDebateList: (limit = 10) => this.debateEngine?.listDebates(limit) ?? [],
-      getChallengeHistory: (limit = 20) => this.debateEngine?.getChallengeHistory(limit) ?? [],
-      getChallengeVulnerable: (limit = 5) => this.debateEngine?.getMostVulnerable(limit) ?? [],
-      triggerAction: async (action: string) => {
-        switch (action) {
-          case 'learning-cycle':
-            services.learning?.runCycle();
-            return { triggered: true };
-          case 'health-check':
-            return services.analytics?.getSummary() ?? {};
-          default:
-            return { triggered: false, message: `Unknown action: ${action}` };
-        }
-      },
+    this.commandCenter = createCommandCenter({
+      services, crossBrain: this.crossBrain!, ecosystemService: this.ecosystemService!,
+      correlator: this.correlator!, watchdog, pluginRegistry: this.pluginRegistry!,
+      borgSync: this.borgSync!, thoughtStream, debateEngine: this.debateEngine,
     });
     this.commandCenter.start();
     services.commandCenter = this.commandCenter;
@@ -1372,16 +955,16 @@ export class BrainCore {
     }, 60_000);
 
     // 12b. DB retention cleanup + VACUUM (once at start, then every 24h)
-    this.runRetentionCleanup(this.db!, config);
+    runRetentionHelper(this.db!, config);
     this.retentionTimer = setInterval(() => {
-      if (this.db && this.config) this.runRetentionCleanup(this.db, this.config);
+      if (this.db && this.config) runRetentionHelper(this.db, this.config);
     }, 24 * 60 * 60 * 1000);
 
     // 13. Event listeners (synapse wiring)
-    this.setupEventListeners(services, synapseManager);
+    setupEventListeners(services, synapseManager, this.notifier, this.correlator, this.orchestrator);
 
     // 13b. Cross-Brain Event Subscriptions
-    this.setupCrossBrainSubscriptions();
+    setupCrossBrainSubscriptions(this.subscriptionManager, this.correlator, this.orchestrator);
 
     // 13c. Project Watch — rescan known projects on startup (delayed 5min)
     setTimeout(() => {
@@ -1418,103 +1001,29 @@ export class BrainCore {
     process.on('SIGTERM', () => this.stop());
 
     // 16. Crash recovery — auto-restart on uncaught errors (with loop protection)
-    process.on('uncaughtException', (err) => {
-      // EPIPE = writing to closed stdout/stderr (daemon mode) — ignore silently
-      if ((err as NodeJS.ErrnoException).code === 'EPIPE') return;
-      try { logger.error('Uncaught exception', { error: err.message, stack: err.stack }); } catch { /* logger may be broken */ }
-      this.logCrash('uncaughtException', err);
-      // Don't restart on port conflicts — it will just loop
-      if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
-        try { logger.error('Port conflict during restart — stopping to prevent crash loop'); } catch { /* ignore */ }
-        return;
-      }
-      this.restart();
-    });
-    process.on('unhandledRejection', (reason) => {
-      try { logger.error('Unhandled rejection', { reason: String(reason) }); } catch { /* logger may be broken */ }
-      this.logCrash('unhandledRejection', reason instanceof Error ? reason : new Error(String(reason)));
-      this.restart();
-    });
+    setupCrashRecovery(config, () => this.restart());
 
     logger.info(`Brain daemon started (PID: ${process.pid})`);
   }
 
   private logCrash(type: string, err: Error): void {
-    if (!this.config) return;
-    const crashLog = path.join(path.dirname(this.config.dbPath), 'crashes.log');
-    const entry = `[${new Date().toISOString()}] ${type}: ${err.message}\n${err.stack ?? ''}\n\n`;
-    try {
-      // Rotate crash log if > 5MB (max 1 rotation = 10MB total)
-      try {
-        const stat = fs.statSync(crashLog);
-        if (stat.size > 5 * 1024 * 1024) {
-          const rotated = crashLog.replace('.log', '.1.log');
-          try { fs.unlinkSync(rotated); } catch { /* no previous rotation */ }
-          fs.renameSync(crashLog, rotated);
-        }
-      } catch { /* file doesn't exist yet */ }
-      fs.appendFileSync(crashLog, entry);
-    } catch { /* best effort */ }
-  }
-
-  private runRetentionCleanup(db: Database.Database, config: BrainConfig): void {
-    const logger = getLogger();
-    try {
-      const now = Date.now();
-      const errorCutoff = new Date(now - config.retention.errorDays * 86_400_000).toISOString();
-      const insightCutoff = new Date(now - config.retention.insightDays * 2 * 86_400_000).toISOString();
-
-      // Delete resolved errors older than retention period
-      const errResult = db.prepare("DELETE FROM errors WHERE status = 'resolved' AND created_at < ?").run(errorCutoff);
-      // Delete inactive insights older than 2× insightDays
-      const insResult = db.prepare("DELETE FROM insights WHERE status = 'inactive' AND created_at < ?").run(insightCutoff);
-
-      if (Number(errResult.changes) > 0 || Number(insResult.changes) > 0) {
-        logger.info(`[retention] Cleaned up ${errResult.changes} old errors, ${insResult.changes} old insights`);
-      }
-
-      // Optimize DB
-      db.pragma('optimize');
-      logger.debug('[retention] DB optimized');
-    } catch (err) {
-      logger.warn(`[retention] Cleanup failed (non-critical): ${(err as Error).message}`);
-    }
+    logCrashHelper(this.config, type, err);
   }
 
   private cleanup(): void {
-    if (this.cleanupTimer) {
-      clearInterval(this.cleanupTimer);
-      this.cleanupTimer = null;
-    }
-    if (this.retentionTimer) {
-      clearInterval(this.retentionTimer);
-      this.retentionTimer = null;
-    }
-
-    this.borgSync?.stop();
-    // Stop messaging bots
-    this.telegramBot?.stop().catch(() => {});
-    this.discordBot?.stop().catch(() => {});
-    this.peerNetwork?.stopDiscovery();
-    // Unload all plugins gracefully
-    if (this.pluginRegistry?.size) {
-      for (const p of this.pluginRegistry.list()) {
-        this.pluginRegistry.unloadPlugin(p.name).catch(() => {});
-      }
-    }
-    this.subscriptionManager?.disconnectAll();
-    this.attentionEngine?.stop();
-    this.commandCenter?.stop();
-    this.orchestrator?.stop();
-    this.researchScheduler?.stop();
-    this.researchEngine?.stop();
-    this.embeddingEngine?.stop();
-    this.learningEngine?.stop();
-    this.mcpHttpServer?.stop();
-    this.apiServer?.stop();
-    this.ipcServer?.stop();
-    this.db?.close();
-
+    cleanupEngines({
+      cleanupTimer: this.cleanupTimer, retentionTimer: this.retentionTimer,
+      borgSync: this.borgSync, telegramBot: this.telegramBot, discordBot: this.discordBot,
+      peerNetwork: this.peerNetwork, pluginRegistry: this.pluginRegistry,
+      subscriptionManager: this.subscriptionManager, attentionEngine: this.attentionEngine,
+      commandCenter: this.commandCenter, orchestrator: this.orchestrator,
+      researchScheduler: this.researchScheduler, researchEngine: this.researchEngine,
+      embeddingEngine: this.embeddingEngine, learningEngine: this.learningEngine,
+      mcpHttpServer: this.mcpHttpServer, apiServer: this.apiServer,
+      ipcServer: this.ipcServer, db: this.db,
+    });
+    this.cleanupTimer = null;
+    this.retentionTimer = null;
     this.db = null;
     this.ipcServer = null;
     this.apiServer = null;
@@ -1594,156 +1103,4 @@ export class BrainCore {
     logger.end();
   }
 
-  private setupCrossBrainSubscriptions(): void {
-    if (!this.subscriptionManager || !this.correlator) return;
-    const logger = getLogger();
-    const correlator = this.correlator;
-
-    // Subscribe to trading-brain: trade:completed events for error-trade correlation
-    this.subscriptionManager.subscribe('trading-brain', ['trade:completed'], (event: string, data: unknown) => {
-      logger.info(`[cross-brain] Received ${event} from trading-brain`, { data });
-      correlator.recordEvent('trading-brain', event, data);
-      this.orchestrator?.onCrossBrainEvent('trading-brain', event, data as Record<string, unknown>);
-    });
-
-    // Subscribe to trading-brain: trade:outcome for win/loss correlation with errors
-    this.subscriptionManager.subscribe('trading-brain', ['trade:outcome'], (event: string, data: unknown) => {
-      correlator.recordEvent('trading-brain', event, data);
-      this.orchestrator?.onCrossBrainEvent('trading-brain', event, data as Record<string, unknown>);
-      const d = data as Record<string, unknown> | null;
-      if (d && d.win === false) {
-        // Check if correlator detected error-trade-loss pattern
-        const lossCorrelations = correlator.getCorrelations(0.3)
-          .filter(c => c.type === 'error-trade-loss');
-        if (lossCorrelations.length > 0) {
-          logger.warn(`[cross-brain] Trade loss correlated with recent errors (strength: ${lossCorrelations[0].strength.toFixed(2)})`);
-        }
-      }
-    });
-
-    // Subscribe to marketing-brain: post:published events for project activity tracking
-    this.subscriptionManager.subscribe('marketing-brain', ['post:published'], (event: string, data: unknown) => {
-      logger.info(`[cross-brain] Received ${event} from marketing-brain`, { data });
-      correlator.recordEvent('marketing-brain', event, data);
-      this.orchestrator?.onCrossBrainEvent('marketing-brain', event, data as Record<string, unknown>);
-    });
-
-    // Subscribe to marketing-brain: campaign:created for ecosystem awareness
-    this.subscriptionManager.subscribe('marketing-brain', ['campaign:created'], (event: string, data: unknown) => {
-      correlator.recordEvent('marketing-brain', event, data);
-      this.orchestrator?.onCrossBrainEvent('marketing-brain', event, data as Record<string, unknown>);
-    });
-  }
-
-  private setupEventListeners(services: Services, synapseManager: SynapseManager): void {
-    const bus = getEventBus();
-    const notifier = this.notifier;
-    const webhook = services.webhook;
-    const causal = services.causal;
-    const hypothesis = services.hypothesis;
-    const orch = this.orchestrator;
-
-    // Error → Project synapse + notify peers + feed correlator + webhooks + causal + hypothesis + orchestrator + prediction
-    bus.on('error:reported', ({ errorId, projectId }) => {
-      synapseManager.strengthen(
-        { type: 'error', id: errorId },
-        { type: 'project', id: projectId },
-        'co_occurs',
-      );
-      notifier?.notify('error:reported', { errorId, projectId });
-      this.correlator?.recordEvent('brain', 'error:reported', { errorId, projectId });
-      webhook?.fire('error:reported', { errorId, projectId });
-      causal?.recordEvent('brain', 'error:reported', { errorId, projectId });
-      hypothesis?.observe({ source: 'brain', type: 'error:reported', value: 1, timestamp: Date.now() });
-      orch?.onEvent('error:reported', { errorId, projectId });
-    });
-
-    // Solution applied → strengthen or weaken
-    bus.on('solution:applied', ({ errorId, solutionId, success }) => {
-      if (success) {
-        synapseManager.strengthen(
-          { type: 'solution', id: solutionId },
-          { type: 'error', id: errorId },
-          'solves',
-        );
-      } else {
-        const synapse = synapseManager.find(
-          { type: 'solution', id: solutionId },
-          { type: 'error', id: errorId },
-          'solves',
-        );
-        if (synapse) synapseManager.weaken(synapse.id, 0.7);
-      }
-    });
-
-    // Module registered → link to project
-    bus.on('module:registered', ({ moduleId, projectId }) => {
-      synapseManager.strengthen(
-        { type: 'code_module', id: moduleId },
-        { type: 'project', id: projectId },
-        'co_occurs',
-      );
-    });
-
-    // Rule learned → log + causal + hypothesis
-    bus.on('rule:learned', ({ ruleId, pattern }) => {
-      getLogger().info(`New rule #${ruleId} learned: ${pattern}`);
-      causal?.recordEvent('brain', 'rule:learned', { ruleId, pattern });
-      hypothesis?.observe({ source: 'brain', type: 'rule:learned', value: 1, timestamp: Date.now() });
-      orch?.onEvent('rule:learned', { ruleId });
-    });
-
-    // Insight created → log + notify marketing (content opportunity) + feed correlator + webhooks + causal + hypothesis
-    bus.on('insight:created', ({ insightId, type }) => {
-      getLogger().info(`New insight #${insightId} (${type})`);
-      notifier?.notifyPeer('marketing-brain', 'insight:created', { insightId, type });
-      this.correlator?.recordEvent('brain', 'insight:created', { insightId, type });
-      webhook?.fire('insight:created', { insightId, type });
-      causal?.recordEvent('brain', 'insight:created', { insightId, type });
-      hypothesis?.observe({ source: 'brain', type: 'insight:created', value: 1, timestamp: Date.now() });
-      orch?.onEvent('insight:created', { insightId, type });
-    });
-
-    // Solution applied → orchestrator
-    bus.on('solution:applied', ({ errorId, solutionId, success }) => {
-      orch?.onEvent('solution:applied', { errorId, solutionId, success: success ? 1 : 0 });
-    });
-
-    // Memory → Project synapse
-    bus.on('memory:created', ({ memoryId, projectId }) => {
-      if (projectId) {
-        synapseManager.strengthen(
-          { type: 'memory', id: memoryId },
-          { type: 'project', id: projectId },
-          'co_occurs',
-        );
-      }
-    });
-
-    // Session → Project synapse
-    bus.on('session:ended', ({ sessionId }) => {
-      getLogger().info(`Session #${sessionId} ended`);
-    });
-
-    // Decision → Project synapse
-    bus.on('decision:recorded', ({ decisionId, projectId }) => {
-      if (projectId) {
-        synapseManager.strengthen(
-          { type: 'decision', id: decisionId },
-          { type: 'project', id: projectId },
-          'co_occurs',
-        );
-      }
-    });
-
-    // Task created → log
-    bus.on('task:created', ({ taskId }) => {
-      getLogger().info(`Task #${taskId} created`);
-    });
-
-    // Task completed → log
-    bus.on('task:completed', ({ taskId }) => {
-      getLogger().info(`Task #${taskId} completed`);
-    });
-  }
 }

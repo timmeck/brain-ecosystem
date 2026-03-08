@@ -6,6 +6,7 @@ import { getLogger } from '../utils/logger.js';
 import type { ContextBuilder } from '../codegen/context-builder.js';
 import type { SelfScanner } from '../self-scanner/self-scanner.js';
 import type { ThoughtStream } from '../consciousness/thought-stream.js';
+import type { CodeSandbox } from '../sandbox/code-sandbox.js';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -168,6 +169,7 @@ export class SelfModificationEngine {
   private contextBuilder: ContextBuilder | null = null;
   private selfScanner: SelfScanner | null = null;
   private ts: ThoughtStream | null = null;
+  private sandbox: CodeSandbox | null = null;
 
   // Rate limiting
   private recentGenerations: number[] = [];
@@ -224,6 +226,7 @@ export class SelfModificationEngine {
   setContextBuilder(cb: ContextBuilder): void { this.contextBuilder = cb; }
   setSelfScanner(scanner: SelfScanner): void { this.selfScanner = scanner; }
   setThoughtStream(ts: ThoughtStream): void { this.ts = ts; }
+  setSandbox(sandbox: CodeSandbox): void { this.sandbox = sandbox; }
 
   /** Propose a new self-modification with optional structured metadata. */
   proposeModification(title: string, problem: string, targetFiles: string[], sourceEngine = 'orchestrator', meta?: ProposalMeta): SelfModification {
@@ -445,18 +448,54 @@ export class SelfModificationEngine {
   }
 
   /** Test a modification by writing files, building, running tests, then restoring. */
-  testModification(modificationId: number): SelfModification {
+  async testModification(modificationId: number): Promise<SelfModification> {
     const mod = this.getModification(modificationId);
     if (!mod) throw new Error(`Modification #${modificationId} not found`);
     if (!mod.generated_diff || mod.generated_diff.length === 0) {
       throw new Error(`Modification #${modificationId} has no generated code`);
     }
+    this.updateModification(modificationId, { status: 'testing' });
+    this.ts?.emit('self-modification', 'analyzing', `Testing: ${mod.title}`, 'notable');
+
+    // 0. Sandbox pre-validation (if available) — validate syntax before touching real files
+    if (this.sandbox) {
+      let sandboxOutput = '';
+      for (const diff of mod.generated_diff) {
+        try {
+          const result = await this.sandbox.execute({
+            code: diff.newContent,
+            language: 'typescript',
+            timeoutMs: 10_000,
+            name: `selfmod-validate-${modificationId}`,
+          });
+          sandboxOutput += `[sandbox:${diff.filePath}] exit=${result.exitCode} ${result.stderr ? `stderr: ${result.stderr.slice(0, 200)}` : 'OK'}\n`;
+          if (result.exitCode !== 0 && !result.timedOut) {
+            // Sandbox detected a problem — skip npm test
+            this.updateModification(modificationId, {
+              status: 'failed',
+              test_result: 'failed',
+              test_output: `=== SANDBOX VALIDATION FAILED ===\n${sandboxOutput}\n${result.stderr ?? result.stdout ?? ''}`,
+            });
+            this.log.warn(`[self-mod] Sandbox validation failed for #${modificationId}: ${diff.filePath}`);
+            return this.getModification(modificationId)!;
+          }
+        } catch (sandboxErr) {
+          sandboxOutput += `[sandbox:${diff.filePath}] error: ${(sandboxErr as Error).message}\n`;
+          this.updateModification(modificationId, {
+            status: 'failed',
+            test_result: 'failed',
+            test_output: `=== SANDBOX ERROR ===\n${sandboxOutput}`,
+          });
+          this.log.warn(`[self-mod] Sandbox error for #${modificationId}: ${(sandboxErr as Error).message}`);
+          return this.getModification(modificationId)!;
+        }
+      }
+      this.log.info(`[self-mod] Sandbox validation passed for #${modificationId}`);
+    }
+
     if (!this.config.projectRoot) {
       throw new Error('projectRoot not configured');
     }
-
-    this.updateModification(modificationId, { status: 'testing' });
-    this.ts?.emit('self-modification', 'analyzing', `Testing: ${mod.title}`, 'notable');
 
     const rollbackData: FileDiff[] = [];
 

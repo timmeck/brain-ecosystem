@@ -163,4 +163,106 @@ describe('ChatEngine', () => {
     const response = await engine.processMessage('s1', 'Status');
     expect(response.content).toContain('Keine Daten');
   });
+
+  // ── Extended keyword mapping tests (Session 105) ──
+
+  it('routes error queries to error.query', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue([{ message: 'test error' }]);
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['error.query']);
+
+    await engine.processMessage('s1', 'Zeig mir die Fehler');
+    expect(handler).toHaveBeenCalledWith('error.query', expect.any(Object));
+  });
+
+  it('routes code queries to code.stats', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue({ modules: 5 });
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['code.stats']);
+
+    await engine.processMessage('s1', 'Welche Module sind registriert?');
+    expect(handler).toHaveBeenCalledWith('code.stats', expect.any(Object));
+  });
+
+  it('routes guardrail queries to guardrail.status', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue({ circuitBreaker: 'closed' });
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['guardrail.status']);
+
+    await engine.processMessage('s1', 'Wie ist der Guardrail-Status?');
+    expect(handler).toHaveBeenCalledWith('guardrail.status', expect.any(Object));
+  });
+
+  it('routes goal queries to goal.status', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue({ activeGoals: 2 });
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['goal.status']);
+
+    await engine.processMessage('s1', 'Was sind die aktuellen Ziele?');
+    expect(handler).toHaveBeenCalledWith('goal.status', expect.any(Object));
+  });
+
+  it('routes creative queries to creative.status', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue({ ideas: 10 });
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['creative.status']);
+
+    await engine.processMessage('s1', 'Kreative Ideen anzeigen');
+    expect(handler).toHaveBeenCalledWith('creative.status', expect.any(Object));
+  });
+
+  it('routes LLM queries to llm.status', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue({ calls: 5, tokens: 50000 });
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['llm.status']);
+
+    await engine.processMessage('s1', 'LLM Token-Verbrauch');
+    expect(handler).toHaveBeenCalledWith('llm.status', expect.any(Object));
+  });
+
+  it('routes watchdog queries to watchdog.status', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue({ daemons: 3 });
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['watchdog.status']);
+
+    await engine.processMessage('s1', 'Watchdog daemon status');
+    expect(handler).toHaveBeenCalledWith('watchdog.status', expect.any(Object));
+  });
+
+  it('routes dream queries to dream.status', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue({ cycles: 42 });
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['dream.status']);
+
+    await engine.processMessage('s1', 'Dream consolidation status');
+    expect(handler).toHaveBeenCalledWith('dream.status', expect.any(Object));
+  });
+
+  it('routes prediction queries to prediction.status', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue({ accuracy: 0.7 });
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['prediction.status']);
+
+    await engine.processMessage('s1', 'Vorhersage Genauigkeit');
+    expect(handler).toHaveBeenCalledWith('prediction.status', expect.any(Object));
+  });
+
+  it('routes mission queries to mission.list', async () => {
+    const engine = new ChatEngine(db, { brainName: 'test' });
+    const handler = vi.fn().mockResolvedValue([]);
+    engine.setIpcHandler(handler);
+    engine.setAvailableRoutes(['mission.list']);
+
+    await engine.processMessage('s1', 'Zeig mir die research missions');
+    expect(handler).toHaveBeenCalledWith('mission.list', expect.any(Object));
+  });
 });
