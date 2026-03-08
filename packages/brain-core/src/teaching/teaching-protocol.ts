@@ -88,6 +88,7 @@ export class TeachingProtocol {
   private readonly config: Required<TeachingConfig>;
   private readonly log = getLogger();
   private ts: ThoughtStream | null = null;
+  private notifier: { notifyPeer(peer: string, event: string, data: unknown): Promise<void> } | null = null;
 
   // Prepared statements
   private readonly stmtInsertLesson: Database.Statement;
@@ -139,6 +140,10 @@ export class TeachingProtocol {
     this.ts = stream;
   }
 
+  setNotifier(notifier: { notifyPeer(peer: string, event: string, data: unknown): Promise<void> }): void {
+    this.notifier = notifier;
+  }
+
   // ── Core: Teach ──────────────────────────────────────
 
   teach(targetBrain: string, lesson: LessonInput): Lesson {
@@ -165,6 +170,19 @@ export class TeachingProtocol {
     );
 
     this.log.debug(`[TeachingProtocol] Taught ${targetBrain}: ${lesson.domain}`);
+
+    // Actually deliver the lesson to the peer brain via IPC
+    if (this.notifier) {
+      this.notifier.notifyPeer(targetBrain, 'teaching.learn', {
+        sourceBrain: this.config.brainName,
+        domain: lesson.domain,
+        principle: lesson.principle,
+        evidence: lesson.evidence,
+        applicability,
+      }).catch((err) => {
+        this.log.warn(`[TeachingProtocol] Failed to deliver lesson to ${targetBrain}: ${(err as Error).message}`);
+      });
+    }
 
     return {
       id: Number(info.lastInsertRowid),

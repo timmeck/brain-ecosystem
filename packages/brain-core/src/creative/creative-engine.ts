@@ -116,7 +116,35 @@ export class CreativeEngine {
       byDomain.set(p.domain, list);
     }
 
-    const domains = [...byDomain.keys()];
+    let domains = [...byDomain.keys()];
+
+    // Fallback: if only 1 domain, split principles into keyword-based sub-groups
+    if (domains.length < 2 && principles.length >= 4) {
+      const singleDomain = domains[0];
+      const all = byDomain.get(singleDomain)!;
+      byDomain.clear();
+
+      // Split by first significant keyword (5+ chars) for diversity
+      for (const p of all) {
+        const keywords = this.tokenize(p.text).filter(w => w.length >= 5);
+        const groupKey = keywords[0] ?? 'general';
+        const subDomain = `${singleDomain}/${groupKey}`;
+        const list = byDomain.get(subDomain) ?? [];
+        list.push({ text: p.text, domain: subDomain });
+        byDomain.set(subDomain, list);
+      }
+
+      domains = [...byDomain.keys()];
+      // If we still can't get 2 groups, split in half
+      if (domains.length < 2 && all.length >= 2) {
+        byDomain.clear();
+        const half = Math.ceil(all.length / 2);
+        byDomain.set(`${singleDomain}/A`, all.slice(0, half).map(p => ({ text: p.text, domain: `${singleDomain}/A` })));
+        byDomain.set(`${singleDomain}/B`, all.slice(half).map(p => ({ text: p.text, domain: `${singleDomain}/B` })));
+        domains = [...byDomain.keys()];
+      }
+    }
+
     if (domains.length < 2) return insights;
 
     // Cross-pollinate between domains

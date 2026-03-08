@@ -301,6 +301,14 @@ export class PredictionEngine {
     return this.tracker.getAccuracy(domain);
   }
 
+  /** Get calibration data — offset and accuracy by domain. */
+  getCalibration(): { offset: number; accuracyByDomain: PredictionAccuracy[] } {
+    return {
+      offset: this.calibrationOffset,
+      accuracyByDomain: this.tracker.getAccuracy(),
+    };
+  }
+
   /** Get full prediction summary. */
   getSummary(): PredictionSummary {
     const state = this.db.prepare('SELECT * FROM prediction_state WHERE id = 1').get() as Record<string, unknown> | undefined;

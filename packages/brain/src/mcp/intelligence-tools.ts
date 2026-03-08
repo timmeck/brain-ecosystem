@@ -269,6 +269,17 @@ function registerIntelligenceToolsWithCaller(server: McpServer, call: BrainCall)
     },
   );
 
+  // ── Self-Improvement Desires ─────────────────────────────────
+  server.tool(
+    'brain_desires',
+    'Get Brain\'s self-improvement desires and wishes — what Brain wants to learn, fix, or build',
+    {},
+    async () => {
+      const result = await call('desires.structured');
+      return textResult(result);
+    },
+  );
+
   // ── Consensus Decisions ─────────────────────────────────────
   server.tool(
     'brain_propose_consensus',

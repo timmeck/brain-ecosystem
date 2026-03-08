@@ -313,4 +313,14 @@ describe('PredictionEngine', () => {
     // stopping again is safe
     expect(() => engine.stop()).not.toThrow();
   });
+
+  // ── getCalibration ─────────────────────────────────────
+
+  it('getCalibration returns offset and accuracy by domain', () => {
+    const calibration = engine.getCalibration();
+    expect(calibration).toHaveProperty('offset');
+    expect(calibration).toHaveProperty('accuracyByDomain');
+    expect(typeof calibration.offset).toBe('number');
+    expect(Array.isArray(calibration.accuracyByDomain)).toBe(true);
+  });
 });

@@ -141,11 +141,13 @@ export class ResearchOrchestrator {
   private researchRoadmap: import('../goals/research-roadmap.js').ResearchRoadmap | null = null;
   private creativeEngine: import('../creative/creative-engine.js').CreativeEngine | null = null;
   private actionBridge: import('../action/action-bridge.js').ActionBridgeEngine | null = null;
+  private signalRouter: import('../cross-brain/signal-router.js').CrossBrainSignalRouter | null = null;
   private contentForge: import('../content/content-forge.js').ContentForge | null = null;
   private codeForge: import('../codegen/code-forge.js').CodeForge | null = null;
   private strategyForge: import('../strategy/strategy-forge.js').StrategyForge | null = null;
   private lastAutoMissionTime = 0;
   private lastGoalMissionTime = 0;
+  private roadmapBootstrapped = false;
   private onSuggestionCallback: ((suggestions: string[]) => void) | null = null;
 
   private db: Database.Database;
@@ -388,6 +390,9 @@ export class ResearchOrchestrator {
 
   /** Set the ActionBridgeEngine — risk-assessed action execution. */
   setActionBridge(bridge: import('../action/action-bridge.js').ActionBridgeEngine): void { this.actionBridge = bridge; }
+
+  /** Set the CrossBrainSignalRouter — bidirectional signal routing. */
+  setSignalRouter(router: import('../cross-brain/signal-router.js').CrossBrainSignalRouter): void { this.signalRouter = router; }
 
   /** Set the ContentForge — autonomous content pipeline. */
   setContentForge(forge: import('../content/content-forge.js').ContentForge): void { this.contentForge = forge; }
@@ -2515,6 +2520,20 @@ export class ResearchOrchestrator {
               references: [],
               data: { goalId: goal.id, rootCause: topCause.event, strength: topCause.strength },
             });
+
+            // Submit top intervention as ActionBridge proposal
+            const topIntervention = diagnosis.suggestedInterventions[0];
+            if (topIntervention && this.actionBridge && topCause.confidence > 0.6) {
+              this.actionBridge.propose({
+                source: 'research',
+                type: 'adjust_parameter',
+                title: `Causal Intervention: ${topIntervention.action}`,
+                description: `Goal "${goal.title}" stagnant. Root cause: ${topCause.event}. Suggested: ${topIntervention.action}`,
+                confidence: topCause.confidence,
+                payload: { goalId: goal.id, rootCause: topCause.event, intervention: topIntervention.action },
+              });
+              ts?.emit('causal_planner', 'responding', `Proposed intervention: ${topIntervention.action}`, 'notable');
+            }
           }
         }
       } catch (err) {
@@ -2526,6 +2545,22 @@ export class ResearchOrchestrator {
     if (this.researchRoadmap && this.goalEngine && this.cycleCount % 10 === 0) {
       try {
         ts?.emit('roadmap', 'analyzing', 'Step 57: Checking roadmap progress...', 'routine');
+
+        // Auto-create roadmap if none exist but goals do (once per session)
+        if (!this.roadmapBootstrapped) {
+          const existingRoadmaps = this.researchRoadmap.listRoadmaps();
+          if (existingRoadmaps.length === 0) {
+            const activeGoals = this.goalEngine.listGoals('active', 5);
+            if (activeGoals.length > 0) {
+              const topGoal = activeGoals[0];
+              this.researchRoadmap.createRoadmap(`Auto-Roadmap: ${topGoal.title}`, topGoal.id!);
+              ts?.emit('roadmap', 'discovering', `Created initial roadmap from goal: ${topGoal.title}`, 'notable');
+              this.log.info(`[orchestrator] Step 57: Bootstrap roadmap from goal "${topGoal.title}"`);
+            }
+          }
+          this.roadmapBootstrapped = true;
+        }
+
         // Check blocked goals — only evaluate goals that can start
         const readyGoals = this.researchRoadmap.getReadyGoals();
         if (readyGoals.length > 0) {
@@ -2643,6 +2678,54 @@ export class ResearchOrchestrator {
       } catch (err) { this.log.warn(`[orchestrator] Step 62 error: ${(err as Error).message}`); }
     }
 
+    // Step 63: Cross-Brain Signal Emission (every 10 cycles)
+    if (this.signalRouter && this.cycleCount % 10 === 0) {
+      try {
+        ts?.emit('signal_router', 'analyzing', 'Step 63: Emitting cross-brain signals...', 'routine');
+        let emitted = 0;
+
+        // 1. Confirmed hypotheses → research_insight to peer brains
+        if (this.hypothesisEngine) {
+          const confirmed = this.hypothesisEngine.list('confirmed', 5);
+          for (const hyp of confirmed.slice(0, 2)) {
+            if ((hyp.confidence ?? 0) > 0.7) {
+              const peers = this.brainName === 'brain' ? ['trading-brain', 'marketing-brain'] : ['brain'];
+              for (const peer of peers) {
+                await this.signalRouter.emit({
+                  targetBrain: peer,
+                  signalType: 'research_insight',
+                  payload: { hypothesis: hyp.statement, domain: hyp.type, confidence: hyp.confidence },
+                  confidence: hyp.confidence,
+                });
+                emitted++;
+              }
+            }
+          }
+        }
+
+        // 2. Anomalies → anomaly_signal to all peers
+        if (anomalies.length > 0) {
+          const topAnomaly = anomalies[0];
+          const peers = this.brainName === 'brain' ? ['trading-brain', 'marketing-brain'] : ['brain'];
+          for (const peer of peers) {
+            await this.signalRouter.emit({
+              targetBrain: peer,
+              signalType: 'anomaly_signal',
+              payload: { title: topAnomaly.title ?? 'anomaly', type: topAnomaly.type },
+              confidence: 0.6,
+            });
+            emitted++;
+          }
+        }
+
+        if (emitted > 0) {
+          ts?.emit('signal_router', 'discovering', `Emitted ${emitted} cross-brain signal(s)`, 'notable');
+          this.log.info(`[orchestrator] Step 63: Emitted ${emitted} cross-brain signals`);
+        }
+        if (this.metaCognitionLayer) this.metaCognitionLayer.recordStep('signal_emission', this.cycleCount, { insights: emitted });
+      } catch (err) { this.log.warn(`[orchestrator] Step 63 (signal emission) error: ${(err as Error).message}`); }
+    }
+
     const duration = Date.now() - start;
     ts?.emit('orchestrator', 'reflecting', `Feedback Cycle #${this.cycleCount} complete (${duration}ms)`);
     this.log.info(`[orchestrator] ─── Feedback Cycle #${this.cycleCount} complete (${duration}ms) ───`);
@@ -2723,7 +2806,7 @@ export class ResearchOrchestrator {
     return null;
   }
 
-  private generateSelfImprovementSuggestions(): string[] {
+  generateSelfImprovementSuggestions(): string[] {
     const raw: Array<{ key: string; suggestion: string; alternatives: string[]; priority: number }> = [];
     const summary = this.getSummary();
 
@@ -3077,6 +3160,55 @@ export class ResearchOrchestrator {
       this.writeSuggestionsToFile(result);
     }
     return result;
+  }
+
+  /** Get structured self-improvement desires with priority and alternatives. */
+  getDesires(): Array<{ key: string; suggestion: string; alternatives: string[]; priority: number }> {
+    const raw: Array<{ key: string; suggestion: string; alternatives: string[]; priority: number }> = [];
+    const summary = this.getSummary();
+
+    // Reuse the same diagnosis logic but return structured data
+    const pred = summary.prediction as Record<string, unknown> | null;
+    if (pred) {
+      const total = (pred.total_predictions as number) ?? 0;
+      if (total === 0) {
+        raw.push({ key: 'no_predictions', priority: 10, suggestion: 'No predictions yet — need more data.', alternatives: ['Use own cycle metrics as prediction input.'] });
+      }
+    }
+
+    const knowledge = summary.knowledge as Record<string, unknown> | null;
+    const hypSummary = summary.hypotheses as Record<string, unknown> | null;
+    const confirmedHypotheses = (hypSummary?.confirmed as number) ?? 0;
+    if (knowledge) {
+      const principles = (knowledge.principles as number) ?? 0;
+      const antiPatterns = (knowledge.antiPatterns as number) ?? 0;
+      if (principles === 0 && antiPatterns === 0 && confirmedHypotheses === 0 && this.cycleCount > 10) {
+        raw.push({ key: 'no_knowledge', priority: 8, suggestion: 'No distilled knowledge after 10+ cycles.', alternatives: ['Need more diverse data to confirm hypotheses.'] });
+      }
+    }
+
+    if (this.curiosityEngine) {
+      try {
+        const gaps = this.curiosityEngine.getGaps(5);
+        const highPrioGap = gaps.find(g => g.gapScore > 0.6);
+        if (highPrioGap) {
+          raw.push({ key: `curiosity_gap_${highPrioGap.topic?.substring(0, 20) ?? highPrioGap.gapType}`, priority: 5, suggestion: `Knowledge gap: "${highPrioGap.topic}" (score: ${(highPrioGap.gapScore * 100).toFixed(0)}%)`, alternatives: [] });
+        }
+      } catch { /* engine might not be fully initialized */ }
+    }
+
+    if (this.narrativeEngine) {
+      try {
+        const contradictions = this.narrativeEngine.findContradictions();
+        if (contradictions.length > 0) {
+          const cont = contradictions[0];
+          raw.push({ key: `contradiction_${cont.type.substring(0, 15)}`, priority: 6, suggestion: `Contradiction: "${cont.statement_a}" vs "${cont.statement_b}"`, alternatives: [] });
+        }
+      } catch { /* */ }
+    }
+
+    raw.sort((a, b) => b.priority - a.priority);
+    return raw;
   }
 
   /** Check which optional engines are actually installed. */

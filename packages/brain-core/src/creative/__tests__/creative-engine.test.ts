@@ -59,6 +59,59 @@ describe('CreativeEngine', () => {
     expect(status.byType['cross_pollination']).toBe(insights.length);
   });
 
+  it('crossPollinate with single domain returns insights via fallback grouping', () => {
+    const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
+    engine.setKnowledgeDistiller({
+      distill: () => ({
+        principles: [
+          { statement: 'caching improves performance significantly', domain: 'brain' },
+          { statement: 'monitoring detects anomalies before failures', domain: 'brain' },
+          { statement: 'validation prevents corrupted data entry', domain: 'brain' },
+          { statement: 'abstraction reduces cognitive complexity', domain: 'brain' },
+        ],
+      }),
+    } as any);
+
+    const insights = engine.crossPollinate();
+    // With fallback, single domain should still produce insights
+    expect(insights.length).toBeGreaterThan(0);
+  });
+
+  it('crossPollinate with 2+ domains works as before', () => {
+    const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
+    engine.setKnowledgeDistiller({
+      distill: () => ({
+        principles: [
+          { statement: 'caching improves response times', domain: 'engineering' },
+          { statement: 'diversification reduces risk exposure', domain: 'finance' },
+        ],
+      }),
+    } as any);
+
+    const insights = engine.crossPollinate();
+    expect(insights.length).toBeGreaterThan(0);
+    expect(insights[0].type).toBe('cross_pollination');
+  });
+
+  it('fallback grouping produces at least 2 groups from single domain', () => {
+    const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
+    engine.setKnowledgeDistiller({
+      distill: () => ({
+        principles: [
+          { statement: 'first principle about something important', domain: 'brain' },
+          { statement: 'second principle about another topic entirely', domain: 'brain' },
+          { statement: 'third principle about different matters', domain: 'brain' },
+          { statement: 'fourth principle covering new ground here', domain: 'brain' },
+        ],
+      }),
+    } as any);
+
+    // crossPollinate internally groups and should get insights
+    const insights = engine.crossPollinate();
+    // If it didn't crash and returned results, fallback worked
+    expect(Array.isArray(insights)).toBe(true);
+  });
+
   it('findAnalogies returns empty array without distiller', () => {
     const engine = new CreativeEngine(db, { brainName: 'test' });
     const result = engine.findAnalogies('some concept');

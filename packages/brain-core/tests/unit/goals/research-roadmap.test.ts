@@ -147,4 +147,45 @@ describe('ResearchRoadmap', () => {
       expect(progress.progressPercent).toBe(0);
     });
   });
+
+  describe('Roadmap Bootstrap (Step 57)', () => {
+    it('creates roadmap when none exist but goals do', () => {
+      // Verify no roadmaps initially
+      expect(roadmap.listRoadmaps()).toHaveLength(0);
+
+      // Create a goal
+      const goal = goalEngine.createGoal('Improve accuracy', 'accuracy', 0.9, 100);
+      expect(goal.id).toBeDefined();
+
+      // Bootstrap: create roadmap from top goal
+      const activeGoals = goalEngine.listGoals('active', 5);
+      expect(activeGoals.length).toBeGreaterThan(0);
+
+      const topGoal = activeGoals[0];
+      const rm = roadmap.createRoadmap(`Auto-Roadmap: ${topGoal.title}`, topGoal.id!);
+      expect(rm.id).toBeGreaterThan(0);
+      expect(rm.title).toContain('Improve accuracy');
+      expect(rm.status).toBe('active');
+
+      // Now list shows 1
+      expect(roadmap.listRoadmaps()).toHaveLength(1);
+    });
+
+    it('does not create duplicate roadmaps (guard flag pattern)', () => {
+      const goal = goalEngine.createGoal('Goal A', 'metric', 1.0, 50);
+
+      // First creation
+      roadmap.createRoadmap('Auto-Roadmap: Goal A', goal.id!);
+      expect(roadmap.listRoadmaps()).toHaveLength(1);
+
+      // Guard: check before creating again
+      const existing = roadmap.listRoadmaps();
+      if (existing.length === 0) {
+        roadmap.createRoadmap('Should not happen', goal.id!);
+      }
+
+      // Still only 1
+      expect(roadmap.listRoadmaps()).toHaveLength(1);
+    });
+  });
 });

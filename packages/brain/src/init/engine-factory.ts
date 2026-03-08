@@ -127,6 +127,7 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
 
   // 63. Inter-Brain Teaching — knowledge transfer protocol
   const teachingProtocol = new TeachingProtocol(db, { brainName: 'brain' });
+  if (notifier) teachingProtocol.setNotifier(notifier);
   services.teachingProtocol = teachingProtocol;
   const curriculum = new Curriculum(db);
   services.curriculum = curriculum;
@@ -336,6 +337,7 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
   orchestrator.setContentForge(contentForge);
   orchestrator.setCodeForge(codeForge);
   orchestrator.setStrategyForge(strategyForge);
+  orchestrator.setSignalRouter(signalRouter);
 
   logger.info('Intelligence upgrade active (RAG, KG, Compression, Feedback, Tool-Learning, Proactive, UserModel, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber, Guardrails, CausalPlanner, Roadmap, Creative — all wired into orchestrator)');
 

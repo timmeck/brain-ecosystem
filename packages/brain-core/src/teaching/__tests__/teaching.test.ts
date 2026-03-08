@@ -108,6 +108,87 @@ describe('TeachingProtocol', () => {
     expect(typeof status.avgRelevance).toBe('number');
   });
 
+  it('teach() calls notifier.notifyPeer when notifier is set', async () => {
+    const mockNotifier = { notifyPeer: vi.fn().mockResolvedValue(undefined) };
+    protocol.setNotifier(mockNotifier);
+
+    protocol.teach('trading-brain', {
+      domain: 'error-handling',
+      principle: 'Validate inputs early',
+      evidence: 'Reduces crashes by 30%',
+      applicability: 0.8,
+    });
+
+    // notifyPeer is called asynchronously — give it a tick
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    expect(mockNotifier.notifyPeer).toHaveBeenCalledWith(
+      'trading-brain',
+      'teaching.learn',
+      expect.objectContaining({
+        sourceBrain: 'brain',
+        domain: 'error-handling',
+        principle: 'Validate inputs early',
+      }),
+    );
+  });
+
+  it('teach() works without notifier (backward compat)', () => {
+    // No notifier set — should not throw
+    const lesson = protocol.teach('trading-brain', {
+      domain: 'testing',
+      principle: 'Test everything',
+    });
+    expect(lesson.id).toBeDefined();
+    expect(lesson.direction).toBe('sent');
+  });
+
+  it('learn() receives incoming lesson and stores as received', () => {
+    const result = protocol.learn({
+      sourceBrain: 'trading-brain',
+      domain: 'error patterns',
+      principle: 'Error handling with retry logic improves code stability',
+      applicability: 0.7,
+    });
+    expect(typeof result.relevanceScore).toBe('number');
+
+    // Verify stored as received
+    const history = protocol.getHistory('received');
+    expect(history.length).toBe(1);
+    expect(history[0].sourceBrain).toBe('trading-brain');
+    expect(history[0].direction).toBe('received');
+  });
+
+  it('full roundtrip: teach on brain A → learn on brain B', async () => {
+    // Simulate brain B
+    const dbB = new Database(':memory:');
+    const brainB = new TeachingProtocol(dbB, { brainName: 'trading-brain' });
+
+    // Brain A's notifier delivers to brain B's learn()
+    const mockNotifier = {
+      notifyPeer: vi.fn().mockImplementation(async (_peer: string, _event: string, data: unknown) => {
+        brainB.learn(data as any);
+      }),
+    };
+    protocol.setNotifier(mockNotifier);
+
+    protocol.teach('trading-brain', {
+      domain: 'error-handling',
+      principle: 'Always validate inputs before processing code',
+      evidence: '30% fewer bugs',
+      applicability: 0.9,
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Brain A: 1 sent
+    expect(protocol.getStatus().totalSent).toBe(1);
+    // Brain B: 1 received
+    expect(brainB.getStatus().totalReceived).toBe(1);
+
+    dbB.close();
+  });
+
   it('migration is idempotent (teaching)', () => {
     runTeachingMigration(db);
     runTeachingMigration(db);

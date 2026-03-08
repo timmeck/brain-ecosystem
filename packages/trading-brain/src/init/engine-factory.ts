@@ -79,6 +79,7 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): void {
   services.codeHealthMonitor = codeHealthMonitor;
 
   const teachingProtocol = new TeachingProtocol(db, { brainName: 'trading-brain' });
+  if (notifier) teachingProtocol.setNotifier(notifier);
   services.teachingProtocol = teachingProtocol;
   const curriculum = new Curriculum(db);
   services.curriculum = curriculum;
@@ -207,6 +208,7 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): void {
   });
 
   services.signalRouter = signalRouter;
+  orchestrator.setSignalRouter(signalRouter);
 
   logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber, Guardrails, CausalPlanner, Roadmap, Creative, ActionBridge, ContentForge, CodeForge, StrategyForge, SignalRouter)');
 }

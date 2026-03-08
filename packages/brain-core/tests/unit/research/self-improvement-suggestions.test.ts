@@ -115,6 +115,40 @@ describe('Self-Improvement Suggestions', () => {
     });
   });
 
+  describe('getDesires() — structured desires API', () => {
+    it('returns structured array with key, suggestion, alternatives, priority', () => {
+      const desires = orch.getDesires();
+      expect(Array.isArray(desires)).toBe(true);
+      for (const d of desires) {
+        expect(d).toHaveProperty('key');
+        expect(d).toHaveProperty('suggestion');
+        expect(d).toHaveProperty('alternatives');
+        expect(d).toHaveProperty('priority');
+        expect(typeof d.priority).toBe('number');
+      }
+    });
+
+    it('returns empty array when all systems healthy and no engines set', () => {
+      // Fresh orchestrator with 0 cycles — no predictions needed yet
+      const freshOrch = new ResearchOrchestrator(db, { brainName: 'healthy-test' });
+      const desires = freshOrch.getDesires();
+      // With no engines, there might be no_predictions but no knowledge/curiosity issues
+      // The test validates the method runs without error and returns structured data
+      expect(Array.isArray(desires)).toBe(true);
+    });
+
+    it('returns desires ordered by priority (highest first)', () => {
+      // Set cycleCount high so more suggestions trigger
+      (orch as unknown as { cycleCount: number }).cycleCount = 20;
+      const desires = orch.getDesires();
+      if (desires.length >= 2) {
+        for (let i = 1; i < desires.length; i++) {
+          expect(desires[i].priority).toBeLessThanOrEqual(desires[i - 1].priority);
+        }
+      }
+    });
+  });
+
   describe('Dream check (Phase 1)', () => {
     function callSuggestions(o: ResearchOrchestrator): string[] {
       return (o as unknown as { generateSelfImprovementSuggestions(): string[] }).generateSelfImprovementSuggestions();

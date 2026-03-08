@@ -207,6 +207,11 @@ export class IpcRouter {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { source, event, data } = params as any;
       logger.info(`Cross-brain event from ${source}: ${event}`);
+      // Route teaching lessons to TeachingProtocol
+      if (event === 'teaching.learn' && this.services.teachingProtocol) {
+        this.services.teachingProtocol.learn(data);
+        logger.info(`[cross-brain] Learned lesson from ${source}`);
+      }
       manager.handleIncomingEvent(source, event, data);
       return { received: true, source, event };
     });
@@ -627,6 +632,7 @@ export class IpcRouter {
       ['predict.summary',        () => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return s.predictionEngine.getSummary(); }],
       ['predict.resolve',        () => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return { resolved: s.predictionEngine.resolveExpired() }; }],
       ['predict.record',         (params) => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); s.predictionEngine.recordMetric(p(params).metric, p(params).value, p(params)?.domain); return { recorded: true }; }],
+      ['predict.calibration',    () => { if (!s.predictionEngine) throw new Error('Prediction engine not available'); return s.predictionEngine.getCalibration(); }],
 
       // ─── Consciousness ──────────────────────────────────────
       ['consciousness.status',    () => { if (!s.thoughtStream) throw new Error('ThoughtStream not available'); return { ...s.thoughtStream.getStats(), engines: s.thoughtStream.getEngineActivity(), clients: s.consciousnessServer?.getClientCount() ?? 0 }; }],
@@ -1233,6 +1239,15 @@ export class IpcRouter {
       ['subagent.status', (params) => { if (!s.subAgentFactory) throw new Error('SubAgentFactory not available'); const agent = s.subAgentFactory.get(p(params).name); if (!agent) throw new Error(`Agent not found: ${p(params).name}`); return agent.getStatus(); }],
       ['subagent.run',    async (params) => { if (!s.subAgentFactory) throw new Error('SubAgentFactory not available'); const pp = p(params); const agent = s.subAgentFactory.get(pp.name); if (!agent) throw new Error(`Agent not found: ${pp.name}`); return agent.execute(pp.input); }],
       ['subagent.presets', () => { if (!s.subAgentFactory) throw new Error('SubAgentFactory not available'); return s.subAgentFactory.getPresets(); }],
+
+      // ─── Self-Improvement Desires ─────────────────────────────
+      ['desires.suggestions',     () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.generateSelfImprovementSuggestions(); }],
+      ['desires.structured',      () => { if (!s.orchestrator) throw new Error('Orchestrator not available'); return s.orchestrator.getDesires(); }],
+      ['desires.status',          () => {
+        if (!s.orchestrator) throw new Error('Orchestrator not available');
+        const desires = s.orchestrator.getDesires();
+        return { count: desires.length, topPriority: desires[0]?.priority ?? 0, top: desires[0]?.suggestion ?? 'none' };
+      }],
 
       // Status (cross-brain)
       ['status',                  () => ({

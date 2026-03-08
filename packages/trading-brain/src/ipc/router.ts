@@ -172,6 +172,11 @@ export class IpcRouter {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { source, event, data } = params as any;
       logger.info(`Cross-brain event from ${source}: ${event}`);
+      // Route teaching lessons to TeachingProtocol
+      if (event === 'teaching.learn' && this.services.teachingProtocol) {
+        this.services.teachingProtocol.learn(data);
+        logger.info(`[cross-brain] Learned lesson from ${source}`);
+      }
       manager.handleIncomingEvent(source, event, data);
       return { received: true, source, event };
     });
