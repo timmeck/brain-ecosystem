@@ -44,6 +44,13 @@ export interface CommandCenterOptions {
   getGuardrailHealth?: () => unknown;
   getRoadmaps?: () => unknown;
   getCreativeInsights?: () => unknown;
+  getActionBridgeStatus?: () => unknown;
+  getContentForgeStatus?: () => unknown;
+  getStrategyForgeStatus?: () => unknown;
+  getSignalRouterStatus?: () => unknown;
+  chatMessage?: (sessionId: string, content: string) => Promise<unknown>;
+  chatHistory?: (sessionId: string) => unknown;
+  chatStatus?: () => unknown;
   triggerAction?: (action: string, params?: unknown) => Promise<unknown>;
 }
 
@@ -118,6 +125,10 @@ export class CommandCenterServer {
         if (url.pathname === '/api/guardrails') { this.handleGuardrails(res); return; }
         if (url.pathname === '/api/roadmaps') { this.handleRoadmaps(res); return; }
         if (url.pathname === '/api/creative') { this.handleCreative(res); return; }
+        if (url.pathname === '/api/forge') { this.handleForge(res); return; }
+        if (url.pathname === '/api/chat' && req.method === 'POST') { this.handleChatMessage(req, res); return; }
+        if (url.pathname === '/api/chat/history') { this.handleChatHistory(res, url); return; }
+        if (url.pathname === '/api/chat/status') { this.handleChatStatus(res); return; }
         if (url.pathname === '/events') { this.handleSSE(req, res); return; }
 
         res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -291,6 +302,19 @@ export class CommandCenterServer {
       if (!this.options.getCreativeInsights) return;
       try { this.broadcast('creative-insights', this.options.getCreativeInsights()); } catch { /* ignore */ }
     }, 30_000));
+
+    // Forge Status (15s)
+    this.timers.push(setInterval(() => {
+      if (this.clients.size === 0) return;
+      try {
+        const forgeData: Record<string, unknown> = {};
+        if (this.options.getActionBridgeStatus) forgeData.actionBridge = this.options.getActionBridgeStatus();
+        if (this.options.getContentForgeStatus) forgeData.contentForge = this.options.getContentForgeStatus();
+        if (this.options.getStrategyForgeStatus) forgeData.strategyForge = this.options.getStrategyForgeStatus();
+        if (this.options.getSignalRouterStatus) forgeData.signalRouter = this.options.getSignalRouterStatus();
+        if (Object.keys(forgeData).length > 0) this.broadcast('forge-status', forgeData);
+      } catch { /* ignore */ }
+    }, 15_000));
 
     // Heartbeat (30s)
     this.timers.push(setInterval(() => {
@@ -537,6 +561,38 @@ export class CommandCenterServer {
 
   private handleCreative(res: http.ServerResponse): void {
     this.json(res, this.options.getCreativeInsights?.() ?? []);
+  }
+
+  private handleForge(res: http.ServerResponse): void {
+    this.json(res, {
+      actionBridge: this.options.getActionBridgeStatus?.() ?? null,
+      contentForge: this.options.getContentForgeStatus?.() ?? null,
+      strategyForge: this.options.getStrategyForgeStatus?.() ?? null,
+      signalRouter: this.options.getSignalRouterStatus?.() ?? null,
+    });
+  }
+
+  private handleChatMessage(req: http.IncomingMessage, res: http.ServerResponse): void {
+    if (!this.options.chatMessage) { this.json(res, { error: 'Chat not available' }, 501); return; }
+    let body = '';
+    req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+    req.on('end', async () => {
+      try {
+        const { sessionId, content } = JSON.parse(body || '{}') as { sessionId?: string; content?: string };
+        if (!content) { this.json(res, { error: 'Missing "content"' }, 400); return; }
+        const result = await this.options.chatMessage!(sessionId ?? 'dashboard', content);
+        this.json(res, result);
+      } catch (err) { this.json(res, { error: (err as Error).message }, 500); }
+    });
+  }
+
+  private handleChatHistory(res: http.ServerResponse, url: URL): void {
+    const sessionId = url.searchParams.get('sessionId') ?? 'dashboard';
+    this.json(res, this.options.chatHistory?.(sessionId) ?? []);
+  }
+
+  private handleChatStatus(res: http.ServerResponse): void {
+    this.json(res, this.options.chatStatus?.() ?? null);
   }
 
   private handleBorgToggle(req: http.IncomingMessage, res: http.ServerResponse): void {

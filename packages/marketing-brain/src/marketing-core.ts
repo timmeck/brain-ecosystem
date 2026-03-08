@@ -65,7 +65,7 @@ import { SchedulerService } from './services/scheduler.service.js';
 import { CalendarService } from './services/calendar.service.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine, BorgSyncEngine, DebateEngine, RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, UserModel, ProactiveEngine, SemanticCompressor, GuardrailEngine, CausalPlanner, CausalGraph, ResearchRoadmap, runRoadmapMigration, CreativeEngine, runCreativeMigration, GoalEngine, ActionBridgeEngine, runActionBridgeMigration, ContentForge, runContentForgeMigration, CodeForge, runCodeForgeMigration, StrategyForge, runStrategyForgeMigration } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, HypothesisEngine, runHypothesisMigration, TransferEngine, BorgSyncEngine, DebateEngine, RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, UserModel, ProactiveEngine, SemanticCompressor, GuardrailEngine, CausalPlanner, CausalGraph, ResearchRoadmap, runRoadmapMigration, CreativeEngine, runCreativeMigration, GoalEngine, ActionBridgeEngine, runActionBridgeMigration, createContentHandler, AutoPublisher, ContentForge, runContentForgeMigration, CodeForge, runCodeForgeMigration, StrategyForge, runStrategyForgeMigration, CrossBrainSignalRouter, runSignalRouterMigration, FeedbackRouter, runFeedbackRouterMigration } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
 
 export class MarketingCore {
@@ -383,6 +383,18 @@ export class MarketingCore {
       }
       services.contentForge = contentForge;
 
+      // Register publish_content handler → ContentForge.publishNow()
+      actionBridge.registerHandler('publish_content', createContentHandler({
+        publishNow: (pieceId: number) => contentForge.publishNow(pieceId),
+        getPiece: (id: number) => contentForge.getPiece(id),
+      }));
+      logger.info('Registered publish_content handler → ContentForge');
+
+      // AutoPublisher — automatic content publishing with rate limiting
+      const autoPublisher = new AutoPublisher(contentForge);
+      autoPublisher.start();
+      services.autoPublisher = autoPublisher;
+
       // CodeForge — pattern extraction & code generation
       runCodeForgeMigration(db);
       const codeForge = new CodeForge(db, { brainName: 'marketing-brain' });
@@ -396,7 +408,74 @@ export class MarketingCore {
       strategyForge.setActionBridge(actionBridge);
       services.strategyForge = strategyForge;
 
-      logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive, Guardrails, CausalPlanner, Roadmap, Creative, ActionBridge, ContentForge, CodeForge, StrategyForge)');
+      // CrossBrainSignalRouter — bidirectional signal routing
+      runSignalRouterMigration(db);
+      const signalRouter = new CrossBrainSignalRouter(db, 'marketing-brain');
+      if (this.notifier) signalRouter.setNotifier(this.notifier);
+
+      // On trade signal → generate content from trend
+      signalRouter.onSignal('trade_signal', (signal) => {
+        const symbol = (signal.payload.symbol as string) ?? 'unknown';
+        const direction = (signal.payload.direction as string) ?? 'neutral';
+        contentForge.generateFromTrend({ name: symbol, description: `${direction} signal from trading-brain`, category: 'crypto' });
+        logger.info(`[signal-router] Generated content from trade signal: ${symbol} ${direction}`);
+      });
+
+      services.signalRouter = signalRouter;
+
+      // FeedbackRouter — collect dead-end data and generate actions
+      runFeedbackRouterMigration(db);
+      const feedbackRouter = new FeedbackRouter(db);
+      feedbackRouter.setActionHandler(async (action) => {
+        actionBridge.propose({
+          source: 'feedback-router' as const,
+          type: (action.type === 'creative_seed' ? 'creative_seed' : 'adjust_parameter') as 'adjust_parameter',
+          title: `Feedback: ${action.type} from ${action.source}`,
+          payload: action.payload,
+          confidence: action.confidence,
+        });
+      });
+      // AB test winners
+      if (services.abTest) {
+        const abTestService = services.abTest;
+        feedbackRouter.addSource({
+          name: 'ab-test',
+          fetch: () => {
+            const completed = abTestService.listByStatus('completed', 10);
+            return completed.map((test) => {
+              const result = abTestService.getStatus(test.id);
+              return {
+                source: 'ab-test',
+                type: 'ab_winner' as const,
+                data: { winner: result.winner, metric: test.metric, testId: test.id },
+                confidence: result.significance ?? 0,
+              };
+            });
+          },
+        });
+      }
+      // Competitor insights
+      if (services.competitor) {
+        const competitorService = services.competitor;
+        feedbackRouter.addSource({
+          name: 'competitor',
+          fetch: () => {
+            const comps = competitorService.listCompetitors();
+            return comps.slice(0, 5).map((c) => {
+              const comparison = competitorService.compareWithSelf(c.id);
+              return {
+                source: 'competitor',
+                type: 'competitor_insight' as const,
+                data: { verdict: comparison.verdict, competitorId: c.id },
+                confidence: 0.6,
+              };
+            });
+          },
+        });
+      }
+      services.feedbackRouter = feedbackRouter;
+
+      logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive, Guardrails, CausalPlanner, Roadmap, Creative, ActionBridge, ContentForge, CodeForge, StrategyForge, SignalRouter, FeedbackRouter)');
     } catch (err) {
       logger.warn(`Intelligence upgrade failed (non-critical): ${(err as Error).message}`);
     }

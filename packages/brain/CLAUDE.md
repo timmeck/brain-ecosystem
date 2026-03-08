@@ -69,7 +69,9 @@ Claude Code → MCP Server (stdio) → BrainCore → Services → SQLite
                                        ├── ActionBridge (risk-assessed auto-execution)
                                        ├── ContentForge (autonomous content pipeline)
                                        ├── CodeForge (pattern extraction, code generation)
-                                       └── StrategyForge (autonomous strategy creation)
+                                       ├── StrategyForge (autonomous strategy creation)
+                                       ├── ChatEngine (NLU routing + IPC dispatch)
+                                       └── SubAgentFactory (specialized sub-agent creation)
 ```
 
 Key directories: `src/cli/commands/`, `src/mcp/`, `src/db/`, `src/learning/`, `src/synapses/`, `src/code/`, `src/hooks/`
@@ -78,7 +80,7 @@ Key directories: `src/cli/commands/`, `src/mcp/`, `src/db/`, `src/learning/`, `s
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (189 tests)
+npm test               # Vitest (559 tests across 57 test files)
 npm run lint           # ESLint
 npm run dev            # Run via tsx (no build needed)
 ```

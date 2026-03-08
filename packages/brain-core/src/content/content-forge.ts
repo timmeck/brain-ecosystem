@@ -216,6 +216,27 @@ export class ContentForge {
     return row ? deserializeContent(row) : null;
   }
 
+  /** Auto-schedule a piece at optimal time and create ActionBridge publish proposal */
+  autoScheduleAndPublish(pieceId: number): void {
+    const piece = this.getPiece(pieceId);
+    if (!piece) return;
+
+    const optimalTime = this.getOptimalTime(piece.platform);
+    const today = new Date().toISOString().split('T')[0];
+    this.schedule(pieceId, `${today}T${optimalTime}:00Z`);
+
+    if (this.actionBridge) {
+      this.actionBridge.propose({
+        source: 'creative',
+        type: 'publish_content',
+        title: `Publish: ${piece.title}`,
+        description: `Auto-scheduled content #${pieceId} for ${piece.platform}`,
+        confidence: 0.85,
+        payload: { pieceId, platform: piece.platform, title: piece.title },
+      });
+    }
+  }
+
   /** Get status overview */
   getStatus(): ContentForgeStatus {
     const counts = this.stmtCountByStatus.all() as Array<{ status: string; count: number }>;

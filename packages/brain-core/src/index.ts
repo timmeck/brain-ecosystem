@@ -100,6 +100,8 @@ export { BorgSyncEngine } from './cross-brain/borg-sync-engine.js';
 export type { BorgDataProvider } from './cross-brain/borg-sync-engine.js';
 export { DEFAULT_BORG_CONFIG } from './cross-brain/borg-types.js';
 export type { BorgConfig, SyncPacket, SyncItem, SyncHistoryEntry } from './cross-brain/borg-types.js';
+export { CrossBrainSignalRouter, runSignalRouterMigration } from './cross-brain/signal-router.js';
+export type { CrossBrainSignal, SignalHandler } from './cross-brain/signal-router.js';
 
 // ── Watchdog ──────────────────────────────────────────────
 export { WatchdogService, createDefaultWatchdogConfig } from './watchdog/watchdog-service.js';
@@ -454,6 +456,8 @@ export type { SemanticCompressorConfig, CompressResult, CompressorStats } from '
 // ── Feedback Engine ──────────────────────────────────────────
 export { FeedbackEngine, runFeedbackMigration } from './feedback/index.js';
 export type { FeedbackEngineConfig, FeedbackSignal, FeedbackStats, FeedbackRecord } from './feedback/index.js';
+export { FeedbackRouter, runFeedbackRouterMigration } from './feedback/index.js';
+export type { FeedbackSource, FeedbackItem, FeedbackAction, FeedbackRouterStatus } from './feedback/index.js';
 
 // ── Tool Learning ────────────────────────────────────────────
 export { ToolTracker, runToolTrackerMigration } from './tool-learning/index.js';
@@ -514,6 +518,10 @@ export { AgentTrainer, runTrainerMigration } from './agent-training/index.js';
 export type {
   TrainingConfig, EpochResult, TrainingReport, AgentTrainerStatus,
 } from './agent-training/index.js';
+export { SubAgent, runSubAgentMigration, SubAgentFactory } from './agent-training/index.js';
+export type {
+  SubAgentConfig, SubAgentTask, SubAgentStatus, SubAgentFactoryStatus,
+} from './agent-training/index.js';
 
 // ── Tool Scoping ────────────────────────────────────────────
 export { ToolScopeManager, runToolScopingMigration } from './tool-scoping/index.js';
@@ -557,17 +565,20 @@ export type {
 } from './creative/index.js';
 
 // ── Action Bridge ─────────────────────────────────────────
-export { ActionBridgeEngine, runActionBridgeMigration } from './action/index.js';
+export { ActionBridgeEngine, runActionBridgeMigration, createTradeHandler, createContentHandler } from './action/index.js';
 export type {
   ProposedAction, ActionOutcome,
   ActionBridgeConfig, ActionBridgeStatus,
+  TradeActionPayload, TradeHandlerDeps, TradeHandlerResult,
+  ContentHandlerDeps, ContentHandlerResult,
 } from './action/index.js';
 
 // ── Content Forge ─────────────────────────────────────────
-export { ContentForge, runContentForgeMigration } from './content/index.js';
+export { ContentForge, runContentForgeMigration, AutoPublisher } from './content/index.js';
 export type {
   ContentPiece, ContentEngagement,
   ContentForgeConfig, ContentForgeStatus,
+  AutoPublisherConfig, AutoPublisherStats,
 } from './content/index.js';
 
 // ── Code Forge ────────────────────────────────────────────
@@ -578,8 +589,12 @@ export type {
 } from './codegen/code-forge.js';
 
 // ── Strategy Forge ────────────────────────────────────────
-export { StrategyForge, runStrategyForgeMigration } from './strategy/index.js';
+export { StrategyForge, runStrategyForgeMigration, StrategyMutator } from './strategy/index.js';
 export type {
   Strategy as ForgeStrategy, StrategyRule, StrategyPerformance, BacktestResult,
-  StrategyForgeConfig, StrategyForgeStatus,
+  StrategyForgeConfig, StrategyForgeStatus, MutationConfig, MutationResult,
 } from './strategy/index.js';
+
+// ── Chat Engine ──────────────────────────────────────────
+export { ChatEngine, runChatMigration } from './chat/index.js';
+export type { ChatMessage, ChatEngineConfig, ChatEngineStatus } from './chat/index.js';

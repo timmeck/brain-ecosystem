@@ -54,14 +54,16 @@ Claude Code → MCP Server (stdio) → MarketingCore → Services → SQLite
                                        ├── ActionBridge (risk-assessed auto-execution)
                                        ├── ContentForge (autonomous content pipeline)
                                        ├── CodeForge (pattern extraction, code generation)
-                                       └── StrategyForge (autonomous strategy creation)
+                                       ├── StrategyForge (autonomous strategy creation)
+                                       ├── FeedbackRouter (dead-end data → ActionBridge proposals)
+                                       └── AutoPublisher (autonomous content publishing)
 ```
 
 ## Development
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (85 tests)
+npm test               # Vitest (407 tests across 32 test files)
 npm run lint           # ESLint
 npm run dev            # Run via tsx
 ```

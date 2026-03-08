@@ -71,7 +71,7 @@ import type { BorgDataProvider, SyncItem } from '@timmeck/brain-core';
 import type { HypothesisStatus } from '@timmeck/brain-core';
 import type { ExperimentStatus } from '@timmeck/brain-core';
 import type { AnomalyType } from '@timmeck/brain-core';
-import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor, FeatureRecommender, ContradictionResolver, CheckpointManager, TraceCollector, MessageRouter, TelegramBot, DiscordBot, BenchmarkSuite, AgentTrainer, ToolScopeManager, PluginMarketplace, CodeSandbox, GuardrailEngine, CausalPlanner, ResearchRoadmap, runRoadmapMigration, CreativeEngine, runCreativeMigration, ActionBridgeEngine, runActionBridgeMigration, ContentForge, runContentForgeMigration, CodeForge, runCodeForgeMigration, StrategyForge, runStrategyForgeMigration } from '@timmeck/brain-core';
+import { RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, SemanticCompressor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, ProactiveEngine, UserModel, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, FeatureExtractor, FeatureRecommender, ContradictionResolver, CheckpointManager, TraceCollector, MessageRouter, TelegramBot, DiscordBot, BenchmarkSuite, AgentTrainer, ToolScopeManager, PluginMarketplace, CodeSandbox, GuardrailEngine, CausalPlanner, ResearchRoadmap, runRoadmapMigration, CreativeEngine, runCreativeMigration, ActionBridgeEngine, runActionBridgeMigration, ContentForge, runContentForgeMigration, CodeForge, runCodeForgeMigration, StrategyForge, runStrategyForgeMigration, CrossBrainSignalRouter, runSignalRouterMigration, ChatEngine, runChatMigration, SubAgentFactory, runSubAgentMigration } from '@timmeck/brain-core';
 
 export class BrainCore {
   private db: Database.Database | null = null;
@@ -974,6 +974,22 @@ export class BrainCore {
     strategyForge.setKnowledgeDistiller(this.orchestrator.knowledgeDistiller);
     services.strategyForge = strategyForge;
 
+    // CrossBrainSignalRouter — bidirectional signal routing
+    runSignalRouterMigration(this.db!);
+    const signalRouter = new CrossBrainSignalRouter(this.db!, 'brain');
+    if (this.notifier) signalRouter.setNotifier(this.notifier);
+    services.signalRouter = signalRouter;
+
+    // 100. ChatEngine — NLU-routed chat interface
+    runChatMigration(this.db!);
+    const chatEngine = new ChatEngine(this.db!, { brainName: 'brain' });
+    services.chatEngine = chatEngine;
+
+    // 101. SubAgentFactory — spawn specialized sub-agents
+    runSubAgentMigration(this.db!);
+    const subAgentFactory = new SubAgentFactory(this.db!);
+    services.subAgentFactory = subAgentFactory;
+
     // ── Wire intelligence engines into autonomous ResearchOrchestrator ──
     this.orchestrator.setFactExtractor(factExtractor);
     this.orchestrator.setKnowledgeGraph(knowledgeGraph);
@@ -1213,6 +1229,13 @@ export class BrainCore {
       getGuardrailHealth: () => services.guardrailEngine?.checkHealth() ?? null,
       getRoadmaps: () => services.researchRoadmap?.listRoadmaps() ?? [],
       getCreativeInsights: () => services.creativeEngine?.getInsights(20) ?? [],
+      getActionBridgeStatus: () => services.actionBridge?.getStatus() ?? null,
+      getContentForgeStatus: () => services.contentForge?.getStatus() ?? null,
+      getStrategyForgeStatus: () => services.strategyForge?.getStatus() ?? null,
+      getSignalRouterStatus: () => services.signalRouter?.getStatus() ?? null,
+      chatMessage: async (sessionId: string, content: string) => services.chatEngine?.processMessage(sessionId, content) ?? null,
+      chatHistory: (sessionId: string) => services.chatEngine?.getHistory(sessionId) ?? [],
+      chatStatus: () => services.chatEngine?.getStatus() ?? null,
       getDebateStatus: () => this.debateEngine?.getStatus() ?? null,
       getDebateList: (limit = 10) => this.debateEngine?.listDebates(limit) ?? [],
       getChallengeHistory: (limit = 20) => this.debateEngine?.getChallengeHistory(limit) ?? [],
@@ -1237,6 +1260,12 @@ export class BrainCore {
     const router = new IpcRouter(services);
     this.ipcServer = new IpcServer(router, config.ipc.pipeName, 'brain', 'brain');
     this.ipcServer.start();
+
+    // Wire ChatEngine to IPC router for NLU → IPC routing
+    chatEngine.setIpcHandler(async (method: string, params?: unknown) => {
+      return router.handle(method, params);
+    });
+    chatEngine.setAvailableRoutes(router.listMethods());
 
     // Wire local handler so cross-brain self-queries resolve locally
     this.crossBrain!.setLocalHandler((method, params) => router.handle(method, params));

@@ -125,8 +125,11 @@ export interface Services {
   creativeEngine?: import('@timmeck/brain-core').CreativeEngine;
   actionBridge?: import('@timmeck/brain-core').ActionBridgeEngine;
   contentForge?: import('@timmeck/brain-core').ContentForge;
+  autoPublisher?: import('@timmeck/brain-core').AutoPublisher;
   codeForge?: import('@timmeck/brain-core').CodeForge;
   strategyForge?: import('@timmeck/brain-core').StrategyForge;
+  signalRouter?: import('@timmeck/brain-core').CrossBrainSignalRouter;
+  feedbackRouter?: import('@timmeck/brain-core').FeedbackRouter;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -835,6 +838,18 @@ export class IpcRouter {
       ['content.best',        (params) => { if (!s.contentForge) throw new Error('ContentForge not available'); return s.contentForge.getBestPerforming(p(params).limit); }],
       ['content.optimal',     (params) => { if (!s.contentForge) throw new Error('ContentForge not available'); return s.contentForge.getOptimalTime(p(params).platform); }],
       ['content.status',      () => { if (!s.contentForge) throw new Error('ContentForge not available'); return s.contentForge.getStatus(); }],
+      ['content.autopublish', async () => { if (!s.autoPublisher) throw new Error('AutoPublisher not available'); return await s.autoPublisher.checkAndPublish(); }],
+      ['content.engagement.refresh', async () => { if (!s.autoPublisher) throw new Error('AutoPublisher not available'); return await s.autoPublisher.refreshEngagement(); }],
+      ['content.autopublish.stats', () => { if (!s.autoPublisher) throw new Error('AutoPublisher not available'); return s.autoPublisher.getStats(); }],
+
+      // ─── Cross-Brain Signals ────────────────────────────────────
+      ['signal.cross.emit',    async (params) => { if (!s.signalRouter) throw new Error('SignalRouter not available'); return { signalId: await s.signalRouter.emit(p(params)) }; }],
+      ['signal.cross.history', (params) => { if (!s.signalRouter) throw new Error('SignalRouter not available'); return s.signalRouter.getHistory(p(params).limit); }],
+      ['signal.cross.status',  () => { if (!s.signalRouter) throw new Error('SignalRouter not available'); return s.signalRouter.getStatus(); }],
+
+      // ─── Feedback Router ────────────────────────────────────────────
+      ['feedback.process', async () => { if (!s.feedbackRouter) throw new Error('FeedbackRouter not available'); return s.feedbackRouter.processAll(); }],
+      ['feedback.status',  () => { if (!s.feedbackRouter) throw new Error('FeedbackRouter not available'); return s.feedbackRouter.getStatus(); }],
 
       // ─── CodeForge ────────────────────────────────────────────────
       ['codeforge.patterns',  () => { if (!s.codeForge) throw new Error('CodeForge not available'); return s.codeForge.extractPatterns(); }],

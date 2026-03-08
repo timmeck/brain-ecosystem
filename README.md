@@ -12,7 +12,7 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 76+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama) with Vision (image analysis). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Causal inference with intervention planning. Multi-step research roadmaps with goal dependencies. Creative cross-domain idea generation. Self-protection guardrails with circuit breaker. 459+ MCP tools. 3,405 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
+Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 80+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama) with Vision (image analysis). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Causal inference with intervention planning. Multi-step research roadmaps with goal dependencies. Creative cross-domain idea generation. Self-protection guardrails with circuit breaker. Natural language chat interface with NLU routing. Sub-agent specialization. Cross-brain signal routing. Autonomous content publishing. Strategy mutation and evolution. Portfolio optimization with Kelly criterion. 475+ MCP tools. 3,819 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
 
 ## Packages
 
@@ -91,12 +91,18 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 - **Research Roadmaps** — Goal dependencies with multi-step decomposition: data → hypotheses → target achievement
 - **Creative Engine** — Cross-domain idea generation: principle cross-pollination, analogy search, speculative hypotheses
 - **Guardrails** — Self-protection: parameter bounds validation, circuit breaker, auto-rollback on declining fitness, protected core paths
+- **ChatEngine** — Natural language interface with NLU intent routing and IPC dispatch to any brain subsystem
+- **SubAgentFactory** — Specialized sub-agent creation for focused tasks (research, trading, content, code)
+- **FeedbackRouter** — Dead-end data routing to ActionBridge proposals, closing the learning-to-action gap
+- **StrategyMutator** — Strategy evolution: parameter mutation, crossover breeding, tournament selection
+- **CrossBrainSignalRouter** — Bidirectional cross-brain signal routing with confidence filtering
+- **AutoPublisher** — Autonomous content publishing pipeline with schedule optimization
 
 ## What It Does
 
 ### Brain — Error Memory, Code Intelligence & Full Autonomy
 
-171 MCP tools. Remembers errors, learns solutions, runs 58-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, absorbs code from GitHub repos, extracts reusable features, and modifies its own code.
+171 MCP tools. Remembers errors, learns solutions, runs 58-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, absorbs code from GitHub repos, extracts reusable features, and modifies its own code. ChatEngine provides natural language access to all subsystems. SubAgentFactory creates specialized agents for focused tasks.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
@@ -123,7 +129,7 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 ### Trading Brain — Adaptive Trading Intelligence
 
-131 MCP tools. Learns from every trade outcome through Hebbian synapses and autonomous research. Full intelligence suite (RAG, KG, Feedback, Tool Learning, User Model, Proactive).
+131 MCP tools. Learns from every trade outcome through Hebbian synapses and autonomous research. Full intelligence suite (RAG, KG, Feedback, Tool Learning, User Model, Proactive). PortfolioOptimizer with Kelly criterion position sizing and HHI diversification. StrategyMutator for evolutionary strategy breeding.
 
 - **Trade Outcome Memory** — Record and query trades with full signal context
 - **Paper Trading** — 10 positions active, live equity tracking, balance management
@@ -135,7 +141,7 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 ### Marketing Brain — Self-Learning Marketing Intelligence
 
-131 MCP tools. Learns what content works across platforms. Full intelligence suite (RAG, KG, Feedback, Tool Learning, User Model, Proactive).
+131 MCP tools. Learns what content works across platforms. Full intelligence suite (RAG, KG, Feedback, Tool Learning, User Model, Proactive). FeedbackRouter closes the learning-to-action gap. AutoPublisher enables autonomous content scheduling and publishing.
 
 - **Post Tracking** — Store posts with platform, format, hashtags, engagement history
 - **Social Feeds** — Bluesky + Reddit live data providers
@@ -198,6 +204,12 @@ Brain Core provides the building blocks all brains share:
 | **Tool Scoping** | Context-aware dynamic tool filtering per task |
 | **Marketplace** | Plugin discovery, rating, and installation |
 | **Code Sandbox** | Docker-isolated code execution for safe experimentation |
+| **ChatEngine** | Natural language interface with NLU intent routing + IPC dispatch |
+| **SubAgentFactory** | Specialized sub-agent creation for focused tasks |
+| **FeedbackRouter** | Dead-end data routing to ActionBridge proposals |
+| **StrategyMutator** | Strategy evolution: mutation, crossover, tournament selection |
+| **CrossBrainSignalRouter** | Bidirectional cross-brain signal routing with confidence filtering |
+| **AutoPublisher** | Autonomous content publishing with schedule optimization |
 
 ## Architecture
 
@@ -422,7 +434,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installs all workspace dependencies
 npm run build        # builds all packages (brain-core first)
-npm test             # runs all 3,405 tests
+npm test             # runs all 3,819 tests
 ```
 
 ### Package Dependencies
@@ -448,7 +460,7 @@ brain-core          (no internal deps)
 - **Playwright** — Headless browser for web research
 - **Commander** — CLI framework
 - **Winston** — Structured logging with file rotation
-- **Vitest** — 3,405 tests across 257 test files
+- **Vitest** — 3,819 tests across 283 test files
 
 ## Docker (Optional)
 

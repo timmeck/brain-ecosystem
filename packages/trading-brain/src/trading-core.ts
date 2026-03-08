@@ -47,6 +47,7 @@ import { ResearchEngine } from './research/research-engine.js';
 import { PaperEngine } from './paper/paper-engine.js';
 import { PaperService } from './paper/paper.service.js';
 import { PaperRepository } from './db/repositories/paper.repository.js';
+import { PortfolioOptimizer } from './paper/portfolio-optimizer.js';
 
 // Market Data
 import { MarketDataService } from './market/market-data-service.js';
@@ -63,7 +64,7 @@ import { ApiServer } from './api/server.js';
 import { McpHttpServer } from './mcp/http-server.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, BorgSyncEngine, RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, UserModel, ProactiveEngine, SemanticCompressor, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, GuardrailEngine, CausalPlanner, ResearchRoadmap, runRoadmapMigration, CreativeEngine, runCreativeMigration, ActionBridgeEngine, runActionBridgeMigration, ContentForge, runContentForgeMigration, CodeForge, runCodeForgeMigration, StrategyForge, runStrategyForgeMigration } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, TradingDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, BorgSyncEngine, RAGEngine, RAGIndexer, KnowledgeGraphEngine, FactExtractor, FeedbackEngine, ToolTracker, ToolPatternAnalyzer, UserModel, ProactiveEngine, SemanticCompressor, CodeHealthMonitor, TeachingProtocol, Curriculum, ConsensusEngine, ActiveLearner, RepoAbsorber, GuardrailEngine, CausalPlanner, ResearchRoadmap, runRoadmapMigration, CreativeEngine, runCreativeMigration, ActionBridgeEngine, runActionBridgeMigration, createTradeHandler, ContentForge, runContentForgeMigration, CodeForge, runCodeForgeMigration, StrategyForge, runStrategyForgeMigration, CrossBrainSignalRouter, runSignalRouterMigration, StrategyMutator } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem, HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
 
 export class TradingCore {
@@ -762,6 +763,17 @@ export class TradingCore {
     const actionBridge = new ActionBridgeEngine(this.db!, { brainName: 'trading-brain' });
     services.actionBridge = actionBridge;
 
+    // Register execute_trade handler → StrategyForge proposals trigger PaperEngine
+    const paperEngineRef = this.paperEngine;
+    const paperServiceRef = services.paper;
+    if (paperEngineRef) {
+      actionBridge.registerHandler('execute_trade', createTradeHandler({
+        runCycle: () => paperEngineRef.runCycle(),
+        getPortfolio: paperServiceRef ? () => paperServiceRef.getPortfolio() : undefined,
+      }));
+      logger.info('Registered execute_trade handler → PaperEngine');
+    }
+
     // ContentForge — autonomous content pipeline
     runContentForgeMigration(this.db!);
     const contentForge = new ContentForge(this.db!, { brainName: 'trading-brain' });
@@ -783,6 +795,14 @@ export class TradingCore {
     strategyForge.setKnowledgeDistiller(this.orchestrator.knowledgeDistiller);
     services.strategyForge = strategyForge;
 
+    // StrategyMutator — evolutionary strategy operations
+    const strategyMutator = new StrategyMutator(this.db!);
+    services.strategyMutator = strategyMutator;
+
+    // PortfolioOptimizer — dynamic position sizing + health checks
+    const portfolioOptimizer = new PortfolioOptimizer(this.db!);
+    services.portfolioOptimizer = portfolioOptimizer;
+
     // Wire intelligence engines into orchestrator
     this.orchestrator.setFactExtractor(factExtractor);
     this.orchestrator.setKnowledgeGraph(knowledgeGraph);
@@ -802,7 +822,13 @@ export class TradingCore {
     this.orchestrator.setCodeForge(codeForge);
     this.orchestrator.setStrategyForge(strategyForge);
 
-    logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber, Guardrails, CausalPlanner, Roadmap, Creative, ActionBridge, ContentForge, CodeForge, StrategyForge)');
+    // CrossBrainSignalRouter — bidirectional signal routing
+    runSignalRouterMigration(this.db!);
+    const signalRouter = new CrossBrainSignalRouter(this.db!, 'trading-brain');
+    if (this.notifier) signalRouter.setNotifier(this.notifier);
+    services.signalRouter = signalRouter;
+
+    logger.info('Intelligence upgrade active (RAG, KG, Feedback, ToolTracker, UserModel, Proactive, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber, Guardrails, CausalPlanner, Roadmap, Creative, ActionBridge, ContentForge, CodeForge, StrategyForge, SignalRouter)');
     logger.info('Research orchestrator started (40+ engines, feedback loops active, DataMiner bootstrapped, Dream Mode active, Prediction Engine active)');
 
     // 12e. Borg Sync Engine — collective knowledge sync (opt-in, default: disabled)

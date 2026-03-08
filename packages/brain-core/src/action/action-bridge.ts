@@ -5,8 +5,8 @@ import { getLogger } from '../utils/logger.js';
 
 export interface ProposedAction {
   id: number;
-  source: 'proactive' | 'creative' | 'mission' | 'selfmod' | 'codegen' | 'research';
-  type: 'publish_content' | 'apply_code' | 'execute_trade' | 'adjust_parameter' | 'create_goal' | 'start_mission';
+  source: 'proactive' | 'creative' | 'mission' | 'selfmod' | 'codegen' | 'research' | 'feedback-router';
+  type: 'publish_content' | 'apply_code' | 'execute_trade' | 'adjust_parameter' | 'create_goal' | 'start_mission' | 'creative_seed';
   title: string;
   description: string;
   confidence: number;
@@ -51,6 +51,7 @@ const RISK_MAP: Record<ActionType, { risk: RiskLevel; minConfidence: number }> =
   publish_content:  { risk: 'medium', minConfidence: 0.8 },
   execute_trade:    { risk: 'medium', minConfidence: 0.8 },
   apply_code:       { risk: 'high', minConfidence: 1.1 }, // never auto (>1.0)
+  creative_seed:    { risk: 'low', minConfidence: 0.5 },
 };
 
 // ── Migration ──────────────────────────────────────────────

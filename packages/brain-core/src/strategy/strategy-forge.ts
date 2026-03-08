@@ -196,8 +196,8 @@ export class StrategyForge {
     this.log.info(`[strategy-forge] Paused strategy #${strategyId}`);
   }
 
-  /** Execute one step of a strategy (check rules, fire actions) */
-  executeStep(strategyId: number): { fired: number; results: string[] } {
+  /** Execute one step of a strategy (check rules, fire actions, create ActionBridge proposals) */
+  executeStep(strategyId: number): { fired: number; proposed: number; results: string[] } {
     const row = this.stmtGetById.get(strategyId) as RawStrategy | undefined;
     if (!row) throw new Error(`Strategy #${strategyId} not found`);
     if (row.status !== 'active') throw new Error(`Strategy #${strategyId} is not active`);
@@ -205,12 +205,37 @@ export class StrategyForge {
     const strategy = deserializeStrategy(row);
     const results: string[] = [];
     let fired = 0;
+    let proposed = 0;
 
     for (const rule of strategy.rules) {
       // Simple condition evaluation: always fire for now (real eval would check market data)
       if (rule.confidence >= 0.5) {
         results.push(`Rule fired: ${rule.condition} → ${rule.action}`);
         fired++;
+
+        // Create ActionBridge proposal for trade rules
+        if (this.actionBridge && this.isTradeAction(rule.action) && strategy.type === 'trade') {
+          const symbol = this.extractSymbol(rule.condition);
+          const actionId = this.actionBridge.propose({
+            source: 'research',
+            type: 'execute_trade',
+            title: `Strategy #${strategyId}: ${rule.action} ${symbol}`,
+            description: `Rule: ${rule.condition} → ${rule.action} (source: ${rule.source})`,
+            confidence: rule.confidence,
+            payload: {
+              symbol,
+              action: rule.action as 'buy' | 'sell',
+              reason: rule.condition,
+              strategyId,
+              ruleCondition: rule.condition,
+              confidence: rule.confidence,
+            },
+          });
+          if (actionId > 0) {
+            proposed++;
+            results.push(`Proposed: execute_trade #${actionId} for ${symbol}`);
+          }
+        }
       }
     }
 
@@ -220,7 +245,7 @@ export class StrategyForge {
     if (fired > 0) perf.successes += 1;
     this.stmtUpdatePerformance.run(JSON.stringify(perf), strategyId);
 
-    return { fired, results };
+    return { fired, proposed, results };
   }
 
   /** Evolve best strategies by combining their rules */
@@ -329,6 +354,16 @@ export class StrategyForge {
     if (type === 'campaign') return 'schedule_content';
     if (type === 'research') return 'start_mission';
     return 'adjust_parameter';
+  }
+
+  private isTradeAction(action: string): boolean {
+    return ['buy', 'sell', 'evaluate_position'].includes(action);
+  }
+
+  private extractSymbol(condition: string): string {
+    // Extract symbol from conditions like "BTC > 50000" or "ETH < 3000"
+    const match = condition.match(/^([A-Z0-9]+)\s/);
+    return match ? match[1] : 'UNKNOWN';
   }
 }
 

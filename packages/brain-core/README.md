@@ -147,6 +147,12 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 | **PluginMarketplace** | Plugin discovery, rating, and installation |
 | **CodeSandbox** | Docker-isolated code execution for safe experimentation |
 | **MessagingInput** | Bidirectional Telegram + Discord bots for remote control |
+| **ChatEngine** | Natural language interface with NLU intent routing + IPC dispatch |
+| **SubAgentFactory** | Specialized sub-agent creation for focused tasks |
+| **FeedbackRouter** | Dead-end data routing to ActionBridge proposals |
+| **StrategyMutator** | Strategy evolution: mutation, crossover, tournament selection |
+| **CrossBrainSignalRouter** | Bidirectional cross-brain signal routing with confidence filtering |
+| **AutoPublisher** | Autonomous content publishing with schedule optimization |
 
 ### Utilities
 

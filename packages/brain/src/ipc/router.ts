@@ -165,6 +165,9 @@ export interface Services {
   contentForge?: import('@timmeck/brain-core').ContentForge;
   codeForge?: import('@timmeck/brain-core').CodeForge;
   strategyForge?: import('@timmeck/brain-core').StrategyForge;
+  signalRouter?: import('@timmeck/brain-core').CrossBrainSignalRouter;
+  chatEngine?: import('@timmeck/brain-core').ChatEngine;
+  subAgentFactory?: import('@timmeck/brain-core').SubAgentFactory;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -1213,6 +1216,23 @@ export class IpcRouter {
       ['strategy.performance', (params) => { if (!s.strategyForge) throw new Error('StrategyForge not available'); return s.strategyForge.getPerformance(p(params).id); }],
       ['strategy.retire',      (params) => { if (!s.strategyForge) throw new Error('StrategyForge not available'); s.strategyForge.retire(p(params).id, p(params).reason); return { ok: true }; }],
       ['strategy.status',      () => { if (!s.strategyForge) throw new Error('StrategyForge not available'); return s.strategyForge.getStatus(); }],
+
+      // ─── Cross-Brain Signals ────────────────────────────────────
+      ['signal.cross.emit',    async (params) => { if (!s.signalRouter) throw new Error('SignalRouter not available'); return { signalId: await s.signalRouter.emit(p(params)) }; }],
+      ['signal.cross.history', (params) => { if (!s.signalRouter) throw new Error('SignalRouter not available'); return s.signalRouter.getHistory(p(params).limit); }],
+      ['signal.cross.status',  () => { if (!s.signalRouter) throw new Error('SignalRouter not available'); return s.signalRouter.getStatus(); }],
+
+      // ─── Chat Interface ──────────────────────────────────────────
+      ['chat.message', async (params) => { if (!s.chatEngine) throw new Error('ChatEngine not available'); return s.chatEngine.processMessage(p(params).sessionId ?? 'default', p(params).content); }],
+      ['chat.history', (params) => { if (!s.chatEngine) throw new Error('ChatEngine not available'); return s.chatEngine.getHistory(p(params).sessionId ?? 'default', p(params).limit); }],
+      ['chat.status',  () => { if (!s.chatEngine) throw new Error('ChatEngine not available'); return s.chatEngine.getStatus(); }],
+
+      // ─── Sub-Agent Factory ───────────────────────────────────────
+      ['subagent.list',   () => { if (!s.subAgentFactory) throw new Error('SubAgentFactory not available'); return s.subAgentFactory.getStatus(); }],
+      ['subagent.create', (params) => { if (!s.subAgentFactory) throw new Error('SubAgentFactory not available'); const pp = p(params); if (pp.preset) return s.subAgentFactory.createFromPreset(pp.preset, pp.name)?.getStatus(); return s.subAgentFactory.create(pp)?.getStatus(); }],
+      ['subagent.status', (params) => { if (!s.subAgentFactory) throw new Error('SubAgentFactory not available'); const agent = s.subAgentFactory.get(p(params).name); if (!agent) throw new Error(`Agent not found: ${p(params).name}`); return agent.getStatus(); }],
+      ['subagent.run',    async (params) => { if (!s.subAgentFactory) throw new Error('SubAgentFactory not available'); const pp = p(params); const agent = s.subAgentFactory.get(pp.name); if (!agent) throw new Error(`Agent not found: ${pp.name}`); return agent.execute(pp.input); }],
+      ['subagent.presets', () => { if (!s.subAgentFactory) throw new Error('SubAgentFactory not available'); return s.subAgentFactory.getPresets(); }],
 
       // Status (cross-brain)
       ['status',                  () => ({

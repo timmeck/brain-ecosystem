@@ -222,6 +222,21 @@ canvas{display:block;width:100%;height:100%}
 @media(max-width:600px){
   .grid-3,.grid-2,.grid-4{grid-template-columns:1fr}
 }
+/* ── Chat Panel ─────────────────────────────────────────── */
+.chat-fab{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.4);z-index:1000;transition:transform .2s}
+.chat-fab:hover{transform:scale(1.1)}
+.chat-panel{position:fixed;bottom:84px;right:24px;width:380px;height:500px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;display:none;flex-direction:column;z-index:1001;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.chat-panel.open{display:flex}
+.chat-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:14px}
+.chat-header button{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px}
+.chat-messages{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.chat-msg{max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.4;word-wrap:break-word;white-space:pre-wrap}
+.chat-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:2px}
+.chat-msg.assistant{align-self:flex-start;background:var(--bg-section);color:var(--text);border-bottom-left-radius:2px}
+.chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
+.chat-input-row input{flex:1;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none}
+.chat-input-row input:focus{border-color:var(--accent)}
+.chat-input-row button{background:var(--accent);border:none;color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px}
 </style>
 </head>
 <body>
@@ -239,6 +254,7 @@ canvas{display:block;width:100%;height:100%}
     <div class="nav-section">System</div>
     <div class="nav-item" data-page="crossbrain"><span class="nav-icon">&#x1F517;</span><span class="nav-label">Cross-Brain</span></div>
     <div class="nav-item" data-page="debates"><span class="nav-icon">&#x2696;</span><span class="nav-label">Debates</span></div>
+    <div class="nav-item" data-page="forge"><span class="nav-icon">&#x2692;</span><span class="nav-label">Forge</span></div>
     <div class="nav-item" data-page="activity"><span class="nav-icon">&#x26A1;</span><span class="nav-label" data-t="Aktivität">Aktivität</span></div>
     <div class="nav-item" data-page="infra"><span class="nav-icon">&#x2699;</span><span class="nav-label" data-t="Infrastruktur">Infrastruktur</span></div>
   </div>
@@ -755,6 +771,34 @@ canvas{display:block;width:100%;height:100%}
         </div>
       </div>
 
+      <!-- ════ Page: Forge & Autonomie ══════════════════════ -->
+      <div class="page" id="page-forge">
+        <div class="grid grid-2">
+          <div class="section">
+            <div class="section-title"><span class="icon">&#x1F3AF;</span> ActionBridge</div>
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Queue, Executions, Erfolgsrate</p>
+            <div id="forgeActionBridge"><div class="empty">Loading...</div></div>
+          </div>
+          <div class="section">
+            <div class="section-title"><span class="icon">&#x270D;</span> ContentForge</div>
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Drafts, Scheduled, Published, Engagement</p>
+            <div id="forgeContentForge"><div class="empty">Loading...</div></div>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <div class="section">
+            <div class="section-title"><span class="icon">&#x1F4CA;</span> StrategyForge</div>
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Aktive Strategien, Performance</p>
+            <div id="forgeStrategyForge"><div class="empty">Loading...</div></div>
+          </div>
+          <div class="section">
+            <div class="section-title"><span class="icon">&#x1F504;</span> Cross-Brain Signals</div>
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Signal-Flow zwischen Brains</p>
+            <div id="forgeSignalRouter"><div class="empty">Loading...</div></div>
+          </div>
+        </div>
+      </div>
+
       <!-- ════ Page 8: Infrastruktur ══════════════════════ -->
       <div class="page" id="page-infra">
         <div class="section">
@@ -929,7 +973,7 @@ function getTitle(page) {
   const titles = {
     overview:'Ecosystem Overview', entity:t('Bewusstsein'), learning:t('Der Lern-Kreislauf'), trading:'Trading Flow',
     marketing:'Marketing Flow', intelligence:t('Intelligenz'), crossbrain:'Cross-Brain & Borg', activity:t('Aktivität & Missionen'),
-    debates:'Debates & Challenges', infra:t('Infrastruktur')
+    debates:'Debates & Challenges', forge:'Forge & Autonomie', infra:t('Infrastruktur')
   }; return titles[page] || '';
 }
 const titles = {
@@ -942,6 +986,7 @@ const titles = {
   crossbrain:'Cross-Brain & Borg',
   activity:'Aktivität & Missionen',
   debates:'Debates & Challenges',
+  forge:'Forge & Autonomie',
   infra:'Infrastruktur'
 };
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -976,6 +1021,7 @@ function connectSSE() {
   es.addEventListener('guardrail-health', e => { state.guardrailHealth = JSON.parse(e.data); renderGuardrails(); });
   es.addEventListener('roadmaps', e => { state.roadmaps = JSON.parse(e.data); renderRoadmaps(); });
   es.addEventListener('creative-insights', e => { state.creativeInsights = JSON.parse(e.data); renderCreativeInsights(); });
+  es.addEventListener('forge-status', e => { state.forgeStatus = JSON.parse(e.data); renderForgeWidgets(); });
   es.onerror = () => { state.connected = false; updateConnection(); };
 }
 
@@ -1003,7 +1049,7 @@ async function loadInitial() {
     renderEcosystem(); renderEngines(); renderWatchdog(); renderPlugins();
     renderBorg(); renderAnalytics(); renderLLM(); renderErrors();
     renderSelfMod(); renderMissions(); renderRepoAbsorber(); renderIntelligence(); renderKnowledge(); renderDebates();
-    renderGuardrails(); renderRoadmaps(); renderCreativeInsights();
+    renderGuardrails(); renderRoadmaps(); renderCreativeInsights(); renderForgeWidgets();
   } catch {}
 }
 
@@ -2065,11 +2111,96 @@ function entityLoop(){drawEntityCanvas();requestAnimationFrame(entityLoop)}
 var origAddThought=addThought;
 addThought=function(t){origAddThought(t);if(t.significance==='notable'||t.significance==='breakthrough'){if(entFloating.length>=12)entFloating.shift();entFloating.push({text:(t.content||'').substring(0,40),angle:Math.random()*Math.PI*2,dist:0.2,speed:0.15+Math.random()*0.1,alpha:1,born:Date.now(),life:6000+Math.random()*4000})}};
 
+// ── Forge Widgets ─────────────────────────────────────────
+function renderForgeWidgets() {
+  const f = state.forgeStatus || {};
+  // ActionBridge
+  const ab = f.actionBridge;
+  const abEl = document.getElementById('forgeActionBridge');
+  if (abEl && ab) {
+    abEl.innerHTML = `<div class="grid grid-2" style="gap:8px">
+      <div class="card"><div class="stat-value">${ab.queueSize ?? 0}</div><div class="stat-label">Queue</div></div>
+      <div class="card"><div class="stat-value">${ab.executed24h ?? 0}</div><div class="stat-label">24h Executed</div></div>
+      <div class="card"><div class="stat-value">${((ab.successRate ?? 0) * 100).toFixed(0)}%</div><div class="stat-label">Erfolgsrate</div></div>
+      <div class="card"><div class="stat-value">${ab.autoExecuteEnabled ? 'ON' : 'OFF'}</div><div class="stat-label">Auto-Execute</div></div>
+    </div>`;
+  }
+  // ContentForge
+  const cf = f.contentForge;
+  const cfEl = document.getElementById('forgeContentForge');
+  if (cfEl && cf) {
+    cfEl.innerHTML = `<div class="grid grid-2" style="gap:8px">
+      <div class="card"><div class="stat-value">${cf.drafts ?? 0}</div><div class="stat-label">Drafts</div></div>
+      <div class="card"><div class="stat-value">${cf.scheduled ?? 0}</div><div class="stat-label">Scheduled</div></div>
+      <div class="card"><div class="stat-value">${cf.published ?? 0}</div><div class="stat-label">Published</div></div>
+      <div class="card"><div class="stat-value">${(cf.avgEngagement ?? 0).toFixed(1)}</div><div class="stat-label">Avg Engagement</div></div>
+    </div>`;
+  }
+  // StrategyForge
+  const sf = f.strategyForge;
+  const sfEl = document.getElementById('forgeStrategyForge');
+  if (sfEl && sf) {
+    sfEl.innerHTML = `<div class="grid grid-2" style="gap:8px">
+      <div class="card"><div class="stat-value">${sf.active ?? 0}</div><div class="stat-label">Active</div></div>
+      <div class="card"><div class="stat-value">${sf.total ?? 0}</div><div class="stat-label">Total</div></div>
+      <div class="card"><div class="stat-value">${((sf.avgPerformance ?? 0) * 100).toFixed(0)}%</div><div class="stat-label">Avg Performance</div></div>
+      <div class="card" style="grid-column:span 2"><div class="stat-value" style="font-size:14px">${sf.topStrategy ?? 'None'}</div><div class="stat-label">Top Strategy</div></div>
+    </div>`;
+  }
+  // SignalRouter
+  const sr = f.signalRouter;
+  const srEl = document.getElementById('forgeSignalRouter');
+  if (srEl && sr) {
+    const types = (sr.byType || []).map(t => `<span class="badge badge-ok">${t.signalType}: ${t.count}</span>`).join(' ');
+    srEl.innerHTML = `<div class="grid grid-2" style="gap:8px">
+      <div class="card"><div class="stat-value">${sr.totalSignals ?? 0}</div><div class="stat-label">Total Signals</div></div>
+      <div class="card"><div class="stat-value">${sr.handlerCount ?? 0}</div><div class="stat-label">Handlers</div></div>
+    </div><div style="margin-top:8px">${types || '<span class="empty">No signals yet</span>'}</div>`;
+  }
+}
+
+// ── Chat ──────────────────────────────────────────────────
+const chatSessionId = 'dashboard-' + Date.now().toString(36);
+function toggleChat() {
+  const panel = document.getElementById('chatPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) document.getElementById('chatInput').focus();
+}
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const content = input.value.trim();
+  if (!content) return;
+  input.value = '';
+  appendChatMsg('user', content);
+  try {
+    const res = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ sessionId: chatSessionId, content }) });
+    const data = await res.json();
+    appendChatMsg('assistant', data.content || JSON.stringify(data));
+  } catch(e) { appendChatMsg('assistant', 'Fehler: ' + e.message); }
+}
+function appendChatMsg(role, text) {
+  const box = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+document.getElementById('chatInput')?.addEventListener('keydown', e => { if(e.key==='Enter') sendChat(); });
+
 // ── Init ──────────────────────────────────────────────────
 document.getElementById('langToggle').textContent = currentLang.toUpperCase();
 updateStaticTexts();
 connectSSE(); loadInitial(); initCrossBrainCanvas(); entityLoop();
 window.addEventListener('resize', () => { if(state.ecosystem?.brains) drawPeerGraph(state.ecosystem.brains); });
 </script>
+
+<!-- Chat Panel -->
+<button class="chat-fab" onclick="toggleChat()">&#x1F4AC;</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header"><span>Brain Chat</span><button onclick="toggleChat()">&#x2715;</button></div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-row"><input id="chatInput" placeholder="Frag mich etwas..." autocomplete="off"><button onclick="sendChat()">Senden</button></div>
+</div>
 </body>
 </html>

@@ -27,12 +27,18 @@ Shared infrastructure library for the Brain Ecosystem. Not an MCP server itself 
 | Content | `@timmeck/brain-core` | ContentForge: autonomous content pipeline |
 | CodeForge | `@timmeck/brain-core` | CodeForge: pattern extraction, code generation |
 | Strategy | `@timmeck/brain-core` | StrategyForge: autonomous strategy creation |
+| ChatEngine | `@timmeck/brain-core` | NLU intent routing + IPC dispatch |
+| SubAgent | `@timmeck/brain-core` | SubAgentFactory: specialized sub-agent creation |
+| FeedbackRouter | `@timmeck/brain-core` | Dead-end data → ActionBridge proposals |
+| StrategyMutator | `@timmeck/brain-core` | Strategy evolution: mutate, crossover, selection |
+| SignalRouter | `@timmeck/brain-core` | CrossBrainSignalRouter: bidirectional cross-brain signals |
+| AutoPublisher | `@timmeck/brain-core` | Autonomous content publishing pipeline |
 
 ## Development
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (100 tests)
+npm test               # Vitest (2,353 tests across 161 test files)
 npm run lint           # ESLint
 ```
 

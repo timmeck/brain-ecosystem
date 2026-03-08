@@ -6,6 +6,7 @@ vi.mock('../../utils/logger.js', () => ({
 }));
 
 import { StrategyForge, runStrategyForgeMigration } from '../strategy-forge.js';
+import { ActionBridgeEngine } from '../../action/action-bridge.js';
 
 describe('StrategyForge', () => {
   let db: Database.Database;
@@ -144,5 +145,91 @@ describe('StrategyForge', () => {
     runStrategyForgeMigration(db);
     const all = forge.getAll();
     expect(all).toHaveLength(1);
+  });
+
+  // ─── Session 96: ActionBridge Integration ──────────────────
+
+  it('executeStep returns proposed count', () => {
+    const forge = new StrategyForge(db, { brainName: 'test' });
+    const strategy = forge.createFromSignals([{ name: 'BTC', value: 50000, direction: 'up' }]);
+    forge.activate(strategy!.id);
+
+    const result = forge.executeStep(strategy!.id);
+    expect(result).toHaveProperty('proposed');
+    expect(result.proposed).toBe(0); // No ActionBridge set
+  });
+
+  it('executeStep creates proposals when ActionBridge is set', () => {
+    const forge = new StrategyForge(db, { brainName: 'test' });
+    const actionBridge = new ActionBridgeEngine(db, { brainName: 'test' });
+    forge.setActionBridge(actionBridge);
+
+    const strategy = forge.createFromSignals([{ name: 'BTC', value: 50000, direction: 'up' }]);
+    forge.activate(strategy!.id);
+
+    const result = forge.executeStep(strategy!.id);
+    expect(result.fired).toBe(1);
+    expect(result.proposed).toBe(1);
+
+    const queue = actionBridge.getQueue('pending');
+    expect(queue).toHaveLength(1);
+    expect(queue[0].type).toBe('execute_trade');
+    expect(queue[0].payload.symbol).toBe('BTC');
+    expect(queue[0].payload.action).toBe('buy');
+    expect(queue[0].payload.strategyId).toBe(strategy!.id);
+  });
+
+  it('executeStep creates sell proposals for downward signals', () => {
+    const forge = new StrategyForge(db, { brainName: 'test' });
+    const actionBridge = new ActionBridgeEngine(db, { brainName: 'test' });
+    forge.setActionBridge(actionBridge);
+
+    const strategy = forge.createFromSignals([{ name: 'ETH', value: 3000, direction: 'down' }]);
+    forge.activate(strategy!.id);
+
+    forge.executeStep(strategy!.id);
+
+    const queue = actionBridge.getQueue('pending');
+    expect(queue).toHaveLength(1);
+    expect(queue[0].payload.action).toBe('sell');
+    expect(queue[0].payload.symbol).toBe('ETH');
+  });
+
+  it('does not propose for non-trade strategies', () => {
+    const forge = new StrategyForge(db, { brainName: 'test' });
+    const actionBridge = new ActionBridgeEngine(db, { brainName: 'test' });
+    forge.setActionBridge(actionBridge);
+
+    // createFromPrinciples with content domain → campaign type
+    forge.setKnowledgeDistiller({
+      getPrinciples: () => [
+        { id: 'p1', statement: 'Post daily updates', domain: 'content', confidence: 0.8, source: 'learned' },
+      ],
+    });
+    const strategy = forge.createFromPrinciples('content');
+    forge.activate(strategy!.id);
+
+    const result = forge.executeStep(strategy!.id);
+    expect(result.proposed).toBe(0); // campaign type → no trade proposals
+  });
+
+  it('multiple rules create multiple proposals', () => {
+    const forge = new StrategyForge(db, { brainName: 'test' });
+    const actionBridge = new ActionBridgeEngine(db, { brainName: 'test' });
+    forge.setActionBridge(actionBridge);
+
+    const strategy = forge.createFromSignals([
+      { name: 'BTC', value: 50000, direction: 'up' },
+      { name: 'ETH', value: 3000, direction: 'down' },
+      { name: 'SOL', value: 100, direction: 'up' },
+    ]);
+    forge.activate(strategy!.id);
+
+    const result = forge.executeStep(strategy!.id);
+    expect(result.fired).toBe(3);
+    expect(result.proposed).toBe(3);
+
+    const queue = actionBridge.getQueue('pending');
+    expect(queue).toHaveLength(3);
   });
 });

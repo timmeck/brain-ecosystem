@@ -2587,7 +2587,8 @@ export class ResearchOrchestrator {
         let generated = 0;
         for (const insight of topInsights) {
           if (insight.noveltyScore > 0.6) {
-            this.contentForge.generateFromInsight(insight);
+            const piece = this.contentForge.generateFromInsight(insight);
+            this.contentForge.autoScheduleAndPublish(piece.id);
             generated++;
           }
         }

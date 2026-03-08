@@ -576,4 +576,43 @@ describe('CommandCenterServer', () => {
 
     await expect(request(result.port, '/')).rejects.toThrow();
   });
+
+  // ─── Session 99: Forge API ─────────────────────────────
+
+  it('GET /api/forge returns forge status data', async () => {
+    const result = await startServer({
+      getActionBridgeStatus: () => ({ queueSize: 3, executed24h: 12, successRate: 0.85, autoExecuteEnabled: true, topSources: [] }),
+      getContentForgeStatus: () => ({ drafts: 5, scheduled: 2, published: 10, avgEngagement: 4.5 }),
+      getStrategyForgeStatus: () => ({ active: 2, total: 8, avgPerformance: 0.65, topStrategy: 'btc-dca' }),
+      getSignalRouterStatus: () => ({ totalSignals: 15, byType: [{ signalType: 'trade_signal', count: 10 }], handlerCount: 2 }),
+    });
+
+    const res = await request(result.port, '/api/forge');
+    expect(res.statusCode).toBe(200);
+
+    const data = JSON.parse(res.body);
+    expect(data.actionBridge.queueSize).toBe(3);
+    expect(data.contentForge.published).toBe(10);
+    expect(data.strategyForge.topStrategy).toBe('btc-dca');
+    expect(data.signalRouter.totalSignals).toBe(15);
+  });
+
+  it('GET /api/forge returns nulls when no getters provided', async () => {
+    const result = await startServer({});
+
+    const res = await request(result.port, '/api/forge');
+    expect(res.statusCode).toBe(200);
+
+    const data = JSON.parse(res.body);
+    expect(data.actionBridge).toBeNull();
+    expect(data.contentForge).toBeNull();
+    expect(data.strategyForge).toBeNull();
+    expect(data.signalRouter).toBeNull();
+  });
+
+  it('returns 404 for unknown routes', async () => {
+    const result = await startServer({});
+    const res = await request(result.port, '/api/nonexistent');
+    expect(res.statusCode).toBe(404);
+  });
 });

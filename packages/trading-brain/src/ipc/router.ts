@@ -130,6 +130,9 @@ export interface Services {
   contentForge?: import('@timmeck/brain-core').ContentForge;
   codeForge?: import('@timmeck/brain-core').CodeForge;
   strategyForge?: import('@timmeck/brain-core').StrategyForge;
+  signalRouter?: import('@timmeck/brain-core').CrossBrainSignalRouter;
+  strategyMutator?: import('@timmeck/brain-core').StrategyMutator;
+  portfolioOptimizer?: import('../paper/portfolio-optimizer.js').PortfolioOptimizer;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -835,6 +838,26 @@ export class IpcRouter {
       ['strategy.performance', (params) => { if (!s.strategyForge) throw new Error('StrategyForge not available'); return s.strategyForge.getPerformance(p(params).id); }],
       ['strategy.retire',      (params) => { if (!s.strategyForge) throw new Error('StrategyForge not available'); return s.strategyForge.retire(p(params).id, p(params).reason); }],
       ['strategy.status',      () => { if (!s.strategyForge) throw new Error('StrategyForge not available'); return s.strategyForge.getStatus(); }],
+      ['strategy.bridge.status', () => {
+        if (!s.strategyForge || !s.actionBridge) throw new Error('StrategyForge or ActionBridge not available');
+        return {
+          strategyForge: s.strategyForge.getStatus(),
+          actionBridge: s.actionBridge.getStatus(),
+          pipeline: 'StrategyForge → ActionBridge → PaperEngine',
+          handlerRegistered: true,
+        };
+      }],
+
+      // ─── Cross-Brain Signals ────────────────────────────────────
+      ['signal.cross.emit',    async (params) => { if (!s.signalRouter) throw new Error('SignalRouter not available'); return { signalId: await s.signalRouter.emit(p(params)) }; }],
+      ['signal.cross.history', (params) => { if (!s.signalRouter) throw new Error('SignalRouter not available'); return s.signalRouter.getHistory(p(params).limit); }],
+      ['signal.cross.status',  () => { if (!s.signalRouter) throw new Error('SignalRouter not available'); return s.signalRouter.getStatus(); }],
+
+      // ─── Strategy Mutation & Portfolio Optimization ────────────────
+      ['strategy.mutate',     () => { if (!s.strategyMutator || !s.strategyForge) throw new Error('Not available'); const strategies = s.strategyForge.getActive(); return s.strategyMutator.evolveGeneration(strategies); }],
+      ['strategy.generation', () => { if (!s.strategyMutator) throw new Error('Not available'); return { generation: s.strategyMutator.getGeneration() }; }],
+      ['portfolio.health',    () => { if (!s.portfolioOptimizer || !s.paper) throw new Error('Not available'); const portfolio = s.paper.getPortfolio(); return s.portfolioOptimizer.checkHealth(portfolio.equity, portfolio.positions.map((p: { symbol: string; usdtAmount: number }) => ({ symbol: p.symbol, usdtAmount: p.usdtAmount }))); }],
+      ['portfolio.history',   (params) => { if (!s.portfolioOptimizer) throw new Error('Not available'); return s.portfolioOptimizer.getHistory(p(params).limit); }],
 
       ['status', () => ({
         name: 'trading-brain',

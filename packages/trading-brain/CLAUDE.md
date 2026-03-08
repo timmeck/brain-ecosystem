@@ -49,14 +49,16 @@ Claude Code → MCP Server (stdio) → TradingCore → Services → SQLite
                                        ├── ActionBridge (risk-assessed auto-execution)
                                        ├── ContentForge (autonomous content pipeline)
                                        ├── CodeForge (pattern extraction, code generation)
-                                       └── StrategyForge (autonomous strategy creation)
+                                       ├── StrategyForge (autonomous strategy creation)
+                                       ├── PortfolioOptimizer (Kelly criterion sizing, HHI diversification)
+                                       └── StrategyMutator (strategy evolution: mutate, crossover, selection)
 ```
 
 ## Development
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (121 tests)
+npm test               # Vitest (500 tests across 33 test files)
 npm run lint           # ESLint
 npm run dev            # Run via tsx
 ```
