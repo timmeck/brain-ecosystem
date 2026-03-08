@@ -1,6 +1,6 @@
 {
   "name": "@timmeck/brain-core",
-  "version": "2.36.53",
+  "version": "2.36.54",
   "description": "Shared core infrastructure for the Brain ecosystem — IPC, MCP, CLI, DB connection, and utilities",
   "type": "module",
   "main": "dist/index.js",
