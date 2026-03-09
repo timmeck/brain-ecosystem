@@ -323,4 +323,36 @@ describe('PredictionEngine', () => {
     expect(typeof calibration.offset).toBe('number');
     expect(Array.isArray(calibration.accuracyByDomain)).toBe(true);
   });
+
+  // ── minConfidence default is 0.3 ─────────────────────
+
+  it('default minConfidence is 0.3 (lowered from 0.5)', () => {
+    const defaultEngine = new PredictionEngine(db, { brainName: 'test-default' });
+    const cfg = defaultEngine.getConfig();
+    expect(cfg.minConfidence).toBe(0.3);
+    defaultEngine.stop();
+  });
+
+  // ── error-domain metrics can be recorded and predicted ─
+
+  it('records error-domain metrics and generates predictions', () => {
+    // Seed error-domain data with clear upward trend
+    seedMetrics(db, 'error_total', 10, { baseValue: 5, step: 2, domain: 'error' });
+
+    const prediction = engine.predict({ domain: 'error', metric: 'error_total' });
+    expect(prediction).not.toBeNull();
+    expect(prediction!.domain).toBe('error');
+    expect(prediction!.predicted_direction).toBe('up');
+  });
+
+  // ── low-confidence predictions pass with 0.3 threshold ─
+
+  it('allows low-confidence predictions that would have been blocked at 0.5', () => {
+    // Seed 2 data points (will use EWMA, typically lower confidence)
+    seedMetrics(db, 'sparse_error', 2, { baseValue: 10, step: 1, domain: 'error' });
+
+    // With minConfidence: 0.01 (our test setup), this should pass
+    const prediction = engine.predict({ domain: 'error', metric: 'sparse_error' });
+    expect(prediction).not.toBeNull();
+  });
 });

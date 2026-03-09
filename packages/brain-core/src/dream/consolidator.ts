@@ -156,7 +156,7 @@ export class DreamConsolidator {
         SELECT id, content, category, importance, embedding FROM memories
         WHERE active = 1
         ORDER BY importance DESC
-        LIMIT 200
+        LIMIT 500
       `).all() as typeof memories;
     } catch {
       return result;
@@ -183,7 +183,7 @@ export class DreamConsolidator {
     };
 
     // Adjust threshold for text similarity (bigram Dice scores lower than cosine)
-    const threshold = useEmbeddings ? config.clusterSimilarityThreshold : Math.min(config.clusterSimilarityThreshold, 0.45);
+    const threshold = useEmbeddings ? config.clusterSimilarityThreshold : Math.min(config.clusterSimilarityThreshold, 0.30);
 
     // Greedy clustering
     const used = new Set<string>();

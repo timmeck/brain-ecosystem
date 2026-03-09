@@ -310,7 +310,7 @@ export class BrainCore {
     services.dreamEngine = dreamEngine;
 
     // 11i. Prediction Engine — Proactive Forecasting
-    const predictionEngine = new PredictionEngine(this.db!, { brainName: 'brain', defaultHorizonMs: 600_000 });
+    const predictionEngine = new PredictionEngine(this.db!, { brainName: 'brain', defaultHorizonMs: 300_000 });
     this.orchestrator.setPredictionEngine(predictionEngine);
     predictionEngine.start();
     services.predictionEngine = predictionEngine;
@@ -440,9 +440,10 @@ export class BrainCore {
       // Dream Engine
       { engine: 'dream', name: 'prune_threshold', value: 0.15, min: 0.01, max: 0.5, description: 'Synapse prune cutoff weight', category: 'consolidation' },
       { engine: 'dream', name: 'learning_rate', value: 0.15, min: 0.01, max: 0.5, description: 'Dream synapse strengthening rate', category: 'consolidation' },
-      { engine: 'dream', name: 'cluster_similarity', value: 0.75, min: 0.5, max: 0.95, description: 'Memory compression similarity threshold', category: 'consolidation' },
+      { engine: 'dream', name: 'cluster_similarity', value: 0.35, min: 0.1, max: 0.95, description: 'Memory compression similarity threshold', category: 'consolidation' },
       { engine: 'dream', name: 'importance_decay_rate', value: 0.5, min: 0.1, max: 0.9, description: 'Memory importance decay factor', category: 'consolidation' },
-      { engine: 'dream', name: 'replay_batch_size', value: 20, min: 5, max: 100, description: 'Memories per replay batch', category: 'consolidation' },
+      { engine: 'dream', name: 'replay_batch_size', value: 50, min: 5, max: 200, description: 'Memories per replay batch', category: 'consolidation' },
+      { engine: 'dream', name: 'max_consolidations', value: 10, min: 1, max: 50, description: 'Max memory clusters per dream cycle', category: 'consolidation' },
       // Attention Engine
       { engine: 'attention', name: 'decay_rate', value: 0.85, min: 0.5, max: 0.99, description: 'Attention score decay per cycle', category: 'focus' },
       { engine: 'attention', name: 'burst_threshold', value: 3, min: 1, max: 10, description: 'Events to trigger urgency', category: 'focus' },

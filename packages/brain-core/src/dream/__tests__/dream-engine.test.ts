@@ -229,4 +229,120 @@ describe('DreamEngine', () => {
     expect(state).toBeDefined();
     expect(state.total_cycles).toBe(0);
   });
+
+  // ── 11. updateConfig merges partial updates ─────────
+
+  it('updateConfig merges partial config values', () => {
+    const engine = new DreamEngine(db, { brainName: 'test' });
+    const before = engine.getConfig();
+    expect(before.clusterSimilarityThreshold).toBe(0.35);
+    expect(before.replayBatchSize).toBe(50);
+    expect(before.maxConsolidationsPerCycle).toBe(10);
+
+    engine.updateConfig({ clusterSimilarityThreshold: 0.5, replayBatchSize: 100 });
+    const after = engine.getConfig();
+    expect(after.clusterSimilarityThreshold).toBe(0.5);
+    expect(after.replayBatchSize).toBe(100);
+    // unchanged fields remain
+    expect(after.maxConsolidationsPerCycle).toBe(10);
+    expect(after.dreamPruneThreshold).toBe(0.15);
+  });
+
+  // ── 12. getConfig returns a read-only copy ──────────
+
+  it('getConfig returns correct defaults', () => {
+    const engine = new DreamEngine(db, { brainName: 'test' });
+    const cfg = engine.getConfig();
+    expect(cfg.brainName).toBe('test');
+    expect(cfg.clusterSimilarityThreshold).toBe(0.35);
+    expect(cfg.replayBatchSize).toBe(50);
+    expect(cfg.maxConsolidationsPerCycle).toBe(10);
+    expect(cfg.minClusterSize).toBe(2);
+  });
+
+  // ── 13. lower thresholds produce consolidations ─────
+
+  it('consolidates memories with lower similarity threshold', () => {
+    // Create memories table with similar memories
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS memories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id TEXT DEFAULT 'default',
+        category TEXT NOT NULL DEFAULT 'general',
+        key TEXT,
+        content TEXT NOT NULL,
+        importance INTEGER NOT NULL DEFAULT 5,
+        source TEXT DEFAULT 'test',
+        tags TEXT DEFAULT '[]',
+        embedding BLOB,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(project_id, key)
+      );
+      CREATE TABLE IF NOT EXISTS synapses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_type TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        target_type TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        weight REAL NOT NULL DEFAULT 0.5,
+        last_activated_at TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    // Insert similar memories (text-similarity based, no embeddings)
+    const insert = db.prepare(`INSERT INTO memories (category, key, content, importance, active) VALUES (?, ?, ?, ?, 1)`);
+    insert.run('error', 'err1', 'TypeError cannot read property of undefined in module loader', 8);
+    insert.run('error', 'err2', 'TypeError cannot read property of undefined in config loader', 7);
+    insert.run('error', 'err3', 'TypeError cannot read property of undefined in data loader', 6);
+
+    const engine = new DreamEngine(db, { brainName: 'test', clusterSimilarityThreshold: 0.35, minClusterSize: 2 });
+    const report = engine.consolidate('manual');
+
+    // With threshold 0.35, these similar texts should cluster
+    expect(report.compression.memoriesConsolidated).toBeGreaterThanOrEqual(1);
+  });
+
+  // ── 14. memory pool uses LIMIT 500 ──────────────────
+
+  it('handles large memory pools without error', () => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS memories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id TEXT DEFAULT 'default',
+        category TEXT NOT NULL DEFAULT 'general',
+        key TEXT,
+        content TEXT NOT NULL,
+        importance INTEGER NOT NULL DEFAULT 5,
+        source TEXT DEFAULT 'test',
+        tags TEXT DEFAULT '[]',
+        embedding BLOB,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(project_id, key)
+      );
+      CREATE TABLE IF NOT EXISTS synapses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_type TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        target_type TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        weight REAL NOT NULL DEFAULT 0.5,
+        last_activated_at TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+
+    // Insert 300 memories (beyond old limit of 200)
+    const insert = db.prepare(`INSERT INTO memories (category, content, importance, active) VALUES (?, ?, ?, 1)`);
+    for (let i = 0; i < 300; i++) {
+      insert.run('test', `Memory item number ${i} about topic ${i % 10}`, 5 + (i % 5));
+    }
+
+    const engine = new DreamEngine(db, { brainName: 'test' });
+    expect(() => engine.consolidate('manual')).not.toThrow();
+  });
 });

@@ -107,7 +107,7 @@ describe('Session 79: Self-Improvement Fixes', () => {
     // Access config to verify defaults
     const config = (dream as unknown as { config: { minClusterSize: number; clusterSimilarityThreshold: number } }).config;
     expect(config.minClusterSize).toBe(2);
-    expect(config.clusterSimilarityThreshold).toBe(0.55);
+    expect(config.clusterSimilarityThreshold).toBe(0.35);
   });
 
   // ── Fix 4b: Experiment candidates contain Prediction Tuning ──

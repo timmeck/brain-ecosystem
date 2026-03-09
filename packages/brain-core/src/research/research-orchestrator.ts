@@ -1035,6 +1035,22 @@ export class ResearchOrchestrator {
         this.predictionEngine.recordMetric('knowledge_confidence', kSummary.avgConfidence, 'metric');
       } catch { /* skip */ }
 
+      // 11a. Error-domain metrics (only brain has errors table — try/catch)
+      try {
+        const errorTotal = (this.db.prepare(`SELECT COUNT(*) as cnt FROM errors`).get() as { cnt: number }).cnt;
+        const errorUnresolved = (this.db.prepare(`SELECT COUNT(*) as cnt FROM errors WHERE resolved = 0`).get() as { cnt: number }).cnt;
+        const oneHourAgo = Date.now() - 3_600_000;
+        const errorRate1h = (this.db.prepare(`SELECT COUNT(*) as cnt FROM errors WHERE timestamp > ?`).get(oneHourAgo) as { cnt: number }).cnt;
+        const solutionTotal = (this.db.prepare(`SELECT COUNT(*) as cnt FROM solutions`).get() as { cnt: number }).cnt;
+        const resolutionRate = errorTotal > 0 ? (errorTotal - errorUnresolved) / errorTotal : 0;
+
+        this.predictionEngine.recordMetric('error_total', errorTotal, 'error');
+        this.predictionEngine.recordMetric('error_unresolved', errorUnresolved, 'error');
+        this.predictionEngine.recordMetric('error_rate_1h', errorRate1h, 'error');
+        this.predictionEngine.recordMetric('solution_total', solutionTotal, 'error');
+        this.predictionEngine.recordMetric('error_resolution_rate', resolutionRate, 'error');
+      } catch { /* errors/solutions tables don't exist in this brain — skip */ }
+
       ts?.emit('orchestrator', 'perceiving', `Self-metrics recorded: ${anomalies.length} anomalies, ${insights.length} insights, ${cycleDuration}ms`);
 
       // 11b. Re-resolve predictions now that fresh metrics are available
@@ -1129,6 +1145,9 @@ export class ResearchOrchestrator {
             this.predictionEngine.recordMetric('scanner_total_repos', status.total_repos, 'scanner');
             this.predictionEngine.recordMetric('scanner_breakouts', status.by_level.breakout, 'scanner');
             this.predictionEngine.recordMetric('scanner_signals', status.by_level.signal, 'scanner');
+            this.predictionEngine.recordMetric('scanner_avg_score', (status as unknown as Record<string, number>).avg_score ?? 0, 'scanner');
+            this.predictionEngine.recordMetric('scanner_new_breakouts', scan.new_breakouts, 'scanner');
+            this.predictionEngine.recordMetric('scanner_new_signals', scan.new_signals, 'scanner');
           }
           // Journal new breakouts
           if (scan.new_breakouts > 0) {
@@ -1347,6 +1366,25 @@ export class ResearchOrchestrator {
             `Found ${gaps.length} knowledge gap(s): ${gaps.slice(0, 3).map(g => `"${g.topic}" (${(g.gapScore * 100).toFixed(0)}%)`).join(', ')}`,
             gaps.some(g => g.gapType === 'dark_zone') ? 'notable' : 'routine',
           );
+          // Bridge: feed top-3 gaps as observations into HypothesisEngine → targeted hypotheses
+          for (const gap of gaps.slice(0, 3)) {
+            this.hypothesisEngine.observe({
+              source: this.brainName,
+              type: `knowledge_gap:${gap.topic}`,
+              value: gap.gapScore,
+              timestamp: now,
+              metadata: { gapType: gap.gapType, attentionScore: gap.attentionScore, knowledgeScore: gap.knowledgeScore },
+            });
+          }
+
+          // Bridge: feed gap metrics into PredictionEngine
+          if (this.predictionEngine) {
+            this.predictionEngine.recordMetric('knowledge_gap_count', gaps.length, 'metric');
+            for (const gap of gaps.slice(0, 3)) {
+              this.predictionEngine.recordMetric(`gap_score:${gap.topic}`, gap.gapScore, 'metric');
+            }
+          }
+
           // Journal dark zones (truly unknown territory)
           for (const gap of gaps.filter(g => g.gapType === 'dark_zone').slice(0, 2)) {
             this.journal.write({
@@ -1622,6 +1660,26 @@ export class ResearchOrchestrator {
         this.predictionEngine.updateConfig({
           ...(alpha !== undefined ? { ewmaAlpha: alpha } : {}),
           ...(beta !== undefined ? { trendBeta: beta } : {}),
+        });
+      }
+    }
+
+    // 22c. Sync DreamEngine params from ParameterRegistry
+    if (this.parameterRegistry && this.dreamEngine) {
+      const clusterSim = this.parameterRegistry.get('dream', 'cluster_similarity');
+      const replayBatch = this.parameterRegistry.get('dream', 'replay_batch_size');
+      const maxConsol = this.parameterRegistry.get('dream', 'max_consolidations');
+      const pruneThreshold = this.parameterRegistry.get('dream', 'prune_threshold');
+      const learningRate = this.parameterRegistry.get('dream', 'learning_rate');
+      const decayRate = this.parameterRegistry.get('dream', 'importance_decay_rate');
+      if (clusterSim !== undefined || replayBatch !== undefined || maxConsol !== undefined || pruneThreshold !== undefined || learningRate !== undefined || decayRate !== undefined) {
+        this.dreamEngine.updateConfig({
+          ...(clusterSim !== undefined ? { clusterSimilarityThreshold: clusterSim } : {}),
+          ...(replayBatch !== undefined ? { replayBatchSize: replayBatch } : {}),
+          ...(maxConsol !== undefined ? { maxConsolidationsPerCycle: maxConsol } : {}),
+          ...(pruneThreshold !== undefined ? { dreamPruneThreshold: pruneThreshold } : {}),
+          ...(learningRate !== undefined ? { dreamLearningRate: learningRate } : {}),
+          ...(decayRate !== undefined ? { importanceDecayRate: decayRate } : {}),
         });
       }
     }

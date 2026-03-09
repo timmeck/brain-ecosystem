@@ -88,15 +88,15 @@ export class DreamEngine {
       brainName: config.brainName,
       intervalMs: config.intervalMs ?? 1_800_000,
       idleThresholdMs: config.idleThresholdMs ?? 300_000,
-      replayBatchSize: config.replayBatchSize ?? 20,
-      clusterSimilarityThreshold: config.clusterSimilarityThreshold ?? 0.55,
+      replayBatchSize: config.replayBatchSize ?? 50,
+      clusterSimilarityThreshold: config.clusterSimilarityThreshold ?? 0.35,
       minClusterSize: config.minClusterSize ?? 2,
       importanceDecayRate: config.importanceDecayRate ?? 0.5,
       importanceDecayAfterDays: config.importanceDecayAfterDays ?? 30,
       archiveImportanceThreshold: config.archiveImportanceThreshold ?? 3,
       dreamPruneThreshold: config.dreamPruneThreshold ?? 0.15,
       dreamLearningRate: config.dreamLearningRate ?? 0.15,
-      maxConsolidationsPerCycle: config.maxConsolidationsPerCycle ?? 5,
+      maxConsolidationsPerCycle: config.maxConsolidationsPerCycle ?? 10,
     };
     this.consolidator = new DreamConsolidator();
     runDreamMigration(db);
@@ -120,6 +120,24 @@ export class DreamEngine {
   /** Set the ThoughtStream for consciousness — emits dream thoughts. */
   setThoughtStream(stream: ThoughtStream): void {
     this.thoughtStream = stream;
+  }
+
+  /** Update config values at runtime (for ParameterRegistry sync). */
+  updateConfig(partial: Partial<DreamEngineConfig>): void {
+    if (partial.replayBatchSize !== undefined) this.config.replayBatchSize = partial.replayBatchSize;
+    if (partial.clusterSimilarityThreshold !== undefined) this.config.clusterSimilarityThreshold = partial.clusterSimilarityThreshold;
+    if (partial.minClusterSize !== undefined) this.config.minClusterSize = partial.minClusterSize;
+    if (partial.importanceDecayRate !== undefined) this.config.importanceDecayRate = partial.importanceDecayRate;
+    if (partial.importanceDecayAfterDays !== undefined) this.config.importanceDecayAfterDays = partial.importanceDecayAfterDays;
+    if (partial.archiveImportanceThreshold !== undefined) this.config.archiveImportanceThreshold = partial.archiveImportanceThreshold;
+    if (partial.dreamPruneThreshold !== undefined) this.config.dreamPruneThreshold = partial.dreamPruneThreshold;
+    if (partial.dreamLearningRate !== undefined) this.config.dreamLearningRate = partial.dreamLearningRate;
+    if (partial.maxConsolidationsPerCycle !== undefined) this.config.maxConsolidationsPerCycle = partial.maxConsolidationsPerCycle;
+  }
+
+  /** Get current config (read-only copy). */
+  getConfig(): Readonly<Required<DreamEngineConfig>> {
+    return { ...this.config };
   }
 
   /** Start the periodic dream timer. */

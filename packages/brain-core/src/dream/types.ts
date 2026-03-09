@@ -6,23 +6,23 @@ export interface DreamEngineConfig {
   intervalMs?: number;
   /** Brain must be idle this long before dreaming. Default: 300_000 (5 min) */
   idleThresholdMs?: number;
-  /** How many top-importance memories to replay per cycle. Default: 20 */
+  /** How many top-importance memories to replay per cycle. Default: 50 */
   replayBatchSize?: number;
-  /** Cosine similarity threshold for clustering. Default: 0.75 */
+  /** Cosine similarity threshold for clustering. Default: 0.35 */
   clusterSimilarityThreshold?: number;
-  /** Minimum cluster size to trigger compression. Default: 3 */
+  /** Minimum cluster size to trigger compression. Default: 2 */
   minClusterSize?: number;
   /** Importance decay multiplier for old memories. Default: 0.5 */
   importanceDecayRate?: number;
   /** Days since last access before importance decay applies. Default: 30 */
   importanceDecayAfterDays?: number;
-  /** Archive threshold — memories at or below this importance get archived. Default: 1 */
+  /** Archive threshold — memories at or below this importance get archived. Default: 3 */
   archiveImportanceThreshold?: number;
   /** Synapse weight threshold for dream pruning (more aggressive than normal). Default: 0.15 */
   dreamPruneThreshold?: number;
   /** Learning rate for strengthening activated synapses during replay. Default: 0.15 */
   dreamLearningRate?: number;
-  /** Max memory clusters to consolidate per cycle. Default: 5 */
+  /** Max memory clusters to consolidate per cycle. Default: 10 */
   maxConsolidationsPerCycle?: number;
 }
 
