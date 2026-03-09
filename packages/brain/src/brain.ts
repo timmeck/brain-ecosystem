@@ -473,6 +473,13 @@ export class BrainCore {
       { engine: 'orchestrator', name: 'distillEvery', value: 5, min: 1, max: 20, description: 'Knowledge distillation frequency (cycles)', category: 'orchestration' },
       { engine: 'orchestrator', name: 'agendaEvery', value: 3, min: 1, max: 15, description: 'Agenda generation frequency (cycles)', category: 'orchestration' },
       { engine: 'orchestrator', name: 'reflectEvery', value: 10, min: 3, max: 50, description: 'Journal reflection frequency (cycles)', category: 'orchestration' },
+      // Prediction Engine
+      { engine: 'prediction', name: 'ewmaAlpha', value: 0.3, min: 0.05, max: 0.95, description: 'EWMA smoothing factor', category: 'prediction' },
+      { engine: 'prediction', name: 'trendBeta', value: 0.1, min: 0.01, max: 0.5, description: 'Holt-Winters trend smoothing', category: 'prediction' },
+      { engine: 'prediction', name: 'minConfidence', value: 0.3, min: 0.1, max: 0.8, description: 'Minimum prediction confidence', category: 'prediction' },
+      { engine: 'prediction', name: 'minDataPoints', value: 5, min: 3, max: 20, description: 'Min data points before predicting', category: 'prediction' },
+      { engine: 'prediction', name: 'maxPredictionsPerCycle', value: 5, min: 1, max: 20, description: 'Max predictions generated per cycle', category: 'prediction' },
+      { engine: 'prediction', name: 'defaultHorizonMs', value: 300000, min: 60000, max: 7200000, description: 'Default prediction horizon', category: 'prediction' },
     ]);
     this.orchestrator.setParameterRegistry(parameterRegistry);
     services.parameterRegistry = parameterRegistry;
@@ -809,9 +816,17 @@ export class BrainCore {
         try {
           const principles = this.orchestrator?.knowledgeDistiller?.getPrinciples(undefined, 100) ?? [];
           for (const p of principles) {
-            items.push({ type: 'rule', id: p.id, title: p.statement, content: `${p.domain}: ${p.statement} (source: ${p.source})`, confidence: p.confidence, source: 'brain', createdAt: new Date().toISOString() });
+            items.push({ type: 'principle', id: p.id, title: p.statement, content: `${p.domain}: ${p.statement} (source: ${p.source})`, confidence: p.confidence, source: 'brain', createdAt: new Date().toISOString() });
           }
         } catch { /* no principles available */ }
+        // Share notable/breakthrough journal entries as insights
+        try {
+          const entries = this.orchestrator?.journal?.getEntries(undefined, 50) ?? [];
+          const notable = entries.filter(e => e.significance === 'notable' || e.significance === 'breakthrough').slice(0, 20);
+          for (const e of notable) {
+            items.push({ type: 'insight', id: `journal:${e.id ?? e.title.substring(0, 50)}`, title: e.title, content: (e.content ?? '').substring(0, 500), confidence: e.significance === 'breakthrough' ? 0.9 : 0.7, source: 'brain', createdAt: e.created_at ?? new Date().toISOString() });
+          }
+        } catch { /* no journal available */ }
         return items;
       },
       importItems: (incoming: SyncItem[], source: string): number => {
@@ -827,7 +842,11 @@ export class BrainCore {
         return accepted;
       },
     };
-    this.borgSync = new BorgSyncEngine('brain', this.crossBrain!, borgProvider);
+    this.borgSync = new BorgSyncEngine('brain', this.crossBrain!, borgProvider, {
+      enabled: true, mode: 'selective',
+      shareTypes: ['rule', 'insight', 'principle'],
+      minConfidence: 0.6, relevanceThreshold: 0.4, syncIntervalMs: 120_000,
+    });
     services.borgSync = this.borgSync;
 
     // 11f. MemoryWatchdog — heap leak detection (5 min samples, 1h window)

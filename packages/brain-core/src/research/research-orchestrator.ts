@@ -655,6 +655,22 @@ export class ResearchOrchestrator {
       }
     }
 
+    // 2d. Prediction accuracy as standard observation — feeds HypothesisEngine + PredictionEngine self-accuracy
+    if (this.predictionEngine) {
+      try {
+        const accByDomain = this.predictionEngine.getAccuracy();
+        const overall = accByDomain.length > 0
+          ? accByDomain.reduce((s, a) => s + a.accuracy_rate, 0) / accByDomain.length
+          : 0;
+        this.hypothesisEngine.observe({ source: this.brainName, type: 'prediction_accuracy_rate', value: overall, timestamp: now });
+        for (const acc of accByDomain) {
+          this.hypothesisEngine.observe({ source: this.brainName, type: `prediction_accuracy:${acc.domain}`, value: acc.accuracy_rate, timestamp: now, metadata: { total: acc.total, correct: acc.correct } });
+        }
+        // Brain predicts its own accuracy
+        this.predictionEngine.recordMetric('self_accuracy_rate', overall, 'metric');
+      } catch { /* prediction accuracy non-critical */ }
+    }
+
     // 2e. Accumulate evidence for hypotheses based on cycle observations
     {
       const pendingHypotheses = this.hypothesisEngine.list('proposed', 50)
@@ -1385,6 +1401,26 @@ export class ResearchOrchestrator {
             }
           }
 
+          // Internal domain observations: feed concrete metrics for gap topics
+          for (const gap of gaps.slice(0, 5)) {
+            const topic = gap.topic.toLowerCase();
+            try {
+              if (topic.includes('prediction')) {
+                // Feed per-domain prediction accuracy into HypothesisEngine
+                const accByDomain = this.predictionEngine?.getAccuracy() ?? [];
+                for (const acc of accByDomain) {
+                  this.hypothesisEngine.observe({ source: this.brainName, type: `internal:prediction_accuracy:${acc.domain}`, value: acc.accuracy_rate, timestamp: now, metadata: { total: acc.total, correct: acc.correct } });
+                }
+              } else if (topic.includes('anomaly')) {
+                const anomalyCount = this.anomalyDetective.getAnomalies(undefined, 100).length;
+                this.hypothesisEngine.observe({ source: this.brainName, type: 'internal:anomaly_detection_count', value: anomalyCount, timestamp: now });
+              } else if (topic.includes('distill') || topic.includes('knowledge')) {
+                const kSummary = this.knowledgeDistiller.getSummary();
+                this.hypothesisEngine.observe({ source: this.brainName, type: 'internal:distillation_throughput', value: kSummary.principles + kSummary.antiPatterns + kSummary.strategies, timestamp: now, metadata: { principles: kSummary.principles, avgConfidence: kSummary.avgConfidence } });
+              }
+            } catch { /* internal observation non-critical */ }
+          }
+
           // Journal dark zones (truly unknown territory)
           for (const gap of gaps.filter(g => g.gapType === 'dark_zone').slice(0, 2)) {
             this.journal.write({
@@ -1656,10 +1692,18 @@ export class ResearchOrchestrator {
     if (this.parameterRegistry && this.predictionEngine) {
       const alpha = this.parameterRegistry.get('prediction', 'ewmaAlpha');
       const beta = this.parameterRegistry.get('prediction', 'trendBeta');
-      if (alpha !== undefined || beta !== undefined) {
+      const minConf = this.parameterRegistry.get('prediction', 'minConfidence');
+      const minDP = this.parameterRegistry.get('prediction', 'minDataPoints');
+      const maxPred = this.parameterRegistry.get('prediction', 'maxPredictionsPerCycle');
+      const horizon = this.parameterRegistry.get('prediction', 'defaultHorizonMs');
+      if (alpha !== undefined || beta !== undefined || minConf !== undefined || minDP !== undefined || maxPred !== undefined || horizon !== undefined) {
         this.predictionEngine.updateConfig({
           ...(alpha !== undefined ? { ewmaAlpha: alpha } : {}),
           ...(beta !== undefined ? { trendBeta: beta } : {}),
+          ...(minConf !== undefined ? { minConfidence: minConf } : {}),
+          ...(minDP !== undefined ? { minDataPoints: minDP } : {}),
+          ...(maxPred !== undefined ? { maxPredictionsPerCycle: maxPred } : {}),
+          ...(horizon !== undefined ? { defaultHorizonMs: horizon } : {}),
         });
       }
     }

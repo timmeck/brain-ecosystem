@@ -28,7 +28,7 @@ export interface SyncPacket {
 }
 
 export interface SyncItem {
-  type: 'rule' | 'insight' | 'pattern' | 'memory';
+  type: 'rule' | 'insight' | 'pattern' | 'memory' | 'principle';
   id: string;
   title: string;
   content: string;
