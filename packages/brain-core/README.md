@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Shared infrastructure for the Brain Ecosystem — 72+ autonomous engines, synapses, IPC, MCP, LLM service, consciousness, research missions, notifications, self-modification, RAG, Knowledge Graph, code assimilation, and more.**
+**Shared infrastructure for the Brain Ecosystem — 72+ autonomous engines, synapses, IPC, MCP, LLM service, consciousness, governance, research missions, notifications, self-modification, RAG, Knowledge Graph, code assimilation, and more.**
 
-Brain Core is the nervous system that powers all three Brain MCP servers ([Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain), [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain), [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain)). A 51-step feedback orchestrator runs 72+ engines in autonomic cycles — the brain observes itself, forms hypotheses, runs experiments, dreams, debates, reasons in chains, feels emotions, evolves strategies genetically, absorbs code from other repos, extracts reusable features, and modifies its own source code. Full intelligence suite: RAG pipeline, Knowledge Graph, semantic compression, RLHF feedback, tool learning, proactive suggestions, user modeling, code health monitor, inter-brain teaching, consensus voting, active learning, code assimilation with feature extraction.
+Brain Core is the nervous system that powers all three Brain MCP servers ([Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/brain), [Trading Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/trading-brain), [Marketing Brain](https://github.com/timmeck/brain-ecosystem/tree/main/packages/marketing-brain)). A 68-step feedback orchestrator runs 72+ engines in autonomic cycles — the brain observes itself, forms hypotheses, runs experiments, dreams, debates, reasons in chains, feels emotions, evolves strategies genetically, absorbs code from other repos, extracts reusable features, governs its own engine dynamics, and modifies its own source code. Full intelligence suite: RAG pipeline, Knowledge Graph, semantic compression, RLHF feedback, tool learning, proactive suggestions, user modeling, code health monitor, inter-brain teaching, consensus voting, active learning, code assimilation with feature extraction. Engine Governance: formal profiles, runtime influence tracking, 4 anti-pattern detectors, active control (throttle/cooldown/isolate/escalate/restore).
 
 ## What's Included
 
@@ -153,6 +153,10 @@ Brain Core is the nervous system that powers all three Brain MCP servers ([Brain
 | **StrategyMutator** | Strategy evolution: mutation, crossover, tournament selection |
 | **CrossBrainSignalRouter** | Bidirectional cross-brain signal routing with confidence filtering |
 | **AutoPublisher** | Autonomous content publishing with schedule optimization |
+| **EngineRegistry** | Formal engine profiles (reads/writes/emits/subscribes, risk class, invariants) |
+| **RuntimeInfluenceTracker** | Before/after metric snapshots per engine step, observed influence graph |
+| **LoopDetector** | 4 anti-pattern detectors: retrigger spirals, stagnation, KPI gaming, epistemic drift |
+| **GovernanceLayer** | Active engine control: throttle, cooldown, isolate, escalate, restore with auto-review |
 
 ### Utilities
 

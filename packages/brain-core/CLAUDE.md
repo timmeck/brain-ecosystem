@@ -33,12 +33,13 @@ Shared infrastructure library for the Brain Ecosystem. Not an MCP server itself 
 | StrategyMutator | `@timmeck/brain-core` | Strategy evolution: mutate, crossover, selection |
 | SignalRouter | `@timmeck/brain-core` | CrossBrainSignalRouter: bidirectional cross-brain signals |
 | AutoPublisher | `@timmeck/brain-core` | Autonomous content publishing pipeline |
+| Governance | `@timmeck/brain-core` | EngineRegistry, RuntimeInfluenceTracker, LoopDetector, GovernanceLayer |
 
 ## Development
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (2,353 tests across 161 test files)
+npm test               # Vitest (2,521 tests across 175 test files)
 npm run lint           # ESLint
 ```
 

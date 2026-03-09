@@ -31,6 +31,7 @@ brain dashboard          HTML dashboard (--live for SSE streaming)
 brain config             View/set configuration
 brain peers              Ecosystem peer status
 brain guardrail          Guardrail status, health, rollback, circuit breaker reset
+brain governance         Engine governance: status, actions, throttle, cooldown, isolate, restore
 brain roadmap            Research roadmaps: list, show, ready, create
 brain creative           Creative engine: status, insights, pollinate, analogies
 brain action           Action queue, history, execute, stats
@@ -39,7 +40,7 @@ brain codeforge        CodeForge patterns, products, apply, status
 brain strategy         Strategy list, create, performance, evolve
 ```
 
-## MCP Tools (42)
+## MCP Tools (48)
 
 `brain_report_error`, `brain_query_error`, `brain_report_solution`, `brain_report_attempt`,
 `brain_find_reusable_code`, `brain_register_code`, `brain_check_code_similarity`,
@@ -53,7 +54,9 @@ brain strategy         Strategy list, create, performance, evolve
 `brain_action_queue`, `brain_action_execute`, `brain_action_history`, `brain_action_stats`,
 `brain_content_generate`, `brain_content_publish`, `brain_content_schedule`, `brain_content_best`,
 `brain_codeforge_patterns`, `brain_codeforge_generate`, `brain_codeforge_apply`, `brain_codeforge_products`,
-`brain_strategy_create`, `brain_strategy_active`, `brain_strategy_performance`, `brain_strategy_evolve`
+`brain_strategy_create`, `brain_strategy_active`, `brain_strategy_performance`, `brain_strategy_evolve`,
+`brain_governance_status`, `brain_governance_registry`, `brain_governance_influences`,
+`brain_governance_loops`, `brain_governance_actions`, `brain_governance_throttle`
 
 ## Architecture
 
@@ -80,7 +83,7 @@ Key directories: `src/cli/commands/`, `src/mcp/`, `src/db/`, `src/learning/`, `s
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (559 tests across 57 test files)
+npm test               # Vitest (564 tests across 58 test files)
 npm run lint           # ESLint
 npm run dev            # Run via tsx (no build needed)
 ```

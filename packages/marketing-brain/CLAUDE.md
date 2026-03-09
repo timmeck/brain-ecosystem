@@ -63,7 +63,7 @@ Claude Code → MCP Server (stdio) → MarketingCore → Services → SQLite
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (407 tests across 32 test files)
+npm test               # Vitest (411 tests across 33 test files)
 npm run lint           # ESLint
 npm run dev            # Run via tsx
 ```

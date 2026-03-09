@@ -12,7 +12,7 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 60 autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama) with Vision (image analysis). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Causal inference with intervention planning. Multi-step research roadmaps with goal dependencies. Creative cross-domain idea generation. Self-protection guardrails with circuit breaker. Natural language chat interface with NLU routing. Sub-agent specialization. Cross-brain signal routing. Autonomous content publishing. Strategy mutation and evolution. Portfolio optimization with Kelly criterion. 610+ MCP tools. 3,854 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
+Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 60 autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama) with Vision (image analysis). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync. Plugin SDK for community brains. Causal inference with intervention planning. Multi-step research roadmaps with goal dependencies. Creative cross-domain idea generation. Self-protection guardrails with circuit breaker. Engine Governance with formal profiles, runtime influence tracking, anti-pattern detection (retrigger spirals, stagnation, KPI gaming, epistemic drift), and active control (throttle, cooldown, isolate, escalate, restore). Natural language chat interface with NLU routing. Sub-agent specialization. Cross-brain signal routing. Autonomous content publishing. Strategy mutation and evolution. Portfolio optimization with Kelly criterion. 620 MCP tools. 4,005 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
 
 ## Packages
 
@@ -21,7 +21,7 @@ Brain Ecosystem is a system of three specialized "brains" connected through a He
 | [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Error memory, code intelligence, autonomous research & self-modification | 7777 / 7778 / 7790 |
 | [@timmeck/trading-brain](packages/trading-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/trading-brain)](https://www.npmjs.com/package/@timmeck/trading-brain) | Adaptive trading intelligence with signal learning, paper trading & live market data | 7779 / 7780 |
 | [@timmeck/marketing-brain](packages/marketing-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/marketing-brain)](https://www.npmjs.com/package/@timmeck/marketing-brain) | Content strategy, social engagement & cross-platform optimization | 7781 / 7782 / 7783 |
-| [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure — 60 engine/service classes, synapses, IPC, MCP, LLM, consciousness, missions, notifications | — |
+| [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure — 60+ engine/service classes, synapses, IPC, MCP, LLM, consciousness, governance, missions, notifications | — |
 
 ## Quick Start
 
@@ -91,6 +91,7 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 - **Research Roadmaps** — Goal dependencies with multi-step decomposition: data → hypotheses → target achievement
 - **Creative Engine** — Cross-domain idea generation: principle cross-pollination, analogy search, speculative hypotheses
 - **Guardrails** — Self-protection: parameter bounds validation, circuit breaker, auto-rollback on declining fitness, protected core paths
+- **Engine Governance** — Formal engine profiles (25 registered), runtime influence tracking, 4 anti-pattern detectors (retrigger spirals, stagnation, KPI gaming, epistemic drift), active governance (throttle/cooldown/isolate/escalate/restore)
 - **ChatEngine** — Natural language interface with NLU intent routing and IPC dispatch to any brain subsystem
 - **SubAgentFactory** — Specialized sub-agent creation for focused tasks (research, trading, content, code)
 - **FeedbackRouter** — Dead-end data routing to ActionBridge proposals, closing the learning-to-action gap
@@ -102,7 +103,7 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 ### Brain — Error Memory, Code Intelligence & Full Autonomy
 
-258 MCP tools. Remembers errors, learns solutions, runs 58-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, absorbs code from GitHub repos, extracts reusable features, and modifies its own code. ChatEngine provides natural language access to all subsystems. SubAgentFactory creates specialized agents for focused tasks.
+265 MCP tools. Remembers errors, learns solutions, runs 68-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, absorbs code from GitHub repos, extracts reusable features, and modifies its own code. ChatEngine provides natural language access to all subsystems. SubAgentFactory creates specialized agents for focused tasks.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
@@ -210,6 +211,10 @@ Brain Core provides the building blocks all brains share:
 | **StrategyMutator** | Strategy evolution: mutation, crossover, tournament selection |
 | **CrossBrainSignalRouter** | Bidirectional cross-brain signal routing with confidence filtering |
 | **AutoPublisher** | Autonomous content publishing with schedule optimization |
+| **EngineRegistry** | Formal engine profiles: reads/writes/emits/subscribes, risk class, invariants |
+| **RuntimeInfluenceTracker** | Before/after snapshots per engine step, observed influence graph |
+| **LoopDetector** | 4 anti-pattern detectors: retrigger spirals, stagnation, KPI gaming, epistemic drift |
+| **GovernanceLayer** | Active engine control: throttle, cooldown, isolate, escalate, restore |
 
 ## Evidence & Measurements
 
@@ -217,9 +222,9 @@ Brain Core provides the building blocks all brains share:
 
 | Metric | Claimed | Measured |
 |--------|---------|----------|
-| Autonomous engines (brain-core) | 80+ | 40 engine classes + 20 forge/service classes = 60 unique |
-| MCP tools | 610+ | 613 (brain: 258, trading: 178, marketing: 177) |
-| Test suite | 3,854 | 3,854 tests across 285 files (100% pass rate) |
+| Autonomous engines (brain-core) | 80+ | 40 engine classes + 20 forge/service classes + 4 governance modules = 64 unique |
+| MCP tools | 620 | 620 (brain: 265, trading: 178, marketing: 177) |
+| Test suite | 4,005 | 4,005 tests across 300 files (100% pass rate) |
 
 ### Paper Trading (Live)
 
@@ -314,6 +319,7 @@ brain watchdog status / restart <name>
 brain selfmod list / pending / show / approve / reject / status
 brain intel / intel rag <query> / intel knowledge / intel features / intel llm
 brain guardrail status / health / rollback / reset
+brain governance status / actions / throttle / cooldown / isolate / restore
 brain roadmap list / show <id> / ready / create <title> <goalId>
 brain creative status / insights / pollinate / analogies <concept>
 
