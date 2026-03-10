@@ -216,6 +216,12 @@ export class IpcRouter {
       // Route teaching lessons to TeachingProtocol
       if (event === 'teaching.learn' && this.services.teachingProtocol) {
         this.services.teachingProtocol.learn(data);
+        // Bridge to TransferEngine so knowledge_transfers table gets populated
+        if (this.services.transferEngine && data?.domain && data?.principle) {
+          this.services.transferEngine.recordIncomingTransfer(
+            data.sourceBrain ?? source, data.domain, data.principle, data.applicability ?? 0.5,
+          );
+        }
         logger.info(`[cross-brain] Learned lesson from ${source}`);
       }
       // Route teaching feedback

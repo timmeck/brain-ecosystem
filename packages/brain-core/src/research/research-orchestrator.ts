@@ -1126,8 +1126,8 @@ export class ResearchOrchestrator {
       try {
         const errorTotal = (this.db.prepare(`SELECT COUNT(*) as cnt FROM errors`).get() as { cnt: number }).cnt;
         const errorUnresolved = (this.db.prepare(`SELECT COUNT(*) as cnt FROM errors WHERE resolved = 0`).get() as { cnt: number }).cnt;
-        const oneHourAgo = Date.now() - 3_600_000;
-        const errorRate1h = (this.db.prepare(`SELECT COUNT(*) as cnt FROM errors WHERE timestamp > ?`).get(oneHourAgo) as { cnt: number }).cnt;
+        const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
+        const errorRate1h = (this.db.prepare(`SELECT COUNT(*) as cnt FROM errors WHERE last_seen > ?`).get(oneHourAgo) as { cnt: number }).cnt;
         const solutionTotal = (this.db.prepare(`SELECT COUNT(*) as cnt FROM solutions`).get() as { cnt: number }).cnt;
         const resolutionRate = errorTotal > 0 ? (errorTotal - errorUnresolved) / errorTotal : 0;
 

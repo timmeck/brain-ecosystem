@@ -132,6 +132,27 @@ export class TransferEngine {
     this.narrativeEngine = engine;
   }
 
+  /** Record an incoming knowledge transfer from a peer brain (e.g. via TeachingProtocol). */
+  recordIncomingTransfer(sourceBrain: string, knowledgeType: string, statement: string, confidence: number): void {
+    const validTypes = ['principle', 'anti_pattern', 'strategy'] as const;
+    const kType = validTypes.includes(knowledgeType as typeof validTypes[number])
+      ? knowledgeType as TransferRecord['knowledge_type']
+      : 'principle';
+    this.persistTransfer({
+      source_brain: sourceBrain,
+      target_brain: this.brainName,
+      knowledge_type: kType,
+      knowledge_id: `incoming_${Date.now()}`,
+      statement,
+      transfer_confidence: confidence,
+      status: 'applied',
+      effectiveness: null,
+      created_at: Date.now(),
+      resolved_at: null,
+    });
+    this.log.info(`[transfer] Recorded incoming transfer from ${sourceBrain}: ${knowledgeType}`);
+  }
+
   // ── Analogy Finding ───────────────────────────────────
 
   /** Find analogies between this brain's knowledge and peer brains' knowledge. */
