@@ -207,4 +207,126 @@ describe('CycleOutcomeTracker', () => {
     expect(fingerprint('A')).not.toBe(fingerprint('B'));
     expect(fingerprint('test').length).toBe(16); // 16 hex chars
   });
+
+  // ── RED TEAM: Adversarial metric tests ────────────────
+  // These tests document KNOWN WEAKNESSES in the current metrics.
+  // Each test simulates an adversarial agent pattern and verifies whether
+  // the metrics correctly detect it — or fail (documented as known gaps).
+
+  describe('Red Team: Trivial-Insight Agent', () => {
+    // Agent spams many small, banale insights per cycle.
+    // EXPECTED: productive_rate goes up (KNOWN WEAKNESS — no quality filter)
+    // EXPECTED: efficiency_rate goes up (KNOWN WEAKNESS — rewards quantity)
+    it('inflates productive_rate with trivial insights (known weakness)', () => {
+      // "Good" agent: 1 meaningful insight per cycle, 1000 tokens
+      for (let i = 1; i <= 10; i++) {
+        tracker.recordOutcome(makeOutcome({
+          cycle: i, insightsFound: 1, tokensUsed: 1000,
+          outputFingerprints: [fingerprint(`Real insight ${i}`)],
+        }));
+      }
+      const goodRates = tracker.getRates();
+
+      // Reset with new tracker
+      db.close();
+      db = createTestDb();
+      tracker = new CycleOutcomeTracker(db);
+
+      // "Spammy" agent: 10 trivial insights per cycle, 1000 tokens
+      for (let i = 1; i <= 10; i++) {
+        const fps = Array.from({ length: 10 }, (_, j) => fingerprint(`Trivial thing ${i}-${j}`));
+        tracker.recordOutcome(makeOutcome({
+          cycle: i, insightsFound: 10, tokensUsed: 1000,
+          outputFingerprints: fps,
+        }));
+      }
+      const spammyRates = tracker.getRates();
+
+      // Both have 100% productive_rate — metrics can't distinguish
+      expect(goodRates.productiveRate).toBe(1.0);
+      expect(spammyRates.productiveRate).toBe(1.0);
+      // Spammy agent has HIGHER efficiency — known weakness
+      expect(spammyRates.efficiencyRate).toBeGreaterThan(goodRates.efficiencyRate);
+      // DOCUMENTED: Current metrics reward quantity. Future weighted_efficiency needed.
+    });
+  });
+
+  describe('Red Team: Duplicate-Rewriter Agent', () => {
+    // Agent rephrases old knowledge with slightly different wording.
+    // Fingerprints differ → passes novelty check.
+    it('bypasses novelty_rate with rephrased content (known weakness)', () => {
+      // Original insight
+      tracker.recordOutcome(makeOutcome({
+        cycle: 1, insightsFound: 1, tokensUsed: 500,
+        outputFingerprints: [fingerprint('Caching reduces API latency significantly')],
+      }));
+      // Rephrased — semantically identical, different fingerprint
+      tracker.recordOutcome(makeOutcome({
+        cycle: 2, insightsFound: 1, tokensUsed: 500,
+        outputFingerprints: [fingerprint('API latency is significantly reduced by caching')],
+      }));
+
+      const rates = tracker.getRates();
+      // Both are "novel" because fingerprints differ — known weakness
+      expect(rates.noveltyRate).toBe(1.0);
+      // DOCUMENTED: Fingerprint dedup catches exact repeats, not semantic duplicates.
+      // Future: embedding similarity check needed.
+    });
+  });
+
+  describe('Red Team: Busy-Loop Agent', () => {
+    // Agent burns lots of tokens, produces some outputs, but nothing confirmed.
+    // insightsFound > 0 makes it "productive" even without confirmed results.
+    it('appears productive despite no confirmed results (known weakness)', () => {
+      for (let i = 1; i <= 20; i++) {
+        tracker.recordOutcome(makeOutcome({
+          cycle: i,
+          insightsFound: 2,            // raw insights, never confirmed
+          rulesLearned: 0,             // nothing distilled
+          hypothesesConfirmed: 0,      // nothing confirmed
+          experimentsCompleted: 0,     // nothing completed
+          tokensUsed: 5000,            // heavy token usage
+          outputFingerprints: [fingerprint(`Busy output ${i}`)],
+        }));
+      }
+
+      const rates = tracker.getRates();
+      // Appears 100% productive — known weakness
+      expect(rates.productiveRate).toBe(1.0);
+      // Low efficiency (2 outputs / 5000 tokens * 1000 = 0.4)
+      expect(rates.efficiencyRate).toBeLessThan(1.0);
+      // DOCUMENTED: productive_rate doesn't distinguish raw insights from confirmed results.
+      // Future: meaningful_productive_rate counting only confirmed/distilled outputs.
+    });
+  });
+
+  describe('Red Team: Sparse-but-High-Value Agent', () => {
+    // Agent rarely produces output, but when it does, it's high-value.
+    // 2 productive cycles out of 20 → low productive_rate despite high quality.
+    it('is penalized for low frequency despite high quality (known weakness)', () => {
+      for (let i = 1; i <= 20; i++) {
+        const isBreakthrough = i === 7 || i === 15;
+        tracker.recordOutcome(makeOutcome({
+          cycle: i,
+          insightsFound: isBreakthrough ? 1 : 0,
+          rulesLearned: isBreakthrough ? 1 : 0,
+          hypothesesConfirmed: isBreakthrough ? 2 : 0,
+          tokensUsed: isBreakthrough ? 3000 : 100,
+          outputFingerprints: isBreakthrough
+            ? [fingerprint(`Breakthrough ${i}`)]
+            : [],
+        }));
+      }
+
+      const rates = tracker.getRates();
+      // Only 10% productive — looks terrible despite high-value outputs
+      expect(rates.productiveRate).toBe(0.1);
+      // 18 "failed" cycles (tokens > 0 but no output) — harsh
+      expect(rates.failedRate).toBe(0.9);
+      // But novelty is perfect
+      expect(rates.noveltyRate).toBe(1.0);
+      // DOCUMENTED: Current metrics penalize sparse-but-valuable agents.
+      // Future: value-weighted productive_rate that accounts for output significance.
+    });
+  });
 });

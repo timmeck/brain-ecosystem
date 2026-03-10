@@ -1,24 +1,44 @@
 /**
  * CycleOutcomeTracker — Measures whether Brain improves over time.
  *
- * Tracks 4 hard metrics per cycle:
+ * Tracks 4 hard metrics per cycle. Each metric documents what it measures,
+ * what it does NOT measure, and how it can be gamed.
  *
- * 1. productive_rate — Cycles with at least one measurable artifact:
- *    confirmed hypothesis, learned rule, completed experiment, or actionable insight.
- *    Detection of anomalies alone does NOT count — a problem found is not a problem solved.
- *    Formula: count(productive) / count(total) over window
+ * ─── 1. productive_rate ───────────────────────────────────────────────
+ * MEASURES: Cycles with at least one measurable artifact (confirmed hypothesis,
+ *   learned rule, completed experiment, or actionable insight).
+ *   Anomaly detection alone does NOT count.
+ * DOES NOT MEASURE: Whether the artifact is valuable, non-trivial, or useful.
+ *   A cycle with 3 banale insights counts the same as one with a breakthrough.
+ * CAN BE GAMED BY: Generating many trivial insights or low-confidence rules.
+ *   An agent producing "insight: X happened today" inflates the rate.
+ * FORMULA: count(productive) / count(total) over window
+ * FUTURE: Split into raw_productive and meaningful_productive (weight by significance).
  *
- * 2. failed_rate — Cycles that consumed resources but produced nothing:
- *    errored/aborted cycles, OR cycles with tokens > 0 but zero productive outputs.
- *    Formula: count(failed) / count(total) over window
+ * ─── 2. failed_rate ──────────────────────────────────────────────────
+ * MEASURES: Cycles that errored OR consumed tokens but produced zero outputs.
+ * DOES NOT MEASURE: Cycles that produced useless/wrong outputs. A cycle with
+ *   garbage output and tokens > 0 is classified "productive", not "failed".
+ * CAN BE GAMED BY: Producing any output at all (even trivial) to avoid "failed".
+ * FORMULA: count(failed) / count(total) over window
+ * FUTURE: Add "wasted_rate" for cycles with output that gets rejected/ignored.
  *
- * 3. novelty_rate — Cycles with genuinely new output, not repetition:
- *    Each productive output gets a content fingerprint. If the fingerprint was already
- *    seen in the last 100 cycles, it's a repeat. Novelty = new fingerprints only.
- *    Formula: count(cycles with novel output) / count(productive cycles) over window
+ * ─── 3. novelty_rate (actually: recent-uniqueness-rate) ──────────────
+ * MEASURES: Whether output fingerprints were seen in the last 100 cycles.
+ *   This is repeat suppression / deduplication, not semantic novelty.
+ * DOES NOT MEASURE: Whether output is substantively new, relevant, or a real
+ *   epistemic contribution. Rephrasing old knowledge passes the fingerprint check.
+ * CAN BE GAMED BY: Minimally rephrasing old outputs to generate new fingerprints.
+ * FORMULA: count(cycles with novel output) / count(productive cycles) over window
+ * FUTURE: Semantic similarity check against knowledge base, not just fingerprint dedup.
  *
- * 4. efficiency_rate — Productive outputs per 1k tokens consumed:
- *    Formula: sum(productive_outputs) / max(sum(tokens_used), 1) * 1000
+ * ─── 4. efficiency_rate ──────────────────────────────────────────────
+ * MEASURES: Raw output count per 1k tokens consumed.
+ * DOES NOT MEASURE: Value per token. Rewards quantity over quality.
+ *   Fragmenting one insight into 5 small ones quintuples the rate.
+ * CAN BE GAMED BY: Producing many tiny, fragmented outputs cheaply.
+ * FORMULA: sum(total_outputs) / max(sum(tokens_used), 1) * 1000
+ * FUTURE: weighted_efficiency using significance weights (breakthrough=5x, routine=1x).
  *
  * All outcomes are persisted to SQLite and can be aggregated over any time window.
  */
