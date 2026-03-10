@@ -4,3 +4,4 @@ dist/
 *.pid
 *.db
 .env
+docs/.vitepress/cache/
