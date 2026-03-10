@@ -12,7 +12,7 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 60 autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama) with Vision (image analysis). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync across all 3 brains. Plugin SDK for community brains. Causal inference with intervention planning. Multi-step research roadmaps with goal dependencies. Creative cross-domain idea generation. Self-protection guardrails with circuit breaker. Engine Governance with formal profiles, runtime influence tracking, anti-pattern detection (retrigger spirals, stagnation, KPI gaming, epistemic drift), and active control (throttle, cooldown, isolate, escalate, restore). Natural language chat interface with multi-brain routing. Sub-agent specialization. Cross-brain signal routing. Autonomous content publishing. Strategy backtesting on historical OHLCV data. Strategy export/import for sharing between instances. Adaptive scheduling that speeds up productive hours and slows down idle ones. Strategy mutation and evolution. Portfolio optimization with Kelly criterion. 637 MCP tools. 4,061 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
+Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 60 autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama) with Vision (image analysis). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync across all 3 brains. Plugin SDK for community brains. Causal inference with intervention planning. Multi-step research roadmaps with goal dependencies. Creative cross-domain idea generation. Self-protection guardrails with circuit breaker. Engine Governance with formal profiles, runtime influence tracking, anti-pattern detection (retrigger spirals, stagnation, KPI gaming, epistemic drift), and active control (throttle, cooldown, isolate, escalate, restore). Natural language chat interface with multi-brain routing. Sub-agent specialization. Cross-brain signal routing. Autonomous content publishing. Strategy backtesting on historical OHLCV data. Strategy export/import for sharing between instances. Adaptive scheduling that speeds up productive hours and slows down idle ones. Strategy mutation and evolution. Portfolio optimization with Kelly criterion. 637 MCP tools. 4,096 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
 
 ## Packages
 
@@ -103,6 +103,9 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 - **Multi-Brain Chat** — Chat queries automatically routed to 1-3 brains based on keywords, responses aggregated as markdown
 - **Adaptive Scheduling** — Dynamic cycle intervals: speeds up during productive hours, slows down during idle hours (168 hourly buckets)
 - **Borg Sync (all 3 brains)** — Collective knowledge sharing now enabled in Trading Brain and Marketing Brain (bidirectional, selective mode)
+- **Desire Feedback Loop** — Desire priorities auto-adjust based on action outcomes (failed desires deprioritized, successful boosted), cross-brain coordination prevents duplicate work, adaptive confidence formula
+- **Debate System Fixes** — Challenge outcomes adjust principle confidence (disproved→removed, weakened→-30%, survived→+10%), debate recommendations become ActionBridge proposals, cross-brain perspective sharing, targeted weakest-first challenges
+- **Intelligence Loop Tuning** — CreativeEngine reads stored principles (not re-extracting), relaxed hypothesis confirmation thresholds, lower novelty barrier for insight conversion, prediction accuracy counts partial matches
 
 ## What It Does
 
@@ -162,7 +165,7 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 All three brains share 60 autonomous engine/service classes via Brain Core:
 
-- **51-Step Feedback Loop** — ResearchOrchestrator runs with adaptive scheduling (2-15 min intervals): observe → hypothesize → experiment → measure → distill → adapt → absorb → resolve contradictions
+- **65-Step Feedback Loop** — ResearchOrchestrator runs with adaptive scheduling (2-15 min intervals): observe → hypothesize → experiment → measure → distill → adapt → absorb → resolve contradictions
 - **Self-Improvement** — HypothesisEngine generates theories, AutoExperiment tests them, AdaptiveStrategy applies winners
 - **Dream Mode** — Offline memory consolidation: replay, prune, compress, decay during idle
 - **Knowledge Distillation** — Extracts principles and anti-patterns from raw experience

@@ -12,7 +12,7 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem ist ein System aus drei spezialisierten "Brains", verbunden durch ein Hebbsches Synapsen-Netzwerk. 76+ autonome Engines laufen in Feedback-Loops — beobachten, erkennen Anomalien, bilden Hypothesen, testen sie statistisch, destillieren Prinzipien, träumen, debattieren, denken in Ketten, fühlen Emotionen, entwickeln Strategien genetisch weiter und modifizieren ihren eigenen Quellcode. Multi-Provider LLM-Support (Anthropic + Ollama) mit Vision (Bildanalyse). Live-Marktdaten via CCXT WebSocket. Social Feeds via Bluesky + Reddit. Web-Recherche via Brave Search + Playwright + Firecrawl. Borg Collective Sync. Kausale Inferenz mit Interventionsplanung. Mehrstufige Forschungs-Roadmaps mit Ziel-Abhängigkeiten. Kreative Cross-Domain-Ideengenerierung. Selbstschutz-Guardrails mit Circuit Breaker. Engine Governance mit formalen Engine-Profilen, Runtime-Influence-Tracking, 4 Anti-Pattern-Detektoren (Retrigger-Spiralen, Stagnation, KPI-Gaming, Epistemischer Drift) und aktiver Kontrolle (Throttle/Cooldown/Isolate/Escalate/Restore). 637 MCP Tools. 4.061 Tests. Das Brain denkt buchstäblich über sich selbst nach, wird neugierig, führt Experimente durch und schreibt Code um sich zu verbessern.
+Brain Ecosystem ist ein System aus drei spezialisierten "Brains", verbunden durch ein Hebbsches Synapsen-Netzwerk. 76+ autonome Engines laufen in Feedback-Loops — beobachten, erkennen Anomalien, bilden Hypothesen, testen sie statistisch, destillieren Prinzipien, träumen, debattieren, denken in Ketten, fühlen Emotionen, entwickeln Strategien genetisch weiter und modifizieren ihren eigenen Quellcode. Multi-Provider LLM-Support (Anthropic + Ollama) mit Vision (Bildanalyse). Live-Marktdaten via CCXT WebSocket. Social Feeds via Bluesky + Reddit. Web-Recherche via Brave Search + Playwright + Firecrawl. Borg Collective Sync. Kausale Inferenz mit Interventionsplanung. Mehrstufige Forschungs-Roadmaps mit Ziel-Abhängigkeiten. Kreative Cross-Domain-Ideengenerierung. Selbstschutz-Guardrails mit Circuit Breaker. Engine Governance mit formalen Engine-Profilen, Runtime-Influence-Tracking, 4 Anti-Pattern-Detektoren (Retrigger-Spiralen, Stagnation, KPI-Gaming, Epistemischer Drift) und aktiver Kontrolle (Throttle/Cooldown/Isolate/Escalate/Restore). 637 MCP Tools. 4.096 Tests. Das Brain denkt buchstäblich über sich selbst nach, wird neugierig, führt Experimente durch und schreibt Code um sich zu verbessern.
 
 ## Pakete
 
@@ -247,7 +247,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installiert alle Workspace-Abhängigkeiten
 npm run build        # baut alle Pakete (brain-core zuerst)
-npm test             # führt alle 4.061 Tests aus
+npm test             # führt alle 4.096 Tests aus
 ```
 
 ## Support
