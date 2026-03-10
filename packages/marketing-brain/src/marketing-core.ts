@@ -165,7 +165,7 @@ export class MarketingCore {
     );
     try {
       runHypothesisMigration(db);
-      const hypothesisEngine = new HypothesisEngine(db, { minEvidence: 3, confirmThreshold: 0.10, rejectThreshold: 0.5 });
+      const hypothesisEngine = new HypothesisEngine(db, { minEvidence: 3, confirmThreshold: 0.20, rejectThreshold: 0.5 });
       this.researchEngine.setHypothesisEngine(hypothesisEngine);
       logger.info('HypothesisEngine wired into marketing research');
     } catch (err) {

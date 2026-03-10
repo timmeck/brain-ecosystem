@@ -209,7 +209,7 @@ export class ResearchOrchestrator {
     this.autoResponder = new AutoResponder(db, { brainName: config.brainName });
     this.autoResponder.setAdaptiveStrategy(this.adaptiveStrategy);
     this.autoResponder.setJournal(this.journal);
-    this.hypothesisEngine = new HypothesisEngine(db, { minEvidence: 3, confirmThreshold: 0.10, rejectThreshold: 0.5 });
+    this.hypothesisEngine = new HypothesisEngine(db, { minEvidence: 3, confirmThreshold: 0.20, rejectThreshold: 0.5 });
   }
 
   /** Set callback for self-improvement suggestions (e.g. to create notifications). */
@@ -2884,7 +2884,7 @@ export class ResearchOrchestrator {
         const insights = this.creativeEngine.crossPollinate();
         if (insights.length > 0) {
           // Convert top insights to hypotheses
-          const converted = this.creativeEngine.convertTopInsights(0.5);
+          const converted = this.creativeEngine.convertTopInsights(0.3);
           this.journal.write({
             title: `Creative Cross-Pollination: ${insights.length} insights`,
             content: `Generated ${insights.length} cross-domain insights, ${converted} converted to hypotheses`,

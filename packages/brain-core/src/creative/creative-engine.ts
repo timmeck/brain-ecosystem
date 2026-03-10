@@ -385,12 +385,14 @@ export class CreativeEngine {
   private loadPrinciples(): Array<{ text: string; domain: string }> {
     if (!this.distiller) return [];
     try {
-      const pkg = this.distiller.distill();
+      // Use getPrinciples() instead of distill() to avoid redundant DB writes
+      // and to return ALL stored principles (not just freshly extracted ones)
+      const stored = this.distiller.getPrinciples(undefined, 100);
       const principles: Array<{ text: string; domain: string }> = [];
-      for (const p of pkg.principles) {
+      for (const p of stored) {
         principles.push({ text: p.statement, domain: p.domain ?? this.config.brainName });
       }
-      this.log.debug(`[creative] Distiller returned ${pkg.principles.length} principles`);
+      this.log.debug(`[creative] Distiller returned ${stored.length} principles`);
       return principles;
     } catch (e) {
       this.log.warn(`[creative] loadPrinciples failed: ${e}`);

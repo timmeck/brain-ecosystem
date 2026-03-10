@@ -5,17 +5,13 @@ import { CreativeEngine, runCreativeMigration } from '../../../src/creative/crea
 // Minimal mock for KnowledgeDistiller
 function createMockDistiller() {
   return {
-    distill: () => ({
-      principles: [
-        { id: 'p1', statement: 'Error patterns tend to cluster around integration boundaries', domain: 'error_analysis', success_rate: 0.8, sample_size: 5, confidence: 0.8, source: 'test' },
-        { id: 'p2', statement: 'Market momentum follows news sentiment with 2h lag', domain: 'trading', success_rate: 0.7, sample_size: 3, confidence: 0.7, source: 'test' },
-        { id: 'p3', statement: 'Engagement peaks at 10am and 3pm local time', domain: 'marketing', success_rate: 0.75, sample_size: 4, confidence: 0.75, source: 'test' },
-        { id: 'p4', statement: 'Database queries slow down after 100k rows without index', domain: 'performance', success_rate: 0.9, sample_size: 8, confidence: 0.9, source: 'test' },
-        { id: 'p5', statement: 'User retention correlates with onboarding completion rate', domain: 'growth', success_rate: 0.65, sample_size: 2, confidence: 0.65, source: 'test' },
-      ],
-      antiPatterns: [],
-      strategies: [],
-    }),
+    getPrinciples: () => [
+      { id: 'p1', statement: 'Error patterns tend to cluster around integration boundaries', domain: 'error_analysis', success_rate: 0.8, sample_size: 5, confidence: 0.8, source: 'test' },
+      { id: 'p2', statement: 'Market momentum follows news sentiment with 2h lag', domain: 'trading', success_rate: 0.7, sample_size: 3, confidence: 0.7, source: 'test' },
+      { id: 'p3', statement: 'Engagement peaks at 10am and 3pm local time', domain: 'marketing', success_rate: 0.75, sample_size: 4, confidence: 0.75, source: 'test' },
+      { id: 'p4', statement: 'Database queries slow down after 100k rows without index', domain: 'performance', success_rate: 0.9, sample_size: 8, confidence: 0.9, source: 'test' },
+      { id: 'p5', statement: 'User retention correlates with onboarding completion rate', domain: 'growth', success_rate: 0.65, sample_size: 2, confidence: 0.65, source: 'test' },
+    ],
   };
 }
 

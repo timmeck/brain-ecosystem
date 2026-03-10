@@ -146,7 +146,7 @@ export class AutonomousResearchScheduler {
 
     this.metaLearning = new MetaLearningEngine(db, hyperParams);
     this.causalGraph = new CausalGraph(db);
-    this.hypothesisEngine = new HypothesisEngine(db);
+    this.hypothesisEngine = new HypothesisEngine(db, { minEvidence: 3, confirmThreshold: 0.20, rejectThreshold: 0.5 });
   }
 
   /** Start the autonomous research timer. */

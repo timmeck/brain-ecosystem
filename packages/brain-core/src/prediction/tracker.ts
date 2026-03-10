@@ -152,7 +152,7 @@ export class PredictionTracker {
         wrong,
         partial,
         expired,
-        accuracy_rate: resolved > 0 ? correct / resolved : 0,
+        accuracy_rate: resolved > 0 ? (correct + partial * 0.5) / resolved : 0,
         mean_absolute_error: (r.mean_error as number) ?? 0,
         calibration_score: Math.max(0, calibrationScore),
         direction_accuracy: resolved > 0 ? directionCorrect / resolved : 0,

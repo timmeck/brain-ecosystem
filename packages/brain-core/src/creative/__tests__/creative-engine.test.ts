@@ -7,6 +7,10 @@ vi.mock('../../utils/logger.js', () => ({
 
 import { CreativeEngine, runCreativeMigration } from '../creative-engine.js';
 
+function mockDistiller(principles: Array<{ statement: string; domain: string }>) {
+  return { getPrinciples: () => principles } as any;
+}
+
 describe('CreativeEngine', () => {
   let db: Database.Database;
 
@@ -35,16 +39,12 @@ describe('CreativeEngine', () => {
 
   it('crossPollinate returns insights when distiller provides multi-domain principles', () => {
     const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'caching improves performance significantly', domain: 'engineering' },
-          { statement: 'diversification reduces portfolio variance', domain: 'finance' },
-          { statement: 'redundancy prevents catastrophic system failure', domain: 'engineering' },
-          { statement: 'hedging minimizes downside exposure risk', domain: 'finance' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'caching improves performance significantly', domain: 'engineering' },
+      { statement: 'diversification reduces portfolio variance', domain: 'finance' },
+      { statement: 'redundancy prevents catastrophic system failure', domain: 'engineering' },
+      { statement: 'hedging minimizes downside exposure risk', domain: 'finance' },
+    ]));
 
     const insights = engine.crossPollinate();
     expect(insights.length).toBeGreaterThan(0);
@@ -61,16 +61,12 @@ describe('CreativeEngine', () => {
 
   it('crossPollinate with single domain returns insights via fallback grouping', () => {
     const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'caching improves performance significantly', domain: 'brain' },
-          { statement: 'monitoring detects anomalies before failures', domain: 'brain' },
-          { statement: 'validation prevents corrupted data entry', domain: 'brain' },
-          { statement: 'abstraction reduces cognitive complexity', domain: 'brain' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'caching improves performance significantly', domain: 'brain' },
+      { statement: 'monitoring detects anomalies before failures', domain: 'brain' },
+      { statement: 'validation prevents corrupted data entry', domain: 'brain' },
+      { statement: 'abstraction reduces cognitive complexity', domain: 'brain' },
+    ]));
 
     const insights = engine.crossPollinate();
     // With fallback, single domain should still produce insights
@@ -79,14 +75,10 @@ describe('CreativeEngine', () => {
 
   it('crossPollinate with 2+ domains works as before', () => {
     const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'caching improves response times', domain: 'engineering' },
-          { statement: 'diversification reduces risk exposure', domain: 'finance' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'caching improves response times', domain: 'engineering' },
+      { statement: 'diversification reduces risk exposure', domain: 'finance' },
+    ]));
 
     const insights = engine.crossPollinate();
     expect(insights.length).toBeGreaterThan(0);
@@ -95,16 +87,12 @@ describe('CreativeEngine', () => {
 
   it('fallback grouping produces at least 2 groups from single domain', () => {
     const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'first principle about something important', domain: 'brain' },
-          { statement: 'second principle about another topic entirely', domain: 'brain' },
-          { statement: 'third principle about different matters', domain: 'brain' },
-          { statement: 'fourth principle covering new ground here', domain: 'brain' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'first principle about something important', domain: 'brain' },
+      { statement: 'second principle about another topic entirely', domain: 'brain' },
+      { statement: 'third principle about different matters', domain: 'brain' },
+      { statement: 'fourth principle covering new ground here', domain: 'brain' },
+    ]));
 
     // crossPollinate internally groups and should get insights
     const insights = engine.crossPollinate();
@@ -114,14 +102,10 @@ describe('CreativeEngine', () => {
 
   it('crossPollinate with < 4 single-domain principles still generates insights', () => {
     const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'caching dramatically improves latency', domain: 'brain' },
-          { statement: 'monitoring catches failures early', domain: 'brain' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'caching dramatically improves latency', domain: 'brain' },
+      { statement: 'monitoring catches failures early', domain: 'brain' },
+    ]));
 
     const insights = engine.crossPollinate();
     // With only 2 same-domain principles, direct pair-building should kick in
@@ -131,15 +115,11 @@ describe('CreativeEngine', () => {
 
   it('getDebugInfo returns principles count and domain distribution', () => {
     const engine = new CreativeEngine(db, { brainName: 'test' });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'principle A', domain: 'domA' },
-          { statement: 'principle B', domain: 'domA' },
-          { statement: 'principle C', domain: 'domB' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'principle A', domain: 'domA' },
+      { statement: 'principle B', domain: 'domA' },
+      { statement: 'principle C', domain: 'domB' },
+    ]));
 
     const debug = engine.getDebugInfo();
     expect(debug.principlesCount).toBe(3);
@@ -155,15 +135,11 @@ describe('CreativeEngine', () => {
 
   it('findAnalogies finds structurally similar principles', () => {
     const engine = new CreativeEngine(db, { brainName: 'test' });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'caching improves response times significantly', domain: 'engineering' },
-          { statement: 'caching improves database query performance', domain: 'databases' },
-          { statement: 'something completely unrelated', domain: 'art' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'caching improves response times significantly', domain: 'engineering' },
+      { statement: 'caching improves database query performance', domain: 'databases' },
+      { statement: 'something completely unrelated', domain: 'art' },
+    ]));
 
     const analogies = engine.findAnalogies('caching improves application performance');
     expect(analogies.length).toBeGreaterThan(0);
@@ -183,14 +159,10 @@ describe('CreativeEngine', () => {
 
   it('getInsights returns stored insights after crossPollinate', () => {
     const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'parallel processing speeds computation', domain: 'computing' },
-          { statement: 'teamwork divides workload effectively', domain: 'management' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'parallel processing speeds computation', domain: 'computing' },
+      { statement: 'teamwork divides workload effectively', domain: 'management' },
+    ]));
 
     engine.crossPollinate();
     const insights = engine.getInsights();
@@ -203,14 +175,10 @@ describe('CreativeEngine', () => {
 
   it('getInsights filters by status', () => {
     const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'abstraction hides complexity behind interfaces', domain: 'software' },
-          { statement: 'delegation assigns responsibility to subordinates', domain: 'leadership' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'abstraction hides complexity behind interfaces', domain: 'software' },
+      { statement: 'delegation assigns responsibility to subordinates', domain: 'leadership' },
+    ]));
 
     engine.crossPollinate();
     const raw = engine.getInsights(20, 'raw');
@@ -222,14 +190,10 @@ describe('CreativeEngine', () => {
 
   it('migration is idempotent', () => {
     const engine = new CreativeEngine(db, { brainName: 'test', overlapThreshold: 1.0 });
-    engine.setKnowledgeDistiller({
-      distill: () => ({
-        principles: [
-          { statement: 'monitoring detects anomalies early', domain: 'ops' },
-          { statement: 'early diagnosis improves treatment outcomes', domain: 'medicine' },
-        ],
-      }),
-    } as any);
+    engine.setKnowledgeDistiller(mockDistiller([
+      { statement: 'monitoring detects anomalies early', domain: 'ops' },
+      { statement: 'early diagnosis improves treatment outcomes', domain: 'medicine' },
+    ]));
 
     engine.crossPollinate();
     // Running migration again should not destroy data
