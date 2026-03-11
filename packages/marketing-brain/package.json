@@ -1,6 +1,6 @@
 {
   "name": "@timmeck/marketing-brain",
-  "version": "1.32.71",
+  "version": "1.32.72",
   "description": "Self-learning marketing intelligence system with Hebbian synapse network",
   "type": "module",
   "main": "dist/index.js",
