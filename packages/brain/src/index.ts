@@ -58,6 +58,7 @@ import { reportCommand } from './cli/commands/report.js';
 import { conversationCommand } from './cli/commands/conversation.js';
 import { browserCommand } from './cli/commands/browser.js';
 import { botCommand } from './cli/commands/bot.js';
+import { autonomousCommand } from './cli/commands/autonomous.js';
 import { getCurrentVersion } from './cli/update-check.js';
 
 const program = new Command();
@@ -107,6 +108,7 @@ program.addCommand(reportCommand());
 program.addCommand(conversationCommand());
 program.addCommand(browserCommand());
 program.addCommand(botCommand());
+program.addCommand(autonomousCommand());
 
 // Hidden command: run MCP server (called by Claude Code)
 program

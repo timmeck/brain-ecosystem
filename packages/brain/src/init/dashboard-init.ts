@@ -94,6 +94,7 @@ export function createCommandCenter(deps: DashboardDeps): CommandCenterServer {
       toolScoping: services.toolScopeManager?.getStatus() ?? null,
       marketplace: services.pluginMarketplace?.getStatus() ?? null,
       sandbox: services.codeSandbox?.getStatus() ?? null,
+      autonomousResearch: services.autonomousResearchLoop?.getStatus() ?? null,
     }),
     getEmotionalStatus: () => {
       const mood = (services.emotionalModel as EmotionalModel)?.getMood?.();

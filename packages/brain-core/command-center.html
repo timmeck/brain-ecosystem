@@ -567,6 +567,19 @@ canvas{display:block;width:100%;height:100%}
 
       <!-- ════ Page 5: Intelligence ═══════════════════════ -->
       <div class="page" id="page-intelligence">
+        <!-- Autonomous Research -->
+        <div class="section">
+          <div class="section-title"><span class="icon">&#x1F50D;</span> Autonomous Research — <span data-t="Selbstgesteuerte Forschung">Selbstgesteuerte Forschung</span></div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px" data-t="Brain gibt sich selbst Forschungsauftr&auml;ge: Wissensl&uuml;cken &rarr; Missionen &rarr; Web-Recherche &rarr; Insights.">Brain gibt sich selbst Forschungsauftr&auml;ge: Wissensl&uuml;cken &rarr; Missionen &rarr; Web-Recherche &rarr; Insights.</p>
+          <div class="grid grid-4">
+            <div class="card" style="text-align:center"><div class="card-value" id="auto-enabled" style="color:var(--text-dim)">&#x2014;</div><div class="card-sub">Status</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="auto-cycles" style="color:var(--cyan)">0</div><div class="card-sub">Cycles</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="auto-missions" style="color:var(--green)">0/5</div><div class="card-sub" data-t="Missionen heute">Missionen heute</div></div>
+            <div class="card" style="text-align:center"><div class="card-value" id="auto-next" style="color:var(--yellow);font-size:14px">&#x2014;</div><div class="card-sub" data-t="N&auml;chster Cycle">N&auml;chster Cycle</div></div>
+          </div>
+          <div id="autoRecentTopics" style="margin-top:12px"></div>
+        </div>
+
         <!-- RAG Pipeline -->
         <div class="section">
           <div class="section-title"><span class="icon">&#x1F50D;</span> RAG Pipeline — <span data-t="Vektor-Suche">Vektor-Suche</span></div>
@@ -1330,6 +1343,28 @@ function renderRepoAbsorber() {
 function renderIntelligence() {
   const d = state.intelligence;
   if (!d) return;
+
+  // Autonomous Research
+  if (d.autonomousResearch) {
+    const a = d.autonomousResearch;
+    setText('auto-enabled', a.enabled ? (a.running ? '&#x1F7E2; Active' : '&#x1F7E1; Enabled') : '&#x26AB; Off');
+    document.getElementById('auto-enabled').style.color = a.enabled ? (a.running ? 'var(--green)' : 'var(--yellow)') : 'var(--text-dim)';
+    setText('auto-cycles', a.cyclesCompleted || 0);
+    setText('auto-missions', `${a.missionsLaunchedToday || 0}/${a.maxMissionsPerDay || 5}`);
+    if (a.nextCycleAt) {
+      const mins = Math.max(0, Math.round((a.nextCycleAt - Date.now()) / 60000));
+      setText('auto-next', `${mins}min`);
+    } else {
+      setText('auto-next', '—');
+    }
+    const topicEl = document.getElementById('autoRecentTopics');
+    if (topicEl && a.recentTopics && a.recentTopics.length) {
+      topicEl.innerHTML = '<div style="font-size:12px;color:var(--text-dim);margin-bottom:4px">' + t('Letzte Themen') + ':</div>' +
+        a.recentTopics.slice(0, 5).map(topic => `<div class="card" style="padding:4px 12px;margin-bottom:2px;font-size:12px">${escHtml(topic)}</div>`).join('');
+    } else if (topicEl) {
+      topicEl.innerHTML = '<div class="empty" style="font-size:12px">' + t('Noch keine autonomen Forschungen') + '</div>';
+    }
+  }
 
   // RAG
   if (d.rag) {

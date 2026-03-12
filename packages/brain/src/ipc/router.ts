@@ -179,6 +179,7 @@ export interface Services {
   conversationMemory?: import('@timmeck/brain-core').ConversationMemory;
   browserAgent?: import('@timmeck/brain-core').BrowserAgent;
   brainBot?: import('@timmeck/brain-core').BrainBot;
+  autonomousResearchLoop?: import('@timmeck/brain-core').AutonomousResearchLoop;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -1338,6 +1339,14 @@ export class IpcRouter {
       ['bot.message',            async (params) => { if (!s.brainBot) throw new Error('BrainBot not available'); return s.brainBot.processMessage(p(params)); }],
       ['bot.commands',           () => { if (!s.brainBot) throw new Error('BrainBot not available'); return s.brainBot.getCommandDefinitions(); }],
       ['bot.status',             () => { if (!s.brainBot) throw new Error('BrainBot not available'); return s.brainBot.getStatus(); }],
+
+      // ─── Autonomous Research ─────────────────────────────
+      ['research.autonomous.status',  () => { if (!s.autonomousResearchLoop) throw new Error('AutonomousResearchLoop not available'); return s.autonomousResearchLoop.getStatus(); }],
+      ['research.autonomous.config',  () => { if (!s.autonomousResearchLoop) throw new Error('AutonomousResearchLoop not available'); return s.autonomousResearchLoop.getConfig(); }],
+      ['research.autonomous.enable',  () => { if (!s.autonomousResearchLoop) throw new Error('AutonomousResearchLoop not available'); s.autonomousResearchLoop.updateConfig({ enabled: true }); s.autonomousResearchLoop.start(); return { enabled: true }; }],
+      ['research.autonomous.disable', () => { if (!s.autonomousResearchLoop) throw new Error('AutonomousResearchLoop not available'); s.autonomousResearchLoop.updateConfig({ enabled: false }); s.autonomousResearchLoop.stop(); return { enabled: false }; }],
+      ['research.autonomous.cycle',   async () => { if (!s.autonomousResearchLoop) throw new Error('AutonomousResearchLoop not available'); return s.autonomousResearchLoop.cycle(); }],
+      ['research.autonomous.update',  (params) => { if (!s.autonomousResearchLoop) throw new Error('AutonomousResearchLoop not available'); s.autonomousResearchLoop.updateConfig(p(params)); return s.autonomousResearchLoop.getConfig(); }],
 
       // System
       ['system.memory',           () => s.memoryWatchdog?.getStats() ?? { currentMB: Math.round(process.memoryUsage().heapUsed / 1048576), peakMB: 0, trend: 'stable', leakSuspected: false, samples: 0 }],

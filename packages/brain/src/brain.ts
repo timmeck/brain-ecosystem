@@ -65,7 +65,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine, GuardrailEngine, CausalPlanner, ResearchRoadmap, CreativeEngine, TelegramBot, DiscordBot, MemoryWatchdog, AdaptiveScheduler, EngineTokenBudgetTracker, CycleOutcomeTracker, runCycleOutcomeMigration, ConversationMemory, BrowserAgent, BrainBot } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine, GuardrailEngine, CausalPlanner, ResearchRoadmap, CreativeEngine, TelegramBot, DiscordBot, MemoryWatchdog, AdaptiveScheduler, EngineTokenBudgetTracker, CycleOutcomeTracker, runCycleOutcomeMigration, ConversationMemory, BrowserAgent, BrainBot, AutonomousResearchLoop, runAutonomousResearchMigration } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem, HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
 
 // Init modules (extracted from God-Class)
@@ -108,6 +108,7 @@ export class BrainCore {
   private conversationMemory: ConversationMemory | null = null;
   private browserAgent: BrowserAgent | null = null;
   private brainBot: BrainBot | null = null;
+  private autonomousResearchLoop: AutonomousResearchLoop | null = null;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   private retentionTimer: ReturnType<typeof setInterval> | null = null;
   private config: BrainConfig | null = null;
@@ -827,6 +828,39 @@ export class BrainCore {
     services.cycleOutcomeTracker = cycleOutcomeTracker;
     logger.info('CycleOutcomeTracker initialized — 4-curve cycle metrics active');
 
+    // AutonomousResearchLoop — self-directed web research (opt-in, default: disabled)
+    runAutonomousResearchMigration(this.db!);
+    const autonomousResearchLoop = new AutonomousResearchLoop(this.db!, { enabled: false });
+    autonomousResearchLoop.setThoughtStream(thoughtStream);
+    autonomousResearchLoop.setJournal(this.orchestrator.journal);
+    autonomousResearchLoop.setSources({
+      getCuriosityGaps: (limit) => this.curiosityEngine?.getGaps(limit) ?? [],
+      getDesires: () => {
+        try {
+          const suggestions = this.orchestrator?.selfObserver?.getImprovementPlan() ?? [];
+          return suggestions.map((s, i) => ({
+            key: s.area ?? `desire_${i}`, suggestion: s.suggestion, priority: s.priority ?? 5,
+          }));
+        } catch { return []; }
+      },
+      createMission: (topic, depth) => services.missionEngine!.createMission(topic, depth),
+      getMissionStatus: () => {
+        const s = services.missionEngine?.getStatus();
+        return { activeMissions: s?.activeMissions ?? 0, completedMissions: s?.completedMissions ?? 0, totalMissions: s?.totalMissions ?? 0 };
+      },
+      observeHypothesis: (obs) => { try { this.orchestrator?.hypothesisEngine?.observe(obs); } catch { /* best effort */ } },
+      checkBudget: (engineId) => {
+        if (!services.tokenBudgetTracker) return { allowed: true };
+        const allBudgets = services.tokenBudgetTracker.getStatus();
+        const budget = allBudgets.find(b => b.engineId === engineId);
+        return budget ? { allowed: budget.status !== 'exhausted' } : { allowed: true };
+      },
+    });
+    this.autonomousResearchLoop = autonomousResearchLoop;
+    services.autonomousResearchLoop = autonomousResearchLoop;
+    autonomousResearchLoop.start();
+    logger.info('AutonomousResearchLoop initialized — "brain autonomous enable" to activate');
+
     // 11c. Watchdog — monitoring only (detect peers via PID, run health checks)
     const watchdogConfig = createDefaultWatchdogConfig();
     const watchdog = new WatchdogService(watchdogConfig);
@@ -1076,6 +1110,7 @@ export class BrainCore {
   }
 
   private cleanup(): void {
+    this.autonomousResearchLoop?.stop();
     cleanupEngines({
       cleanupTimer: this.cleanupTimer, retentionTimer: this.retentionTimer,
       borgSync: this.borgSync, telegramBot: this.telegramBot, discordBot: this.discordBot,
