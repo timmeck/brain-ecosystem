@@ -108,7 +108,7 @@ export class CommandCenterServer {
       // ── Routes ──────────────────────────────────────────
       try {
         if (url.pathname === '/' || url.pathname === '/dashboard') {
-          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
           res.end(this.dashboardHtml);
           return;
         }
