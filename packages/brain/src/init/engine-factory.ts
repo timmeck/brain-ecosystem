@@ -27,6 +27,7 @@ import {
   ChatEngine, runChatMigration,
   SubAgentFactory, runSubAgentMigration,
   ConversationMemory, runConversationMemoryMigration,
+  RetrievalMaintenanceEngine,
   ExperimentLedger,
   BrowserAgent, runBrowserAgentMigration,
   BrainBot, runBrainBotMigration,
@@ -68,6 +69,7 @@ export interface IntelligenceResult {
   discordBot: DiscordBot;
   patternExtractor: PatternExtractor | undefined;
   conversationMemory: ConversationMemory;
+  retrievalMaintenance: RetrievalMaintenanceEngine;
   experimentLedger: ExperimentLedger;
   browserAgent: BrowserAgent;
   brainBot: BrainBot;
@@ -354,6 +356,10 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
   if (services.knowledgeGraph) conversationMemory.setKnowledgeGraph(services.knowledgeGraph);
   services.conversationMemory = conversationMemory;
 
+  // RetrievalMaintenanceEngine — offline retrieval quality maintenance (Session 131)
+  const retrievalMaintenance = new RetrievalMaintenanceEngine(db);
+  services.retrievalMaintenance = retrievalMaintenance;
+
   // ExperimentLedger — controlled A/B testing for system changes
   const experimentLedger = new ExperimentLedger(db);
   services.experimentLedger = experimentLedger;
@@ -527,6 +533,7 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
     discordBot,
     patternExtractor,
     conversationMemory,
+    retrievalMaintenance,
     experimentLedger,
     browserAgent,
     brainBot,

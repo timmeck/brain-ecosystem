@@ -106,6 +106,7 @@ export class BrainCore {
   private telegramBot: TelegramBot | null = null;
   private discordBot: DiscordBot | null = null;
   private conversationMemory: ConversationMemory | null = null;
+  private retrievalMaintenance: import('@timmeck/brain-core').RetrievalMaintenanceEngine | null = null;
   private browserAgent: BrowserAgent | null = null;
   private brainBot: BrainBot | null = null;
   private autonomousResearchLoop: AutonomousResearchLoop | null = null;
@@ -805,6 +806,7 @@ export class BrainCore {
     this.telegramBot = intelligenceResult.telegramBot;
     this.discordBot = intelligenceResult.discordBot;
     this.conversationMemory = intelligenceResult.conversationMemory;
+    this.retrievalMaintenance = intelligenceResult.retrievalMaintenance;
     this.browserAgent = intelligenceResult.browserAgent;
     this.brainBot = intelligenceResult.brainBot;
     const chatEngine = services.chatEngine!;
@@ -1061,6 +1063,9 @@ export class BrainCore {
     // 12c. Conversation Memory periodic maintenance (every 6h)
     this.conversationMemory?.startMaintenanceCycle();
 
+    // 12d. Retrieval Maintenance (every 2h — candidate sets + cold memory detection)
+    this.retrievalMaintenance?.start();
+
     // 13. Event listeners (synapse wiring)
     setupEventListeners(services, synapseManager, this.notifier, this.correlator, this.orchestrator);
 
@@ -1113,6 +1118,7 @@ export class BrainCore {
 
   private cleanup(): void {
     this.conversationMemory?.stopMaintenanceCycle();
+    this.retrievalMaintenance?.stop();
     this.autonomousResearchLoop?.stop();
     cleanupEngines({
       cleanupTimer: this.cleanupTimer, retentionTimer: this.retentionTimer,

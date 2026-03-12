@@ -13,6 +13,7 @@ import type {
   DreamTrigger,
   DreamRetrospective,
   PruningEfficiency,
+  FactExtractionResult,
 } from './types.js';
 
 // ── Migration ───────────────────────────────────────────
@@ -63,6 +64,9 @@ export function runDreamMigration(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_dream_retrospective_cycle ON dream_retrospective(dream_cycle_id);
   `);
+
+  // Session 132: Add facts_extracted column to dream_history
+  try { db.exec(`ALTER TABLE dream_history ADD COLUMN facts_extracted INTEGER NOT NULL DEFAULT 0`); } catch { /* exists */ }
 }
 
 // ── Engine ──────────────────────────────────────────────
@@ -214,6 +218,18 @@ export class DreamEngine {
       ts?.emit('dream', 'dreaming', `Compressed ${compression.memoriesSuperseded} memories into ${compression.memoriesConsolidated} clusters (ratio: ${compression.compressionRatio.toFixed(2)})`, 'notable');
     }
 
+    // 3.5. Fact Extraction (Session 132: DreamEngine v2)
+    let factExtraction: FactExtractionResult = { factsCreated: 0, constraintsCreated: 0, questionsCreated: 0 };
+    if (compression.clusters.length > 0) {
+      ts?.emit('dream', 'dreaming', `Extracting facts from ${compression.clusters.length} clusters...`);
+      factExtraction = this.consolidator.extractFacts(this.db, compression.clusters, this.config);
+      const totalExtracted = factExtraction.factsCreated + factExtraction.constraintsCreated + factExtraction.questionsCreated;
+      if (totalExtracted > 0) {
+        this.log.info(`[dream] Fact extraction: ${factExtraction.factsCreated} facts, ${factExtraction.constraintsCreated} constraints, ${factExtraction.questionsCreated} questions`);
+        ts?.emit('dream', 'discovering', `Extracted ${totalExtracted} typed memories from dream clusters`, 'notable');
+      }
+    }
+
     // 4. Importance Decay
     ts?.emit('dream', 'dreaming', 'Decaying old memory importance...');
     const decay = this.consolidator.decayImportance(this.db, this.config);
@@ -251,6 +267,9 @@ export class DreamEngine {
             `  Pruned: ${pruning.synapsesPruned} weak synapses`,
             `  Compressed: ${compression.memoriesConsolidated} clusters, ${compression.memoriesSuperseded} superseded`,
             `  Decayed: ${decay.memoriesDecayed} memories, ${decay.memoriesArchived} archived`,
+            (factExtraction.factsCreated + factExtraction.constraintsCreated + factExtraction.questionsCreated) > 0
+              ? `  Extracted: ${factExtraction.factsCreated} facts, ${factExtraction.constraintsCreated} constraints, ${factExtraction.questionsCreated} questions`
+              : '',
             principlesDiscovered > 0 ? `  Distilled: ${principlesDiscovered} knowledge items` : '',
           ].filter(Boolean).join('\n'),
           tags: ['dream', this.config.brainName, trigger],
@@ -282,6 +301,7 @@ export class DreamEngine {
       replay,
       pruning,
       compression,
+      factExtraction,
       decay,
       principlesDiscovered,
       journalEntryId,
@@ -298,6 +318,7 @@ export class DreamEngine {
       replay,
       pruning,
       compression,
+      factExtraction,
       decay,
       principlesDiscovered,
       journalEntryId,
@@ -548,8 +569,8 @@ export class DreamEngine {
           cycle_id, timestamp, duration, trigger,
           memories_replayed, synapses_strengthened, synapses_pruned, synapses_decayed,
           memories_consolidated, memories_superseded, memories_archived, importance_decayed,
-          principles_discovered, compression_ratio, journal_entry_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          principles_discovered, compression_ratio, journal_entry_id, facts_extracted
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         report.cycleId,
         report.timestamp,
@@ -566,6 +587,7 @@ export class DreamEngine {
         report.principlesDiscovered,
         report.compression.compressionRatio,
         report.journalEntryId,
+        report.factExtraction.factsCreated + report.factExtraction.constraintsCreated + report.factExtraction.questionsCreated,
       );
 
       this.db.prepare(`

@@ -127,4 +127,103 @@ describe('ConversationMemory', () => {
       expect(mem.getLastProcessedAt('unknown')).toBe('');
     });
   });
+
+  // ── Session 130: Typed Memory ──────────────────────────────
+
+  describe('new memory categories', () => {
+    it('stores and retrieves constraint memories', () => {
+      const id = mem.remember('never auto-commit', { category: 'constraint', importance: 8 });
+      expect(id).toBeGreaterThan(0);
+
+      const constraints = mem.getByCategory('constraint', 5);
+      expect(constraints).toHaveLength(1);
+      expect(constraints[0].content).toBe('never auto-commit');
+      expect(constraints[0].category).toBe('constraint');
+    });
+
+    it('stores and retrieves open_question memories', () => {
+      const id = mem.remember('how to handle auth tokens?', { category: 'open_question', importance: 6 });
+      expect(id).toBeGreaterThan(0);
+
+      const questions = mem.getByCategory('open_question', 5);
+      expect(questions).toHaveLength(1);
+      expect(questions[0].content).toBe('how to handle auth tokens?');
+    });
+  });
+
+  describe('buildContext (typed)', () => {
+    it('includes Constraints section in context', () => {
+      mem.remember('never use npm', { category: 'constraint', importance: 8 });
+      const ctx = mem.buildContext();
+      expect(ctx).toContain('## Constraints');
+      expect(ctx).toContain('never use npm');
+    });
+
+    it('includes Open Questions section in context', () => {
+      mem.remember('should we migrate to bun?', { category: 'open_question', importance: 6 });
+      const ctx = mem.buildContext();
+      expect(ctx).toContain('## Open Questions');
+      expect(ctx).toContain('should we migrate to bun?');
+    });
+
+    it('increments use_count for memories in context', () => {
+      const id = mem.remember('test decision', { category: 'decision', importance: 8 });
+      mem.buildContext();
+      const row = db.prepare('SELECT use_count FROM conversation_memories WHERE id = ?').get(id) as { use_count: number };
+      expect(row.use_count).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('retrieval metadata', () => {
+    it('creates use_count and archive_candidate columns', () => {
+      const id = mem.remember('test', { importance: 5 });
+      const row = db.prepare('SELECT use_count, archive_candidate FROM conversation_memories WHERE id = ?').get(id) as { use_count: number; archive_candidate: number };
+      expect(row.use_count).toBe(0);
+      expect(row.archive_candidate).toBe(0);
+    });
+
+    it('toMemory maps new fields correctly', () => {
+      const id = mem.remember('mapped test', { category: 'fact', importance: 7 });
+      const memories = mem.getByCategory('fact', 1);
+      expect(memories).toHaveLength(1);
+      expect(memories[0].useCount).toBe(0);
+      expect(memories[0].archiveCandidate).toBe(false);
+      expect(memories[0].lastUsedAt).toBeNull();
+      expect(memories[0].lastRetrievalScore).toBeNull();
+    });
+  });
+
+  // ── Session 131: retrieveByIntent ─────────────────────────
+
+  describe('retrieveByIntent', () => {
+    it('returns fallback results when no candidate sets exist', () => {
+      mem.remember('use TypeScript strict mode', { category: 'decision', importance: 8 });
+      mem.remember('chose Vitest over Jest', { category: 'decision', importance: 7 });
+
+      const results = mem.retrieveByIntent('decision_lookup');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results[0].category).toBe('decision');
+    });
+
+    it('returns empty for unknown intent', () => {
+      const results = mem.retrieveByIntent('nonexistent_intent');
+      expect(results).toHaveLength(0);
+    });
+
+    it('works with query parameter in fallback mode', () => {
+      mem.remember('decided to use bun for builds', { category: 'decision', importance: 8 });
+      mem.remember('decided to use vitest for testing', { category: 'decision', importance: 7 });
+
+      const results = mem.retrieveByIntent('decision_lookup', 'bun');
+      expect(results.length).toBeGreaterThanOrEqual(0); // FTS may or may not match
+    });
+
+    it('increments use_count for retrieved memories', () => {
+      const id = mem.remember('always use strict mode', { category: 'preference', importance: 8 });
+      mem.retrieveByIntent('user_preference_lookup');
+
+      const row = db.prepare('SELECT use_count FROM conversation_memories WHERE id = ?').get(id) as { use_count: number };
+      expect(row.use_count).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

@@ -80,6 +80,8 @@ export type {
 export { BaseMemoryEngine } from './memory/base-memory-engine.js';
 export { ConversationMemory, runConversationMemoryMigration } from './memory/conversation-memory.js';
 export type { ConversationMemoryConfig, Memory, RememberOptions, RecallOptions, SessionSummary, MemorySearchResult, ConversationMemoryStatus, MemoryRAGAdapter, MemoryJournalAdapter, MemoryKnowledgeGraphAdapter } from './memory/conversation-memory.js';
+export { RetrievalMaintenanceEngine } from './memory/retrieval-maintenance.js';
+export type { RetrievalMaintenanceConfig, MaintenanceReport, CandidateSetReport, RetrievalMaintenanceStatus } from './memory/retrieval-maintenance.js';
 
 // ── Dashboard ────────────────────────────────────────────
 export { DashboardServer } from './dashboard/server.js';

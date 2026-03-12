@@ -177,6 +177,7 @@ export interface Services {
   tokenBudgetTracker?: import('@timmeck/brain-core').EngineTokenBudgetTracker;
   cycleOutcomeTracker?: import('@timmeck/brain-core').CycleOutcomeTracker;
   conversationMemory?: import('@timmeck/brain-core').ConversationMemory;
+  retrievalMaintenance?: import('@timmeck/brain-core').RetrievalMaintenanceEngine;
   browserAgent?: import('@timmeck/brain-core').BrowserAgent;
   brainBot?: import('@timmeck/brain-core').BrainBot;
   autonomousResearchLoop?: import('@timmeck/brain-core').AutonomousResearchLoop;
@@ -828,6 +829,11 @@ export class IpcRouter {
       ['dream.retrospective',     (params) => { if (!s.dreamEngine) throw new Error('Dream engine not available'); return s.dreamEngine.analyzeRetrospective(p(params)?.lastNCycles); }],
       ['dream.retrospective.list', (params) => { if (!s.dreamEngine) throw new Error('Dream engine not available'); return s.dreamEngine.getRetrospective(p(params)?.limit); }],
       ['dream.pruning_efficiency', () => { if (!s.dreamEngine) throw new Error('Dream engine not available'); return s.dreamEngine.getPruningEfficiency(); }],
+
+      // ─── Retrieval Maintenance ───────────────────────────────────
+      ['retrieval.status',         () => { if (!s.retrievalMaintenance) throw new Error('RetrievalMaintenance not available'); return s.retrievalMaintenance.getStatus(); }],
+      ['retrieval.refresh',        () => { if (!s.retrievalMaintenance) throw new Error('RetrievalMaintenance not available'); return s.retrievalMaintenance.runMaintenance(); }],
+      ['retrieval.candidates',     (params) => { if (!s.retrievalMaintenance) throw new Error('RetrievalMaintenance not available'); return s.retrievalMaintenance.getCandidateSet(p(params).type ?? 'intent', p(params).key); }],
 
       // ─── Cross-Brain Dialogue ──────────────────────────────────
       ['dialogue.ask',            (params) => { if (!s.transferEngine) throw new Error('TransferEngine not available'); return s.transferEngine.formulateQuestion(p(params).topic); }],

@@ -6,7 +6,9 @@ import type {
   MemoryReplayResult,
   SynapsePruneResult,
   MemoryCompressionResult,
+  MemoryCluster,
   ImportanceDecayResult,
+  FactExtractionResult,
 } from './types.js';
 
 const log = getLogger();
@@ -305,4 +307,97 @@ export class DreamConsolidator {
     result.avgDecay = result.memoriesDecayed > 0 ? totalDecay / result.memoriesDecayed : 0;
     return result;
   }
+
+  /**
+   * Phase 3.5: Fact Extraction from consolidated memory clusters.
+   * Pattern-based (no LLM in v1) — extracts facts, constraints, and open questions.
+   * Only processes clusters with ≥3 members (genuine consolidation, not single memories).
+   */
+  extractFacts(
+    db: Database.Database,
+    clusters: MemoryCluster[],
+    _config: Required<DreamEngineConfig>,
+  ): FactExtractionResult {
+    const result: FactExtractionResult = {
+      factsCreated: 0,
+      constraintsCreated: 0,
+      questionsCreated: 0,
+    };
+
+    // Only process clusters with ≥3 members (genuine consolidation)
+    const substantialClusters = clusters.filter(c => c.memberIds.length >= 2); // centroid + 2 members = 3 total
+
+    if (substantialClusters.length === 0) return result;
+
+    // Check if conversation_memories table exists (for storing extracted facts)
+    let hasConvMemTable = false;
+    try {
+      db.prepare('SELECT 1 FROM conversation_memories LIMIT 0').run();
+      hasConvMemTable = true;
+    } catch {
+      // conversation_memories table doesn't exist — skip
+    }
+
+    if (!hasConvMemTable) return result;
+
+    const insertStmt = db.prepare(`
+      INSERT INTO conversation_memories (session_id, category, key, content, importance, source, tags)
+      VALUES (NULL, ?, ?, ?, ?, 'inferred', '["dream","extracted"]')
+    `);
+
+    for (const cluster of substantialClusters) {
+      const content = cluster.consolidatedTitle;
+      if (!content || content.length < 10) continue;
+
+      const lower = content.toLowerCase();
+
+      // Constraint patterns: always/never/must/don't/avoid
+      if (CONSTRAINT_PATTERN.test(lower)) {
+        const key = `dream_constraint:${hashContent(content)}`;
+        try {
+          insertStmt.run('constraint', key, content, 6);
+          result.constraintsCreated++;
+        } catch { /* duplicate key — skip */ }
+        continue;
+      }
+
+      // Open question patterns: how to/why does/should we/what if/need to figure out
+      if (QUESTION_PATTERN.test(lower)) {
+        const key = `dream_question:${hashContent(content)}`;
+        try {
+          insertStmt.run('open_question', key, content, 5);
+          result.questionsCreated++;
+        } catch { /* duplicate key — skip */ }
+        continue;
+      }
+
+      // Fact patterns: decided to/chose/will use/agreed on
+      if (FACT_PATTERN.test(lower)) {
+        const key = `dream_fact:${hashContent(content)}`;
+        try {
+          insertStmt.run('fact', key, content, 6);
+          result.factsCreated++;
+        } catch { /* duplicate key — skip */ }
+        continue;
+      }
+    }
+
+    return result;
+  }
+}
+
+// ── Pattern Constants ──────────────────────────────────────
+
+const FACT_PATTERN = /(?:decided to|chose|will use|agreed on|we use|switched to|using|adopted|implemented)/;
+const CONSTRAINT_PATTERN = /(?:always|never|must not|don't|do not|avoid|forbidden|must|required to|not allowed)/;
+const QUESTION_PATTERN = /(?:how to|why does|should we|what if|need to figure out|unclear|unknown|investigate|open question|todo|to decide)/;
+
+/** Simple content hash for dedup keys. */
+function hashContent(content: string): string {
+  let h = 0;
+  const s = content.slice(0, 200).toLowerCase();
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h).toString(36);
 }

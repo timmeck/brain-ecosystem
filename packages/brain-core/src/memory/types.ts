@@ -1,5 +1,5 @@
 // Memory categories available to all Brains
-export type MemoryCategory = 'preference' | 'decision' | 'context' | 'fact' | 'goal' | 'lesson';
+export type MemoryCategory = 'preference' | 'decision' | 'context' | 'fact' | 'goal' | 'lesson' | 'constraint' | 'open_question';
 export type MemorySource = 'explicit' | 'inferred' | 'hook';
 export type SessionOutcome = 'completed' | 'paused' | 'abandoned';
 

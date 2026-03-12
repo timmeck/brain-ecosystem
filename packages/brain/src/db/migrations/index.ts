@@ -15,6 +15,8 @@ import { up as decisionsChangelog } from './012_decisions_changelog.js';
 import { up as tasks } from './013_tasks.js';
 import { up as projectDocs } from './014_project_docs.js';
 import { up as insightLifecycle } from './015_insight_lifecycle.js';
+import { up as retrievalMetadata } from './016_retrieval_metadata.js';
+import { up as dreamFacts } from './017_dream_facts.js';
 
 interface Migration {
   version: number;
@@ -38,6 +40,8 @@ const migrations: Migration[] = [
   { version: 13, name: '013_tasks', up: tasks },
   { version: 14, name: '014_project_docs', up: projectDocs },
   { version: 15, name: '015_insight_lifecycle', up: insightLifecycle },
+  { version: 16, name: '016_retrieval_metadata', up: retrievalMetadata },
+  { version: 17, name: '017_dream_facts', up: dreamFacts },
 ];
 
 function ensureMigrationsTable(db: Database.Database): void {

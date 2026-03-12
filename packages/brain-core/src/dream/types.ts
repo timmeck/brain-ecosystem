@@ -28,6 +28,12 @@ export interface DreamEngineConfig {
 
 export type DreamTrigger = 'auto' | 'manual' | 'idle';
 
+export interface FactExtractionResult {
+  factsCreated: number;
+  constraintsCreated: number;
+  questionsCreated: number;
+}
+
 export interface DreamCycleReport {
   cycleId: string;
   timestamp: number;
@@ -36,6 +42,7 @@ export interface DreamCycleReport {
   replay: MemoryReplayResult;
   pruning: SynapsePruneResult;
   compression: MemoryCompressionResult;
+  factExtraction: FactExtractionResult;
   decay: ImportanceDecayResult;
   principlesDiscovered: number;
   journalEntryId: number | null;

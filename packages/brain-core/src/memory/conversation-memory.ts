@@ -46,6 +46,10 @@ export interface Memory {
   createdAt: string;
   updatedAt: string;
   active: boolean;
+  useCount: number;
+  lastUsedAt: string | null;
+  lastRetrievalScore: number | null;
+  archiveCandidate: boolean;
 }
 
 export interface RememberOptions {
@@ -176,6 +180,14 @@ export function runConversationMemoryMigration(db: Database.Database): void {
   } catch {
     // Column already exists
   }
+
+  // Retrieval metadata columns (Session 130: Typed Memory)
+  try { db.exec(`ALTER TABLE conversation_memories ADD COLUMN use_count INTEGER NOT NULL DEFAULT 0`); } catch { /* exists */ }
+  try { db.exec(`ALTER TABLE conversation_memories ADD COLUMN last_used_at TEXT`); } catch { /* exists */ }
+  try { db.exec(`ALTER TABLE conversation_memories ADD COLUMN last_retrieval_score REAL`); } catch { /* exists */ }
+  try { db.exec(`ALTER TABLE conversation_memories ADD COLUMN archive_candidate INTEGER NOT NULL DEFAULT 0`); } catch { /* exists */ }
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_conv_mem_archive ON conversation_memories(archive_candidate)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_conv_mem_use ON conversation_memories(use_count DESC)`);
 }
 
 // ── Engine ────────────────────────────────────────────────
@@ -210,6 +222,7 @@ export class ConversationMemory {
   private readonly stmtSessionEnd;
   private readonly stmtSessionGet;
   private readonly stmtSessionCountMemories;
+  private readonly stmtIncrementUseCount;
 
   constructor(db: Database.Database, config: ConversationMemoryConfig = {}) {
     this.db = db;
@@ -297,6 +310,11 @@ export class ConversationMemory {
     this.stmtSessionCountMemories = db.prepare(
       'SELECT COUNT(*) as count FROM conversation_memories WHERE session_id = ?',
     );
+
+    this.stmtIncrementUseCount = db.prepare(`
+      UPDATE conversation_memories SET use_count = use_count + 1, last_used_at = datetime('now')
+      WHERE id = ?
+    `);
   }
 
   // ── Setters ────────────────────────────────────────────
@@ -476,13 +494,14 @@ export class ConversationMemory {
   /** Build a context summary for the LLM (for session start). */
   buildContext(limit = 30): string {
     const parts: string[] = [];
+    const usedIds: number[] = [];
     parts.push('# Brain Memory Context\n');
 
     // Decisions
     const decisions = this.getByCategory('decision', 5);
     if (decisions.length > 0) {
       parts.push('## Key Decisions');
-      for (const m of decisions) parts.push(`- ${m.key ?? m.content.slice(0, 100)}`);
+      for (const m of decisions) { parts.push(`- ${m.key ?? m.content.slice(0, 100)}`); usedIds.push(m.id); }
       parts.push('');
     }
 
@@ -490,17 +509,26 @@ export class ConversationMemory {
     const prefs = this.getByCategory('preference', 5);
     if (prefs.length > 0) {
       parts.push('## Preferences');
-      for (const m of prefs) parts.push(`- ${m.key ?? m.content.slice(0, 100)}`);
+      for (const m of prefs) { parts.push(`- ${m.key ?? m.content.slice(0, 100)}`); usedIds.push(m.id); }
+      parts.push('');
+    }
+
+    // Constraints (Session 130: Typed Memory)
+    const constraints = this.getByCategory('constraint', 5);
+    if (constraints.length > 0) {
+      parts.push('## Constraints');
+      for (const m of constraints) { parts.push(`- ${m.key ?? m.content.slice(0, 100)}`); usedIds.push(m.id); }
       parts.push('');
     }
 
     // Recent context
-    const recent = this.getRecentContext(Math.max(5, limit - decisions.length - prefs.length));
+    const recent = this.getRecentContext(Math.max(5, limit - decisions.length - prefs.length - constraints.length));
     if (recent.length > 0) {
       parts.push('## Recent Context');
       for (const m of recent) {
         const tag = m.tags.length > 0 ? ` [${m.tags.join(', ')}]` : '';
         parts.push(`- [${m.category}] ${m.content.slice(0, 150)}${tag}`);
+        usedIds.push(m.id);
       }
       parts.push('');
     }
@@ -509,7 +537,7 @@ export class ConversationMemory {
     const goals = this.getByCategory('goal', 3);
     if (goals.length > 0) {
       parts.push('## Active Goals');
-      for (const m of goals) parts.push(`- ${m.content.slice(0, 100)}`);
+      for (const m of goals) { parts.push(`- ${m.content.slice(0, 100)}`); usedIds.push(m.id); }
       parts.push('');
     }
 
@@ -517,10 +545,139 @@ export class ConversationMemory {
     const lessons = this.getByCategory('lesson', 5);
     if (lessons.length > 0) {
       parts.push('## Lessons Learned');
-      for (const m of lessons) parts.push(`- ${m.content.slice(0, 100)}`);
+      for (const m of lessons) { parts.push(`- ${m.content.slice(0, 100)}`); usedIds.push(m.id); }
+      parts.push('');
     }
 
+    // Open Questions (Session 130: Typed Memory)
+    const openQuestions = this.getByCategory('open_question', 3);
+    if (openQuestions.length > 0) {
+      parts.push('## Open Questions');
+      for (const m of openQuestions) { parts.push(`- ${m.content.slice(0, 100)}`); usedIds.push(m.id); }
+    }
+
+    // Track use_count for all memories that landed in context
+    this.incrementUseCount(usedIds);
+
     return parts.join('\n');
+  }
+
+  /** Increment use_count for memories used in context building. */
+  private incrementUseCount(ids: number[]): void {
+    if (ids.length === 0) return;
+    try {
+      for (const id of ids) {
+        this.stmtIncrementUseCount.run(id);
+      }
+    } catch (err) {
+      this.log.debug(`[conversation-memory] use_count increment failed: ${(err as Error).message}`);
+    }
+  }
+
+  // ── Typed Retrieval ─────────────────────────────────────
+
+  /**
+   * Typed retrieval via pre-computed candidate sets.
+   * Uses RetrievalMaintenanceEngine's candidate sets for fast filtered search.
+   *
+   * Flow: load candidate set → if query: FTS5/RAG rank over candidates → use_count++ → return Top-N
+   */
+  retrieveByIntent(intent: string, query?: string, limit = 10): Memory[] {
+    // Load candidate set
+    let candidateIds: number[];
+    try {
+      const row = this.db.prepare(
+        'SELECT memory_ids FROM retrieval_candidate_sets WHERE set_type = ? AND set_key = ?',
+      ).get('intent', intent) as { memory_ids: string } | undefined;
+      candidateIds = row ? JSON.parse(row.memory_ids) : [];
+    } catch {
+      candidateIds = [];
+    }
+
+    if (candidateIds.length === 0) {
+      // Fallback: no candidate set available, try category-based retrieval
+      const fallbackResults = this.fallbackIntentRetrieval(intent, query, limit);
+      this.incrementUseCount(fallbackResults.map(m => m.id));
+      return fallbackResults;
+    }
+
+    let results: Memory[];
+
+    if (query) {
+      // Search within candidates using FTS5
+      const ftsQuery = query.replace(/[^\w\s]/g, ' ').trim().split(/\s+/).filter(w => w.length > 1).join(' OR ');
+      if (ftsQuery) {
+        try {
+          const placeholders = candidateIds.map(() => '?').join(',');
+          const rows = this.db.prepare(`
+            SELECT m.* FROM conversation_memories m
+            JOIN conversation_memories_fts f ON m.id = f.rowid
+            WHERE conversation_memories_fts MATCH ?
+              AND m.id IN (${placeholders})
+              AND m.active = 1
+            ORDER BY rank
+            LIMIT ?
+          `).all(ftsQuery, ...candidateIds, limit) as Array<Record<string, unknown>>;
+          results = rows.map(r => this.toMemory(r));
+        } catch {
+          // FTS failed, fall back to full candidate set
+          results = this.loadMemoriesByIds(candidateIds, limit);
+        }
+      } else {
+        results = this.loadMemoriesByIds(candidateIds, limit);
+      }
+    } else {
+      results = this.loadMemoriesByIds(candidateIds, limit);
+    }
+
+    // Track use_count
+    this.incrementUseCount(results.map(m => m.id));
+
+    return results;
+  }
+
+  private loadMemoriesByIds(ids: number[], limit: number): Memory[] {
+    if (ids.length === 0) return [];
+    const subset = ids.slice(0, limit);
+    const placeholders = subset.map(() => '?').join(',');
+    try {
+      const rows = this.db.prepare(
+        `SELECT * FROM conversation_memories WHERE id IN (${placeholders}) AND active = 1 ORDER BY importance DESC, use_count DESC`,
+      ).all(...subset) as Array<Record<string, unknown>>;
+      return rows.map(r => this.toMemory(r));
+    } catch {
+      return [];
+    }
+  }
+
+  private fallbackIntentRetrieval(intent: string, query: string | undefined, limit: number): Memory[] {
+    // Map intent to categories
+    const intentMap: Record<string, string[]> = {
+      decision_lookup: ['decision'],
+      project_context: ['context', 'fact'],
+      user_preference_lookup: ['preference', 'constraint'],
+      open_problem_lookup: ['open_question', 'goal'],
+    };
+    const categories = intentMap[intent];
+    if (!categories) return [];
+
+    if (query) {
+      // Use searchText with category filter
+      const allResults = this.searchText(query, { limit: limit * 2 });
+      return allResults
+        .filter(r => categories.includes(r.memory.category))
+        .slice(0, limit)
+        .map(r => r.memory);
+    }
+
+    // No query — return top memories from mapped categories
+    const memories: Memory[] = [];
+    for (const cat of categories) {
+      memories.push(...this.getByCategory(cat as import('./types.js').MemoryCategory, limit));
+    }
+    return memories
+      .sort((a, b) => b.importance - a.importance)
+      .slice(0, limit);
   }
 
   // ── Sessions ──────────────────────────────────────────
@@ -721,6 +878,10 @@ export class ConversationMemory {
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
       active: (row.active as number) === 1,
+      useCount: (row.use_count as number) ?? 0,
+      lastUsedAt: (row.last_used_at as string | null) ?? null,
+      lastRetrievalScore: (row.last_retrieval_score as number | null) ?? null,
+      archiveCandidate: ((row.archive_candidate as number) ?? 0) === 1,
     };
   }
 }
