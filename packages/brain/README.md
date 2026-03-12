@@ -171,6 +171,7 @@ During idle periods (no active conversations), DreamEngine performs memory conso
 - **Replay** — Re-processes important experiences to strengthen synaptic connections
 - **Pruning** — Removes low-value memories and weak synapse connections
 - **Compression** — Merges similar patterns into generalized principles
+- **Fact Extraction** — Extracts typed facts, constraints, and open questions from consolidated clusters
 - **Decay** — Time-based weight reduction on unused knowledge
 - **Triggers** — Starts automatically after configurable idle period, or manually via `dream.start`
 
