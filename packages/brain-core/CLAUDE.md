@@ -39,7 +39,7 @@ Shared infrastructure library for the Brain Ecosystem. Not an MCP server itself 
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (2,521 tests across 175 test files)
+npm test               # Vitest (2,754 tests across 192 test files)
 npm run lint           # ESLint
 ```
 

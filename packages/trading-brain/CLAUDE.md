@@ -58,7 +58,7 @@ Claude Code → MCP Server (stdio) → TradingCore → Services → SQLite
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (509 tests across 34 test files)
+npm test               # Vitest (518 tests across 35 test files)
 npm run lint           # ESLint
 npm run dev            # Run via tsx
 ```

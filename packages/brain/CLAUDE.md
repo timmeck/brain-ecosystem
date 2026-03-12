@@ -83,7 +83,7 @@ Key directories: `src/cli/commands/`, `src/mcp/`, `src/db/`, `src/learning/`, `s
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (564 tests across 58 test files)
+npm test               # Vitest (588 tests across 59 test files)
 npm run lint           # ESLint
 npm run dev            # Run via tsx (no build needed)
 ```
