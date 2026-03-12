@@ -2682,12 +2682,16 @@ function renderProgress() {
   const pred = d.predictions;
   if (pred) {
     const accEl = document.getElementById('progPredAcc');
-    if (accEl) accEl.textContent = pred.accuracy_rate != null ? (pred.accuracy_rate * 100).toFixed(0) + '%' : '--';
+    if (accEl) accEl.textContent = Number.isFinite(pred.accuracy_rate) ? (pred.accuracy_rate * 100).toFixed(0) + '%' : '--';
     const domEl = document.getElementById('progPredDomains');
     if (domEl && pred.by_domain) {
-      domEl.innerHTML = Object.entries(pred.by_domain).map(([k, v]) =>
-        `<div style="display:flex;justify-content:space-between;margin:2px 0"><span style="color:var(--text-dim)">${k}</span><span style="color:var(--cyan)">${(v * 100).toFixed(0)}%</span></div>`
-      ).join('');
+      const domains = Array.isArray(pred.by_domain) ? pred.by_domain : Object.values(pred.by_domain);
+      domEl.innerHTML = domains.map(d => {
+        const name = d.domain || '?';
+        const acc = Number.isFinite(d.accuracy_rate) ? (d.accuracy_rate * 100).toFixed(0) + '%' : '--';
+        const col = (d.accuracy_rate ?? 0) >= 0.7 ? 'var(--green)' : (d.accuracy_rate ?? 0) >= 0.4 ? 'var(--cyan)' : 'var(--orange)';
+        return `<div style="display:flex;justify-content:space-between;margin:2px 0"><span style="color:var(--text-dim)">${name}</span><span style="font-size:11px;color:var(--text-dim)">${d.total ?? 0}</span><span style="color:${col};min-width:45px;text-align:right">${acc}</span></div>`;
+      }).join('');
     }
     const calEl = document.getElementById('progPredCalib');
     if (calEl && pred.calibration_offset != null) {

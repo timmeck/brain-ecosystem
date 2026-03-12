@@ -130,11 +130,11 @@ export class PredictionTracker {
     const rows = this.db.prepare(sql).all(...params) as Array<Record<string, unknown>>;
 
     return rows.map(r => {
-      const total = r.total as number;
-      const correct = r.correct as number;
-      const wrong = r.wrong as number;
-      const partial = r.partial as number;
-      const expired = r.expired as number;
+      const total = (r.total as number) || 0;
+      const correct = (r.correct as number) || 0;
+      const wrong = (r.wrong as number) || 0;
+      const partial = (r.partial as number) || 0;
+      const expired = (r.expired as number) || 0;
 
       // Direction accuracy: correct + partial count as direction-correct
       const resolved = total - expired;
@@ -142,7 +142,7 @@ export class PredictionTracker {
 
       // Calibration score: how close avg confidence is to actual accuracy
       const actualAccuracy = resolved > 0 ? correct / resolved : 0;
-      const avgConfidence = r.avg_confidence as number;
+      const avgConfidence = (r.avg_confidence as number) || 0;
       const calibrationScore = 1 - Math.abs(actualAccuracy - avgConfidence);
 
       return {
@@ -153,7 +153,7 @@ export class PredictionTracker {
         partial,
         expired,
         accuracy_rate: resolved > 0 ? (correct + partial * 0.5) / resolved : 0,
-        mean_absolute_error: (r.mean_error as number) ?? 0,
+        mean_absolute_error: (r.mean_error as number) || 0,
         calibration_score: Math.max(0, calibrationScore),
         direction_accuracy: resolved > 0 ? directionCorrect / resolved : 0,
       };
