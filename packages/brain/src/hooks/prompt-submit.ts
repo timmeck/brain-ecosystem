@@ -97,18 +97,17 @@ async function main(): Promise<void> {
     }
 
     const pending = await client.request('notification.pending') as NotificationRecord[];
-    if (!pending || pending.length === 0) return;
-
-    // Print notifications to stdout — injected into Claude's context
-    console.log(`\u{1F9E0} Brain (${pending.length} new):`);
-    for (const n of pending) {
-      console.log(formatNotification(n));
+    if (pending?.length) {
+      // Print notifications to stdout — injected into Claude's context
+      console.log(`\u{1F9E0} Brain (${pending.length} new):`);
+      for (const n of pending) {
+        console.log(formatNotification(n));
+      }
+      // Acknowledge all so they don't repeat
+      await client.request('notification.ackAll');
     }
 
-    // Acknowledge all so they don't repeat
-    await client.request('notification.ackAll');
-
-    // Inject Conversation Memory context
+    // Inject Conversation Memory context (always, even without notifications)
     try {
       const context = await client.request('convo.context') as string;
       if (context && context.trim().length > 20) {
