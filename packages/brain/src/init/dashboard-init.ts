@@ -62,6 +62,15 @@ export function createCommandCenter(deps: DashboardDeps): CommandCenterServer {
     },
     getRepoAbsorberStatus: () => services.repoAbsorber?.getStatus() ?? null,
     getRepoAbsorberHistory: (limit = 10) => services.repoAbsorber?.getHistory(limit) ?? [],
+    toggleAutonomousResearch: (enabled) => {
+      if (enabled) {
+        services.autonomousResearchLoop?.updateConfig({ enabled: true });
+        services.autonomousResearchLoop?.start();
+      } else {
+        services.autonomousResearchLoop?.updateConfig({ enabled: false });
+        services.autonomousResearchLoop?.stop();
+      }
+    },
     getIntelligenceStats: () => ({
       rag: services.ragEngine?.getStatus() ?? null,
       ragIndexer: services.ragIndexer?.getStatus() ?? null,

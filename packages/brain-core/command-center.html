@@ -572,7 +572,7 @@ canvas{display:block;width:100%;height:100%}
           <div class="section-title"><span class="icon">&#x1F50D;</span> Autonomous Research — <span data-t="Selbstgesteuerte Forschung">Selbstgesteuerte Forschung</span></div>
           <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px" data-t="Brain gibt sich selbst Forschungsauftr&auml;ge: Wissensl&uuml;cken &rarr; Missionen &rarr; Web-Recherche &rarr; Insights.">Brain gibt sich selbst Forschungsauftr&auml;ge: Wissensl&uuml;cken &rarr; Missionen &rarr; Web-Recherche &rarr; Insights.</p>
           <div class="grid grid-4">
-            <div class="card" style="text-align:center"><div class="card-value" id="auto-enabled" style="color:var(--text-dim)">&#x2014;</div><div class="card-sub">Status</div></div>
+            <div class="card" style="text-align:center"><button class="btn" id="autoResearchToggle" disabled>&#x2014;</button><div class="card-sub">Status</div></div>
             <div class="card" style="text-align:center"><div class="card-value" id="auto-cycles" style="color:var(--cyan)">0</div><div class="card-sub">Cycles</div></div>
             <div class="card" style="text-align:center"><div class="card-value" id="auto-missions" style="color:var(--green)">0/5</div><div class="card-sub" data-t="Missionen heute">Missionen heute</div></div>
             <div class="card" style="text-align:center"><div class="card-value" id="auto-next" style="color:var(--yellow);font-size:14px">&#x2014;</div><div class="card-sub" data-t="N&auml;chster Cycle">N&auml;chster Cycle</div></div>
@@ -723,7 +723,10 @@ canvas{display:block;width:100%;height:100%}
                   <div class="card-title" style="margin-bottom:4px">Collective Sync</div>
                   <div id="borgStatus" style="font-size:13px;color:var(--text-dim)">Nicht verfügbar</div>
                 </div>
-                <button class="btn" id="borgToggle" disabled>Toggle</button>
+                <div style="display:flex;gap:6px">
+                  <button class="btn" id="borgToggle" disabled>Toggle</button>
+                  <button class="btn" id="borgInternetToggle" disabled style="opacity:0.5;cursor:not-allowed" title="Coming soon — WebSocket Multi-PC Sync">Internet</button>
+                </div>
               </div>
               <div id="borgDetails"></div>
             </div>
@@ -1347,8 +1350,11 @@ function renderIntelligence() {
   // Autonomous Research
   if (d.autonomousResearch) {
     const a = d.autonomousResearch;
-    setText('auto-enabled', a.enabled ? (a.running ? '&#x1F7E2; Active' : '&#x1F7E1; Enabled') : '&#x26AB; Off');
-    document.getElementById('auto-enabled').style.color = a.enabled ? (a.running ? 'var(--green)' : 'var(--yellow)') : 'var(--text-dim)';
+    const autoBtn = document.getElementById('autoResearchToggle');
+    autoBtn.disabled = false;
+    autoBtn.className = a.enabled ? 'btn btn-active' : 'btn';
+    autoBtn.textContent = a.enabled ? (a.running ? 'Active' : 'Enabled') : 'Off';
+    autoBtn.style.color = a.enabled ? 'var(--green)' : 'var(--text-dim)';
     setText('auto-cycles', a.cyclesCompleted || 0);
     setText('auto-missions', `${a.missionsLaunchedToday || 0}/${a.maxMissionsPerDay || 5}`);
     if (a.nextCycleAt) {
@@ -1804,7 +1810,7 @@ function renderBorg() {
   if (!b || !b.status) { sEl.textContent = t('Nicht verfügbar'); btn.disabled = true; return; }
   const s = b.status;
   sEl.innerHTML = `<span class="dot ${s.enabled?'dot-on':'dot-off'}" style="margin-right:6px"></span>${s.enabled?t('Aktiv'):t('Deaktiviert')} &mdash; ${s.mode || t('Standard')}`;
-  btn.disabled = false; btn.className = s.enabled ? 'btn btn-active' : 'btn'; btn.textContent = s.enabled ? t('Deaktivieren') : t('Aktivieren');
+  btn.disabled = false; btn.className = s.enabled ? 'btn btn-active' : 'btn'; btn.textContent = s.enabled ? t('Lokal: Aktiv') : t('Lokal: Aus');
   det.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;margin-top:8px"><div><span style="color:var(--text-dim)">Syncs</span><br><strong>${s.totalSyncs||0}</strong></div><div><span style="color:var(--text-dim)">${t('Gesendet')}</span><br><strong>${s.totalSent||0}</strong></div><div><span style="color:var(--text-dim)">${t('Empfangen')}</span><br><strong>${s.totalReceived||0}</strong></div></div>`;
   const h = b.history || [];
   if (!h.length) { hist.innerHTML = `<div class="empty">${t('Noch kein Sync passiert')}</div>`; return; }
@@ -1814,6 +1820,11 @@ function renderBorg() {
 document.getElementById('borgToggle').addEventListener('click', async () => {
   if (!state.borg?.status) return;
   try { await fetch('/api/borg/toggle', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enabled:!state.borg.status.enabled}) }); } catch {}
+});
+document.getElementById('autoResearchToggle').addEventListener('click', async () => {
+  const d = state.intelligence?.autonomousResearch;
+  if (!d) return;
+  try { await fetch('/api/autonomous/toggle', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enabled:!d.enabled}) }); } catch {}
 });
 
 // ── Render: Debates ──────────────────────────────────────

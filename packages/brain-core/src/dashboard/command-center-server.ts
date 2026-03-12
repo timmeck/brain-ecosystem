@@ -40,6 +40,7 @@ export interface CommandCenterOptions {
   getRepoAbsorberStatus?: () => unknown;
   getRepoAbsorberHistory?: (limit?: number) => unknown;
   getIntelligenceStats?: () => unknown;
+  toggleAutonomousResearch?: (enabled: boolean) => void;
   getEmotionalStatus?: () => unknown;
   getGuardrailHealth?: () => unknown;
   getRoadmaps?: () => unknown;
@@ -127,6 +128,7 @@ export class CommandCenterServer {
         if (url.pathname === '/api/knowledge') { this.handleKnowledge(res); return; }
         if (url.pathname === '/api/debates') { this.handleDebates(res); return; }
         if (url.pathname === '/api/borg/toggle' && req.method === 'POST') { this.handleBorgToggle(req, res); return; }
+        if (url.pathname === '/api/autonomous/toggle' && req.method === 'POST') { this.handleAutonomousToggle(req, res); return; }
         if (url.pathname === '/api/report') { this.handleReport(res); return; }
         if (url.pathname === '/api/action' && req.method === 'POST') { this.handleAction(req, res); return; }
         if (url.pathname === '/api/guardrails') { this.handleGuardrails(res); return; }
@@ -640,6 +642,28 @@ export class CommandCenterServer {
 
   private handleChatStatus(res: http.ServerResponse): void {
     this.json(res, this.options.chatStatus?.() ?? null);
+  }
+
+  private handleAutonomousToggle(req: http.IncomingMessage, res: http.ServerResponse): void {
+    if (!this.options.toggleAutonomousResearch) {
+      this.json(res, { error: 'Autonomous research not available' }, 501);
+      return;
+    }
+    let body = '';
+    req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const { enabled } = JSON.parse(body || '{}') as { enabled?: boolean };
+        if (typeof enabled !== 'boolean') {
+          this.json(res, { error: 'Missing "enabled" boolean' }, 400);
+          return;
+        }
+        this.options.toggleAutonomousResearch!(enabled);
+        this.json(res, { enabled, toggled: true });
+      } catch (err) {
+        this.json(res, { error: (err as Error).message }, 400);
+      }
+    });
   }
 
   private handleBorgToggle(req: http.IncomingMessage, res: http.ServerResponse): void {
