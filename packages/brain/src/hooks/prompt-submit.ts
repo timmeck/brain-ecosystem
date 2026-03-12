@@ -50,6 +50,7 @@ function saveLastProcessed(sessionId: string, timestamp: string): void {
     data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')) as TranscriptState;
   } catch { /* file doesn't exist yet */ }
   data[sessionId] = timestamp;
+  fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
   fs.writeFileSync(STATE_FILE, JSON.stringify(data), 'utf8');
 }
 
