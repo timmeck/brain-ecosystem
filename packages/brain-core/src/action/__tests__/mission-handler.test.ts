@@ -17,8 +17,8 @@ describe('MissionHandler', () => {
       expect(typeof handler).toBe('function');
     });
 
-    it('extracts topic from desireKey', async () => {
-      const createMission = vi.fn().mockReturnValue({ id: 1, topic: 'hypothesis vs a', status: 'running' });
+    it('prefers description over desireKey when description is long enough', async () => {
+      const createMission = vi.fn().mockReturnValue({ id: 1, topic: 'Some contradiction', status: 'running' });
       const handler = createMissionHandler({ createMission });
 
       const result = await handler({
@@ -26,13 +26,13 @@ describe('MissionHandler', () => {
         description: 'Some contradiction',
       });
 
-      expect(createMission).toHaveBeenCalledWith('hypothesis vs a', 'quick');
+      expect(createMission).toHaveBeenCalledWith('Some contradiction', 'quick');
       expect(result.started).toBe(true);
-      expect(result.topic).toBe('hypothesis vs a');
+      expect(result.topic).toBe('Some contradiction');
       expect(result.missionId).toBe(1);
     });
 
-    it('falls back to description regex for topic', async () => {
+    it('extracts topic from description "X" vs "Y" pattern', async () => {
       const createMission = vi.fn().mockReturnValue({ id: 2, topic: 'X vs Y', status: 'running' });
       const handler = createMissionHandler({ createMission });
 
@@ -41,7 +41,20 @@ describe('MissionHandler', () => {
         description: 'Contradiction between "caching" vs "no-cache"',
       });
 
-      expect(result.topic).toBe('caching vs no-cache');
+      expect(result.topic).toBe('Contradiction: "caching" vs "no-cache"');
+      expect(result.started).toBe(true);
+    });
+
+    it('falls back to desireKey when description is short', async () => {
+      const createMission = vi.fn().mockReturnValue({ id: 5, topic: 'hypothesis vs actual', status: 'running' });
+      const handler = createMissionHandler({ createMission });
+
+      const result = await handler({
+        desireKey: 'contradiction_hypothesis_vs_actual',
+        description: 'short',
+      });
+
+      expect(result.topic).toBe('hypothesis vs actual');
       expect(result.started).toBe(true);
     });
 

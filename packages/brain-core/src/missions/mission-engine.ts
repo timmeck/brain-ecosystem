@@ -177,6 +177,18 @@ export class ResearchMissionEngine {
       throw new Error(`Maximum concurrent missions reached (${this.config.maxConcurrentMissions}). Wait for active missions to complete or cancel one.`);
     }
 
+    // Topic dedup — skip if similar topic ran in last 24h
+    const recentTopics = this.db.prepare(
+      "SELECT topic FROM research_missions WHERE created_at > datetime('now', '-24 hours') ORDER BY id DESC LIMIT 50"
+    ).all() as Array<{ topic: string }>;
+
+    const normalizedNew = this.normalizeTopic(topic);
+    for (const row of recentTopics) {
+      if (this.topicSimilar(normalizedNew, this.normalizeTopic(row.topic))) {
+        throw new Error(`Similar mission already ran recently: "${row.topic}"`);
+      }
+    }
+
     const result = this.stmtInsertMission.run(topic, depth, 'pending');
     const id = Number(result.lastInsertRowid);
 
@@ -641,6 +653,23 @@ export class ResearchMissionEngine {
     lines.push(`Based on ${sources.length} sources, the research provides a ${avgRelevance > 0.5 ? 'solid' : 'preliminary'} overview of "${topic}".`);
 
     return lines.join('\n');
+  }
+
+  // ── Topic Dedup ────────────────────────────────────
+
+  private normalizeTopic(topic: string): string {
+    return topic.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  private topicSimilar(a: string, b: string): boolean {
+    if (a === b) return true;
+    const wordsA = new Set(a.split(' ').filter(w => w.length > 0));
+    const wordsB = new Set(b.split(' ').filter(w => w.length > 0));
+    if (wordsA.size === 0 || wordsB.size === 0) return a === b;
+    let intersection = 0;
+    for (const w of wordsA) if (wordsB.has(w)) intersection++;
+    const union = new Set([...wordsA, ...wordsB]).size;
+    return (intersection / union) > 0.6;
   }
 
   // ── Helpers ─────────────────────────────────────────

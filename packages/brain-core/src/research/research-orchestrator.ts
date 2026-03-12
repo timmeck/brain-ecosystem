@@ -1592,7 +1592,7 @@ export class ResearchOrchestrator {
       try {
         const gaps = this.curiosityEngine.getGaps(5);
         const highPrioGap = gaps.find(g => g.gapType === 'dark_zone' && g.gapScore > 0.6);
-        const hourSinceLastMission = (Date.now() - this.lastAutoMissionTime) > 3600_000;
+        const hourSinceLastMission = (Date.now() - this.lastAutoMissionTime) > 14_400_000;
 
         if (highPrioGap && hourSinceLastMission) {
           const topic = highPrioGap.topic ?? `Knowledge gap: ${highPrioGap.gapType}`;
@@ -2203,7 +2203,7 @@ export class ResearchOrchestrator {
         }
 
         // 35d — Goal-driven missions for struggling goals (2h cooldown)
-        if (this.missionEngine && (Date.now() - this.lastGoalMissionTime) > 7_200_000) {
+        if (this.missionEngine && (Date.now() - this.lastGoalMissionTime) > 86_400_000) {
           const activeGoals = this.goalEngine.listGoals('active');
           for (const g of activeGoals) {
             const progress = this.goalEngine.getProgress(g.id!);
@@ -3610,7 +3610,7 @@ export class ResearchOrchestrator {
         if (contradictions.length > 0) {
           const c = contradictions[0];
           raw.push({
-            key: `contradiction_${c.type.substring(0, 15)}`, priority: 6,
+            key: `contradiction_${c.type}`, priority: 6,
             suggestion: `Tell Claude: I found a contradiction in my knowledge: "${c.statement_a}" vs "${c.statement_b}" (Severity: ${c.severity}). I need to resolve this — either A or B is correct, both can't be true.`,
             alternatives: [
               'Tell Claude: My knowledge contradicts itself. I want to start a targeted experiment cycle that tests which version is correct.',
@@ -3889,7 +3889,7 @@ export class ResearchOrchestrator {
         const contradictions = this.narrativeEngine.findContradictions();
         if (contradictions.length > 0) {
           const cont = contradictions[0];
-          raw.push({ key: `contradiction_${cont.type.substring(0, 15)}`, priority: 6, suggestion: `Contradiction: "${cont.statement_a}" vs "${cont.statement_b}"`, alternatives: [] });
+          raw.push({ key: `contradiction_${cont.type}`, priority: 6, suggestion: `Contradiction: "${cont.statement_a}" vs "${cont.statement_b}"`, alternatives: [] });
         }
       } catch { /* */ }
     }

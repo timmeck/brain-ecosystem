@@ -25,21 +25,19 @@ export function createMissionHandler(deps: MissionHandlerDeps): (payload: Record
     const desireKey = (payload.desireKey as string) ?? '';
     const description = (payload.description as string) ?? '';
 
-    // Extract topic from desireKey (e.g. "contradiction_hypothesis_vs_a" → "hypothesis vs a")
-    let topic = desireKey
-      .replace(/^contradiction_/, '')
-      .replace(/_/g, ' ');
+    // Extract topic: prefer description (has full statements), fallback to desireKey
+    let topic: string;
 
-    // Fallback: extract from description using "X" vs "Y" pattern
-    if (topic.length < 3 || topic === desireKey) {
-      const match = description.match(/"([^"]+)"\s*vs\s*"([^"]+)"/);
-      if (match) {
-        topic = `${match[1]} vs ${match[2]}`;
-      } else if (description.length > 0) {
-        topic = description.substring(0, 80);
-      } else {
-        topic = 'general research';
-      }
+    // Try "X" vs "Y" pattern from description first
+    const match = description.match(/"([^"]{3,})"\s*vs\s*"([^"]{3,})"/);
+    if (match) {
+      topic = `Contradiction: "${match[1].substring(0, 60)}" vs "${match[2].substring(0, 60)}"`;
+    } else if (description.length > 10) {
+      topic = description.substring(0, 120);
+    } else {
+      // Fallback to desireKey cleanup
+      topic = desireKey.replace(/^contradiction_/, '').replace(/_/g, ' ');
+      if (topic.length < 5) topic = 'general research';
     }
 
     log.info(`[mission-handler] Starting mission for topic="${topic}" (desireKey=${desireKey})`);
