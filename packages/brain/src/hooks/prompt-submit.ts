@@ -75,15 +75,23 @@ async function main(): Promise<void> {
     await client.connect();
 
     // Store user prompt in Conversation Memory
-    const trimmed = userPrompt.trim();
-    if (trimmed.length > 10) {
+    // Claude Code sends JSON: { prompt, session_id, cwd, ... }
+    let promptText = userPrompt.trim();
+    let sessionId = `claude-${new Date().toISOString().slice(0, 10)}`;
+    try {
+      const parsed = JSON.parse(promptText) as { prompt?: string; session_id?: string };
+      if (parsed.prompt) promptText = parsed.prompt;
+      if (parsed.session_id) sessionId = parsed.session_id;
+    } catch { /* not JSON — use raw text */ }
+
+    if (promptText.length > 10) {
       try {
         await client.request('convo.remember', {
-          content: trimmed,
+          content: promptText,
           category: 'context',
-          importance: trimmed.length > 200 ? 6 : 4,
+          importance: promptText.length > 200 ? 6 : 4,
           tags: ['claude-code', 'prompt'],
-          sessionId: `claude-${new Date().toISOString().slice(0, 10)}`,
+          sessionId,
         });
       } catch { /* ConversationMemory not available */ }
     }
