@@ -1323,7 +1323,7 @@ export class IpcRouter {
       ['convo.remember',         (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.remember(p(params).content, p(params)); }],
       ['convo.recall',           async (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.recall(p(params).query, p(params)); }],
       ['convo.search',           (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.searchText(p(params).query); }],
-      ['convo.context',          (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.buildContext(p(params)); }],
+      ['convo.context',          (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.buildContext(p(params)?.limit); }],
       ['convo.important',        (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.getImportant(p(params)?.limit, p(params)?.minImportance); }],
       ['convo.by_category',      (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.getByCategory(p(params).category, p(params)?.limit); }],
       ['convo.status',           () => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.getStatus(); }],
