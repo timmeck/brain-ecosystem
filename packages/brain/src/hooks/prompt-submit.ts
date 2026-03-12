@@ -68,11 +68,25 @@ function formatNotification(n: NotificationRecord): string {
 }
 
 async function main(): Promise<void> {
-  await readStdin(); // consume stdin (required by hook protocol)
+  const userPrompt = await readStdin(); // consume stdin (required by hook protocol)
 
   const client = new IpcClient(getPipeName(), 3000);
   try {
     await client.connect();
+
+    // Store user prompt in Conversation Memory
+    const trimmed = userPrompt.trim();
+    if (trimmed.length > 10) {
+      try {
+        await client.request('convo.remember', {
+          content: trimmed,
+          category: 'context',
+          importance: trimmed.length > 200 ? 6 : 4,
+          tags: ['claude-code', 'prompt'],
+          sessionId: `claude-${new Date().toISOString().slice(0, 10)}`,
+        });
+      } catch { /* ConversationMemory not available */ }
+    }
 
     const pending = await client.request('notification.pending') as NotificationRecord[];
     if (!pending || pending.length === 0) return;

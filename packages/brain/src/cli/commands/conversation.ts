@@ -15,9 +15,15 @@ export function conversationCommand(): Command {
 
         console.log(header('Conversation Memory', '\u{1F9E0}'));
         console.log(keyValue('Total Memories', String(status.totalMemories ?? 0)));
-        console.log(keyValue('Categories', String(status.categories ?? '-')));
-        console.log(keyValue('Oldest', status.oldest ?? c.dim('none')));
-        console.log(keyValue('Newest', status.newest ?? c.dim('none')));
+        console.log(keyValue('Active', String(status.activeMemories ?? 0)));
+        console.log(keyValue('Sessions', String(status.totalSessions ?? 0)));
+        const cats = status.byCategory ?? {};
+        const catStr = Object.keys(cats).length ? Object.entries(cats).map(([k, v]) => `${k}: ${v}`).join(', ') : c.dim('none');
+        console.log(keyValue('Categories', catStr));
+        const recent = status.recentMemories ?? [];
+        if (recent.length) {
+          console.log(keyValue('Newest', recent[0].content?.substring(0, 80) ?? c.dim('none')));
+        }
         console.log(divider());
       });
     });
@@ -37,8 +43,9 @@ export function conversationCommand(): Command {
 
         console.log(header(`${results.length} Results`, '\u{1F50D}'));
         for (const r of results.slice(0, parseInt(opts.limit, 10))) {
-          const cat = c.cyan(`[${r.category ?? 'context'}]`);
-          console.log(`  ${cat} ${r.content.substring(0, 120)}`);
+          const mem = r.memory ?? r;
+          const cat = c.cyan(`[${mem.category ?? 'context'}]`);
+          console.log(`  ${cat} ${(mem.content ?? '').substring(0, 120)}`);
         }
         console.log(divider());
       });
@@ -65,7 +72,7 @@ export function conversationCommand(): Command {
         for (const m of memories) {
           const score = c.value(`[${m.importance}/10]`);
           const cat = c.cyan(`[${m.category ?? 'context'}]`);
-          console.log(`  ${score} ${cat} ${m.content.substring(0, 100)}`);
+          console.log(`  ${score} ${cat} ${(m.content ?? '').substring(0, 100)}`);
         }
         console.log(divider());
       });
