@@ -180,6 +180,7 @@ export interface Services {
   browserAgent?: import('@timmeck/brain-core').BrowserAgent;
   brainBot?: import('@timmeck/brain-core').BrainBot;
   autonomousResearchLoop?: import('@timmeck/brain-core').AutonomousResearchLoop;
+  experimentLedger?: import('@timmeck/brain-core').ExperimentLedger;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -1328,6 +1329,18 @@ export class IpcRouter {
       ['convo.by_category',      (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.getByCategory(p(params).category, p(params)?.limit); }],
       ['convo.status',           () => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.getStatus(); }],
       ['convo.maintenance',      () => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.maintenance(); }],
+      ['convo.ensure_session',   (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.ensureSession(p(params).sessionId); }],
+      ['convo.last_processed',   (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.getLastProcessedAt(p(params).sessionId); }],
+      ['convo.save_processed',   (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); s.conversationMemory.saveLastProcessedAt(p(params).sessionId, p(params).timestamp); return { ok: true }; }],
+
+      // ─── Experiment Ledger ─────────────────────────────────
+      ['ledger.start',           (params) => { if (!s.experimentLedger) throw new Error('ExperimentLedger not available'); return s.experimentLedger.startExperiment(p(params)); }],
+      ['ledger.status',          () => { if (!s.experimentLedger) throw new Error('ExperimentLedger not available'); return s.experimentLedger.getStatus(); }],
+      ['ledger.record',          (params) => { if (!s.experimentLedger) throw new Error('ExperimentLedger not available'); return s.experimentLedger.recordCycleMetrics(p(params)); }],
+      ['ledger.evaluate',        (params) => { if (!s.experimentLedger) throw new Error('ExperimentLedger not available'); return s.experimentLedger.evaluate(p(params).id); }],
+      ['ledger.decide',          (params) => { if (!s.experimentLedger) throw new Error('ExperimentLedger not available'); s.experimentLedger.decide(p(params).id, p(params).decision, p(params).reason); return { ok: true }; }],
+      ['ledger.cancel',          (params) => { if (!s.experimentLedger) throw new Error('ExperimentLedger not available'); s.experimentLedger.cancel(p(params).id, p(params).reason); return { ok: true }; }],
+      ['ledger.history',         (params) => { if (!s.experimentLedger) throw new Error('ExperimentLedger not available'); return s.experimentLedger.list(p(params)?.limit); }],
 
       // ─── Browser Agent ───────────────────────────────────
       ['browser.execute',        async (params) => { if (!s.browserAgent) throw new Error('BrowserAgent not available'); return s.browserAgent.executeTask(p(params).taskId, p(params).actions); }],

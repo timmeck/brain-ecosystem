@@ -3,10 +3,13 @@
 // UserPromptSubmit hook — injects Brain's pending notifications into Claude's context.
 // Connects to Brain daemon via IPC, fetches unread notifications, prints them to stdout,
 // then acknowledges them so they don't appear again.
+//
+// Fixes (Session 129):
+//   - Session-Counter: ensures session via convo.ensure_session (sessions > 0 in report)
+//   - Transcript State → SQLite: uses convo.last_processed / convo.save_processed instead of flat-file
+//   - Importance-Heuristik: keyword-based scoring instead of pure length
 
 import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 import { IpcClient } from '@timmeck/brain-core';
 import { getPipeName } from '../utils/paths.js';
 
@@ -28,31 +31,37 @@ function readStdin(): Promise<string> {
   });
 }
 
-// --- Transcript state persistence ---
-const STATE_FILE = path.join(os.homedir(), '.brain', 'transcript-state.json');
+// ── Keyword-based Importance Heuristic ──────────────────
 
-interface TranscriptState {
-  [sessionId: string]: string; // ISO timestamp
-}
+const HIGH_IMPORTANCE_PATTERNS = [
+  /\b(fix|bug|error|crash|fail|broken|exception)/i,
+  /\b(decision|plan|strateg|priorit|direction)/i,
+  /\b(hypothesis|experiment|a\/b|metric)/i,
+  /\b(refactor|architect|migration|breaking)/i,
+];
 
-function getLastProcessed(sessionId: string): string {
-  try {
-    const data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')) as TranscriptState;
-    return data[sessionId] ?? '';
-  } catch {
-    return '';
+const MEDIUM_IMPORTANCE_PATTERNS = [
+  /\b(implement|feature|add|create|build)/i,
+  /\b(test|spec|assert|expect)/i,
+  /\b(config|setting|option|parameter)/i,
+];
+
+function calcImportance(text: string, base: number): number {
+  // High importance keywords → 7
+  for (const pattern of HIGH_IMPORTANCE_PATTERNS) {
+    if (pattern.test(text)) return 7;
   }
+  // Medium importance keywords → 6
+  for (const pattern of MEDIUM_IMPORTANCE_PATTERNS) {
+    if (pattern.test(text)) return 6;
+  }
+  // Length-based fallback
+  if (text.length > 300) return 6;
+  if (text.length < 30) return 4;
+  return base;
 }
 
-function saveLastProcessed(sessionId: string, timestamp: string): void {
-  let data: TranscriptState = {};
-  try {
-    data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')) as TranscriptState;
-  } catch { /* file doesn't exist yet */ }
-  data[sessionId] = timestamp;
-  fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
-  fs.writeFileSync(STATE_FILE, JSON.stringify(data), 'utf8');
-}
+// ── Transcript Reading ──────────────────────────────────
 
 interface TranscriptMessage {
   content: string;
@@ -102,7 +111,7 @@ function readNewTranscriptMessages(transcriptPath: string, lastTimestamp: string
 
       results.push({
         content: text,
-        importance: text.length > 200 ? 7 : 5,
+        importance: calcImportance(text, 5),
         tags: ['claude-code', 'assistant'],
         timestamp: entry.timestamp,
       });
@@ -111,6 +120,8 @@ function readNewTranscriptMessages(transcriptPath: string, lastTimestamp: string
 
   return results;
 }
+
+// ── Notification Formatting ─────────────────────────────
 
 function formatTag(type: string, title?: string): string {
   // For cross-brain types, derive category from the event title first
@@ -154,6 +165,8 @@ function formatNotification(n: NotificationRecord): string {
   return `  [${tag}] ${detail}`;
 }
 
+// ── Main ────────────────────────────────────────────────
+
 async function main(): Promise<void> {
   const userPrompt = await readStdin(); // consume stdin (required by hook protocol)
 
@@ -161,8 +174,7 @@ async function main(): Promise<void> {
   try {
     await client.connect();
 
-    // Store user prompt in Conversation Memory
-    // Claude Code sends JSON: { prompt, session_id, cwd, ... }
+    // Parse input — Claude Code sends JSON: { prompt, session_id, cwd, ... }
     let promptText = userPrompt.trim();
     let sessionId = `claude-${new Date().toISOString().slice(0, 10)}`;
     let transcriptPath = '';
@@ -173,12 +185,18 @@ async function main(): Promise<void> {
       if (parsed.transcript_path) transcriptPath = parsed.transcript_path;
     } catch { /* not JSON — use raw text */ }
 
+    // Fix 1: Ensure session exists (fixes session counter = 0)
+    try {
+      await client.request('convo.ensure_session', { sessionId });
+    } catch { /* ConversationMemory not available */ }
+
+    // Store user prompt with keyword-based importance (Fix 3)
     if (promptText.length > 10) {
       try {
         await client.request('convo.remember', {
           content: promptText,
           category: 'context',
-          importance: promptText.length > 200 ? 6 : 4,
+          importance: calcImportance(promptText, 4),
           tags: ['claude-code', 'prompt'],
           sessionId,
         });
@@ -186,11 +204,12 @@ async function main(): Promise<void> {
     }
 
     // Transcript: catch up on assistant responses since last prompt
+    // Fix 2: Use SQLite via IPC instead of flat-file
     if (transcriptPath) {
       try {
-        const lastTs = getLastProcessed(sessionId);
-        const msgs = readNewTranscriptMessages(transcriptPath, lastTs);
-        let newestTs = lastTs;
+        const lastTs = await client.request('convo.last_processed', { sessionId }) as string;
+        const msgs = readNewTranscriptMessages(transcriptPath, lastTs ?? '');
+        let newestTs = lastTs ?? '';
         for (const msg of msgs) {
           await client.request('convo.remember', {
             content: msg.content,
@@ -201,7 +220,9 @@ async function main(): Promise<void> {
           });
           if (msg.timestamp > newestTs) newestTs = msg.timestamp;
         }
-        if (newestTs !== lastTs) saveLastProcessed(sessionId, newestTs);
+        if (newestTs && newestTs !== lastTs) {
+          await client.request('convo.save_processed', { sessionId, timestamp: newestTs });
+        }
       } catch { /* transcript not readable — no problem */ }
     }
 

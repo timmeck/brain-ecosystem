@@ -169,6 +169,13 @@ export function runConversationMemoryMigration(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_conv_sess_id ON conversation_sessions(session_id);
   `);
+
+  // Add last_processed_at for transcript state tracking (replaces flat-file)
+  try {
+    db.exec(`ALTER TABLE conversation_sessions ADD COLUMN last_processed_at TEXT`);
+  } catch {
+    // Column already exists
+  }
 }
 
 // ── Engine ────────────────────────────────────────────────
@@ -182,6 +189,7 @@ export class ConversationMemory {
   private rag: MemoryRAGAdapter | null = null;
   private journal: MemoryJournalAdapter | null = null;
   private kg: MemoryKnowledgeGraphAdapter | null = null;
+  private maintenanceTimer: ReturnType<typeof setInterval> | null = null;
 
   // Prepared statements
   private readonly stmtInsert;
@@ -206,8 +214,8 @@ export class ConversationMemory {
   constructor(db: Database.Database, config: ConversationMemoryConfig = {}) {
     this.db = db;
     this.config = {
-      maxMemories: config.maxMemories ?? 50_000,
-      decayDays: config.decayDays ?? 90,
+      maxMemories: config.maxMemories ?? 30_000,
+      decayDays: config.decayDays ?? 60,
       defaultImportance: config.defaultImportance ?? 5,
     };
 
@@ -540,6 +548,32 @@ export class ConversationMemory {
     this.log.info(`[conversation-memory] Session ended: ${sessionId}`);
   }
 
+  /** Ensure a session exists (upsert). Returns true if new session was created. */
+  ensureSession(sessionId: string): boolean {
+    const existing = this.stmtSessionGet.get(sessionId) as Record<string, unknown> | undefined;
+    if (existing) return false;
+    try {
+      this.stmtSessionInsert.run(sessionId, '[]', '{}');
+      this.log.info(`[conversation-memory] Session started: ${sessionId}`);
+      return true;
+    } catch {
+      return false; // UNIQUE constraint — session already exists
+    }
+  }
+
+  /** Get last processed transcript timestamp for a session. */
+  getLastProcessedAt(sessionId: string): string {
+    const row = this.stmtSessionGet.get(sessionId) as Record<string, unknown> | undefined;
+    return (row?.last_processed_at as string) ?? '';
+  }
+
+  /** Save last processed transcript timestamp for a session. */
+  saveLastProcessedAt(sessionId: string, timestamp: string): void {
+    this.db.prepare(
+      "UPDATE conversation_sessions SET last_processed_at = ? WHERE session_id = ?",
+    ).run(timestamp, sessionId);
+  }
+
   /** Get session info. */
   getSession(sessionId: string): SessionSummary | null {
     const row = this.stmtSessionGet.get(sessionId) as Record<string, unknown> | undefined;
@@ -625,6 +659,33 @@ export class ConversationMemory {
     }
 
     return { decayed, pruned };
+  }
+
+  // ── Periodic Maintenance ─────────────────────────────
+
+  /** Start periodic maintenance cycle. Default: every 6 hours. */
+  startMaintenanceCycle(intervalMs = 6 * 60 * 60 * 1000): void {
+    if (this.maintenanceTimer) return;
+    this.maintenanceTimer = setInterval(() => {
+      try {
+        const result = this.maintenance();
+        if (result.decayed > 0 || result.pruned > 0) {
+          this.log.info(`[memory] Periodic maintenance: ${result.decayed} decayed, ${result.pruned} pruned`);
+        }
+      } catch (err) {
+        this.log.debug(`[memory] Maintenance cycle failed: ${(err as Error).message}`);
+      }
+    }, intervalMs);
+    this.log.info(`[memory] Maintenance cycle started (interval: ${Math.round(intervalMs / 3600000)}h)`);
+  }
+
+  /** Stop periodic maintenance cycle. */
+  stopMaintenanceCycle(): void {
+    if (this.maintenanceTimer) {
+      clearInterval(this.maintenanceTimer);
+      this.maintenanceTimer = null;
+      this.log.info('[memory] Maintenance cycle stopped');
+    }
   }
 
   // ── Status ────────────────────────────────────────────

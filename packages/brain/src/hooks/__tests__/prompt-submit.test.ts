@@ -69,6 +69,32 @@ function formatNotification(n: NotificationRecord): string {
   return `  [${tag}] ${detail}`;
 }
 
+// Mirror calcImportance from prompt-submit.ts for unit testing
+const HIGH_IMPORTANCE_PATTERNS = [
+  /\b(fix|bug|error|crash|fail|broken|exception)/i,
+  /\b(decision|plan|strateg|priorit|direction)/i,
+  /\b(hypothesis|experiment|a\/b|metric)/i,
+  /\b(refactor|architect|migration|breaking)/i,
+];
+
+const MEDIUM_IMPORTANCE_PATTERNS = [
+  /\b(implement|feature|add|create|build)/i,
+  /\b(test|spec|assert|expect)/i,
+  /\b(config|setting|option|parameter)/i,
+];
+
+function calcImportance(text: string, base: number): number {
+  for (const pattern of HIGH_IMPORTANCE_PATTERNS) {
+    if (pattern.test(text)) return 7;
+  }
+  for (const pattern of MEDIUM_IMPORTANCE_PATTERNS) {
+    if (pattern.test(text)) return 6;
+  }
+  if (text.length > 300) return 6;
+  if (text.length < 30) return 4;
+  return base;
+}
+
 describe('prompt-submit hook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -111,6 +137,43 @@ describe('prompt-submit hook', () => {
 
     it('defaults to "info"', () => {
       expect(formatTag('unknown')).toBe('info');
+    });
+  });
+
+  describe('calcImportance', () => {
+    it('returns 7 for error/bug/crash keywords', () => {
+      expect(calcImportance('There is a bug in the login flow', 5)).toBe(7);
+      expect(calcImportance('Fix the crash on startup', 5)).toBe(7);
+      expect(calcImportance('Unhandled exception in parser', 5)).toBe(7);
+    });
+
+    it('returns 7 for decision/plan/strategy keywords', () => {
+      expect(calcImportance('We need a decision on the architecture', 5)).toBe(7);
+      expect(calcImportance('The strategy for Q2 marketing', 5)).toBe(7);
+      expect(calcImportance('Prioritize the backlog items', 5)).toBe(7);
+    });
+
+    it('returns 7 for hypothesis/experiment keywords', () => {
+      expect(calcImportance('Test the hypothesis about cycle count', 5)).toBe(7);
+      expect(calcImportance('Run an a/b experiment on the engine', 5)).toBe(7);
+      expect(calcImportance('Check the metric for accuracy', 5)).toBe(7);
+    });
+
+    it('returns 6 for implement/feature/test keywords', () => {
+      expect(calcImportance('Implement the new sorting algorithm', 5)).toBe(6);
+      expect(calcImportance('Add a feature for dark mode', 5)).toBe(6);
+      expect(calcImportance('Write a test for the parser', 5)).toBe(6);
+    });
+
+    it('returns 6 for config/setting keywords', () => {
+      expect(calcImportance('Update the config for production', 5)).toBe(6);
+      expect(calcImportance('Change the setting for timeout', 5)).toBe(6);
+    });
+
+    it('uses length-based fallback', () => {
+      expect(calcImportance('A'.repeat(301), 5)).toBe(6);  // >300 chars
+      expect(calcImportance('short', 5)).toBe(4);           // <30 chars
+      expect(calcImportance('A medium length prompt with some content here ok', 5)).toBe(5); // base
     });
   });
 

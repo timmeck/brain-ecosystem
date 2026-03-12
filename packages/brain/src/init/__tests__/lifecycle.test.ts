@@ -68,10 +68,10 @@ describe('runRetentionCleanup', () => {
     const prepareCallIndex = 0;
     const db = {
       prepare: vi.fn().mockImplementation((sql: string) => {
-        if (sql.includes('COUNT(*)') && sql.includes("status = 'active'")) {
+        if (sql.includes('COUNT(*)') && sql.includes('active = 1')) {
           return { get: vi.fn().mockReturnValue({ cnt: 6200 }) };
         }
-        if (sql.includes("SET status = 'inactive'") && sql.includes('ORDER BY priority ASC')) {
+        if (sql.includes('SET active = 0') && sql.includes('ORDER BY priority ASC')) {
           return { run: vi.fn().mockReturnValue(capResult) };
         }
         return { run: vi.fn().mockReturnValue(runResult) };
@@ -92,7 +92,7 @@ describe('runRetentionCleanup', () => {
     const { runRetentionCleanup } = await import('../lifecycle.js');
     const db = {
       prepare: vi.fn().mockImplementation((sql: string) => {
-        if (sql.includes('COUNT(*)') && sql.includes("status = 'active'")) {
+        if (sql.includes('COUNT(*)') && sql.includes('active = 1')) {
           return { get: vi.fn().mockReturnValue({ cnt: 3000 }) };
         }
         return { run: vi.fn().mockReturnValue({ changes: 0 }) };

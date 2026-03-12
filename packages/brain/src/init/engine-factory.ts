@@ -27,6 +27,7 @@ import {
   ChatEngine, runChatMigration,
   SubAgentFactory, runSubAgentMigration,
   ConversationMemory, runConversationMemoryMigration,
+  ExperimentLedger,
   BrowserAgent, runBrowserAgentMigration,
   BrainBot, runBrainBotMigration,
   EngineRegistry, getDefaultEngineProfiles,
@@ -67,6 +68,7 @@ export interface IntelligenceResult {
   discordBot: DiscordBot;
   patternExtractor: PatternExtractor | undefined;
   conversationMemory: ConversationMemory;
+  experimentLedger: ExperimentLedger;
   browserAgent: BrowserAgent;
   brainBot: BrainBot;
 }
@@ -352,6 +354,10 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
   if (services.knowledgeGraph) conversationMemory.setKnowledgeGraph(services.knowledgeGraph);
   services.conversationMemory = conversationMemory;
 
+  // ExperimentLedger — controlled A/B testing for system changes
+  const experimentLedger = new ExperimentLedger(db);
+  services.experimentLedger = experimentLedger;
+
   // BrowserAgent — LLM-steered autonomous browser (Playwright + StallDetector)
   runBrowserAgentMigration(db);
   const browserAgent = new BrowserAgent(db);
@@ -521,6 +527,7 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
     discordBot,
     patternExtractor,
     conversationMemory,
+    experimentLedger,
     browserAgent,
     brainBot,
   };

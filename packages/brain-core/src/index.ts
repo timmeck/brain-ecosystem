@@ -633,3 +633,7 @@ export { GovernanceLayer, runGovernanceMigration } from './governance/index.js';
 export type { GovernanceAction, GovernanceActionType, GovernanceDecision, GovernanceLayerStatus } from './governance/index.js';
 export { EngineTokenBudgetTracker, DEFAULT_ENGINE_BUDGETS } from './governance/index.js';
 export type { EngineTokenAllocation, BudgetCheckResult, BudgetReservation } from './governance/index.js';
+
+// ── Experiment Ledger ──────────────────────────────────────
+export { ExperimentLedger, runExperimentLedgerMigration } from './experiments/index.js';
+export type { ExperimentEntry, ExperimentResult, ExperimentLedgerStatus, ExperimentDecision } from './experiments/index.js';

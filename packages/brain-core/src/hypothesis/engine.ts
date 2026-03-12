@@ -4,7 +4,7 @@ import type { LLMService } from '../llm/llm-service.js';
 
 // ── Types ───────────────────────────────────────────────
 
-export type HypothesisStatus = 'proposed' | 'testing' | 'confirmed' | 'rejected' | 'inconclusive';
+export type HypothesisStatus = 'proposed' | 'testing' | 'confirmed' | 'rejected' | 'inconclusive' | 'stale';
 
 export interface Hypothesis {
   id?: number;
@@ -278,9 +278,12 @@ export class HypothesisEngine {
   /**
    * Test all proposed/testing hypotheses.
    * Also re-tests confirmed hypotheses older than 24h (pattern drift detection).
-   * This ensures previously confirmed hypotheses are rejected if patterns change.
+   * Marks hypotheses >14 days in 'testing' without new evidence as 'stale'.
    */
   testAll(): HypothesisTestResult[] {
+    // Mark stale hypotheses first
+    this.markStale();
+
     const hypotheses = this.db.prepare(
       `SELECT id FROM hypotheses WHERE status IN ('proposed', 'testing')
        UNION ALL
@@ -291,6 +294,25 @@ export class HypothesisEngine {
     return hypotheses
       .map(h => this.test(h.id))
       .filter((r): r is HypothesisTestResult => r !== null);
+  }
+
+  /**
+   * Mark hypotheses as 'stale' if they've been in 'testing' for >14 days
+   * without gaining sufficient evidence to be confirmed or rejected.
+   */
+  markStale(staleDays = 14): number {
+    const result = this.db.prepare(`
+      UPDATE hypotheses SET status = 'stale'
+      WHERE status = 'testing'
+        AND tested_at IS NOT NULL
+        AND tested_at < datetime('now', '-' || ? || ' days')
+        AND (evidence_for + evidence_against) < ?
+    `).run(staleDays, this.minEvidence);
+
+    if (result.changes > 0) {
+      this.logger.info(`[HypothesisEngine] Marked ${result.changes} hypotheses as stale (>${staleDays}d in testing)`);
+    }
+    return result.changes;
   }
 
   /** Get a hypothesis by ID. */
@@ -334,6 +356,7 @@ export class HypothesisEngine {
     confirmed: number;
     rejected: number;
     inconclusive: number;
+    stale: number;
     totalObservations: number;
     topConfirmed: Hypothesis[];
   } {
@@ -359,6 +382,7 @@ export class HypothesisEngine {
       confirmed: statusMap['confirmed'] ?? 0,
       rejected: statusMap['rejected'] ?? 0,
       inconclusive: statusMap['inconclusive'] ?? 0,
+      stale: statusMap['stale'] ?? 0,
       totalObservations: obsCount,
       topConfirmed,
     };

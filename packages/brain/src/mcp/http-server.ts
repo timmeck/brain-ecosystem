@@ -34,6 +34,7 @@ import { registerMissionToolsDirect } from './mission-tools.js';
 import { registerTechRadarToolsDirect } from './techradar-tools.js';
 import { registerIntelligenceToolsDirect } from './intelligence-tools.js';
 import { registerConversationMemoryToolsDirect } from './conversation-memory-tools.js';
+import { registerExperimentLedgerToolsDirect } from './experiment-ledger-tools.js';
 import { registerBrowserAgentToolsDirect } from './browser-agent-tools.js';
 import { registerPromptsDirect } from './prompts.js';
 
@@ -79,6 +80,7 @@ export class McpHttpServer {
         registerTechRadarToolsDirect(server, router);
         registerIntelligenceToolsDirect(server, router);
         registerConversationMemoryToolsDirect(server, router);
+        registerExperimentLedgerToolsDirect(server, router);
         registerBrowserAgentToolsDirect(server, router);
         registerPromptsDirect(server, router);
       },

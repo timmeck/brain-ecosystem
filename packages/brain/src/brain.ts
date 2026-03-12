@@ -1056,8 +1056,10 @@ export class BrainCore {
     runRetentionHelper(this.db!, config);
     this.retentionTimer = setInterval(() => {
       if (this.db && this.config) runRetentionHelper(this.db, this.config);
-      this.conversationMemory?.maintenance();
     }, 24 * 60 * 60 * 1000);
+
+    // 12c. Conversation Memory periodic maintenance (every 6h)
+    this.conversationMemory?.startMaintenanceCycle();
 
     // 13. Event listeners (synapse wiring)
     setupEventListeners(services, synapseManager, this.notifier, this.correlator, this.orchestrator);
@@ -1110,6 +1112,7 @@ export class BrainCore {
   }
 
   private cleanup(): void {
+    this.conversationMemory?.stopMaintenanceCycle();
     this.autonomousResearchLoop?.stop();
     cleanupEngines({
       cleanupTimer: this.cleanupTimer, retentionTimer: this.retentionTimer,

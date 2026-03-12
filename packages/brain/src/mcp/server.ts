@@ -34,6 +34,7 @@ import { registerMissionTools } from './mission-tools.js';
 import { registerTechRadarTools } from './techradar-tools.js';
 import { registerIntelligenceTools } from './intelligence-tools.js';
 import { registerConversationMemoryTools } from './conversation-memory-tools.js';
+import { registerExperimentLedgerTools } from './experiment-ledger-tools.js';
 import { registerBrowserAgentTools } from './browser-agent-tools.js';
 import { registerPrompts } from './prompts.js';
 
@@ -76,6 +77,7 @@ export async function startMcpServer(): Promise<void> {
       registerTechRadarTools(server, ipc);
       registerIntelligenceTools(server, ipc);
       registerConversationMemoryTools(server, ipc);
+      registerExperimentLedgerTools(server, ipc);
       registerBrowserAgentTools(server, ipc);
     },
     registerPrompts,

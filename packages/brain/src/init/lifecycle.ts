@@ -41,23 +41,36 @@ export function runRetentionCleanup(db: Database.Database, config: BrainConfig):
 
     // Delete resolved errors older than retention period
     const errResult = db.prepare("DELETE FROM errors WHERE status = 'resolved' AND created_at < ?").run(errorCutoff);
-    // Delete inactive insights older than 2× insightDays
-    const insResult = db.prepare("DELETE FROM insights WHERE status = 'inactive' AND created_at < ?").run(insightCutoff);
+    // Delete archived insights older than 2× insightDays (use lifecycle column, fallback to active)
+    let insResult: { changes: number | bigint };
+    try {
+      insResult = db.prepare("DELETE FROM insights WHERE lifecycle = 'archived' AND created_at < ?").run(insightCutoff);
+    } catch {
+      // Fallback if lifecycle column doesn't exist yet
+      insResult = db.prepare("DELETE FROM insights WHERE active = 0 AND created_at < ?").run(insightCutoff);
+    }
 
     if (Number(errResult.changes) > 0 || Number(insResult.changes) > 0) {
       logger.info(`[retention] Cleaned up ${errResult.changes} old errors, ${insResult.changes} old insights`);
     }
 
+    // Insight Lifecycle Transitions
+    try {
+      runInsightLifecycle(db, logger);
+    } catch (err) {
+      logger.debug(`[retention] Insight lifecycle skipped: ${(err as Error).message}`);
+    }
+
     // Cap active insights to prevent unbounded growth
     const MAX_ACTIVE_INSIGHTS = 5000;
     try {
-      const activeCount = (db.prepare("SELECT COUNT(*) as cnt FROM insights WHERE status = 'active'").get() as { cnt: number }).cnt;
+      const activeCount = (db.prepare("SELECT COUNT(*) as cnt FROM insights WHERE active = 1").get() as { cnt: number }).cnt;
       if (activeCount > MAX_ACTIVE_INSIGHTS) {
         const excess = activeCount - MAX_ACTIVE_INSIGHTS;
         const deactivated = db.prepare(`
-          UPDATE insights SET status = 'inactive' WHERE id IN (
-            SELECT id FROM insights WHERE status = 'active'
-            ORDER BY priority ASC, confidence ASC LIMIT ?
+          UPDATE insights SET active = 0, lifecycle = 'archived' WHERE id IN (
+            SELECT id FROM insights WHERE active = 1
+            ORDER BY priority ASC LIMIT ?
           )
         `).run(excess);
         logger.info(`[retention] Capped active insights: deactivated ${deactivated.changes} (was ${activeCount}, cap ${MAX_ACTIVE_INSIGHTS})`);
@@ -80,6 +93,42 @@ export function runRetentionCleanup(db: Database.Database, config: BrainConfig):
     logger.debug('[retention] DB optimized');
   } catch (err) {
     logger.warn(`[retention] Cleanup failed (non-critical): ${(err as Error).message}`);
+  }
+}
+
+/**
+ * Insight Lifecycle Transitions:
+ *   provisional (< 7 days, not referenced) → confirmed (referenced or priority ≥ 7)
+ *   confirmed → archived (> 30 days, not rated, priority < 5)
+ *   archived > 90 days → deleted
+ */
+function runInsightLifecycle(db: Database.Database, logger: ReturnType<typeof getLogger>): void {
+  // 1. Promote provisional → confirmed: insights older than 7 days with priority ≥ 7 or rated
+  const promoted = db.prepare(`
+    UPDATE insights SET lifecycle = 'confirmed'
+    WHERE lifecycle = 'provisional'
+      AND (priority >= 7 OR rating IS NOT NULL)
+      AND created_at < datetime('now', '-7 days')
+  `).run();
+
+  // 2. Archive confirmed → archived: insights older than 30 days, not rated, low priority
+  const archived = db.prepare(`
+    UPDATE insights SET lifecycle = 'archived', active = 0
+    WHERE lifecycle = 'confirmed'
+      AND priority < 5
+      AND rating IS NULL
+      AND created_at < datetime('now', '-30 days')
+  `).run();
+
+  // 3. Delete archived → deleted: insights archived for > 90 days
+  const deleted = db.prepare(`
+    DELETE FROM insights
+    WHERE lifecycle = 'archived'
+      AND created_at < datetime('now', '-90 days')
+  `).run();
+
+  if (Number(promoted.changes) > 0 || Number(archived.changes) > 0 || Number(deleted.changes) > 0) {
+    logger.info(`[lifecycle] Insights: ${promoted.changes} promoted, ${archived.changes} archived, ${deleted.changes} deleted`);
   }
 }
 

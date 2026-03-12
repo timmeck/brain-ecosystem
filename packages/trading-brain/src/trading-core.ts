@@ -701,7 +701,7 @@ export class TradingCore {
           }
         } catch (err) { logger.debug(`[borg] Failed to load rules: ${(err as Error).message}`); }
         try {
-          for (const i of services.insight.getAll().slice(0, 50)) {
+          for (const i of services.insight.getRecent(50)) {
             items.push({ type: 'insight', id: `insight-${i.id}`, title: i.title, content: i.description, confidence: 0.7, source: 'trading-brain', createdAt: i.created_at });
           }
         } catch (err) { logger.debug(`[borg] Failed to load insights: ${(err as Error).message}`); }

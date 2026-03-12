@@ -14,6 +14,7 @@ import { up as memoryFts } from './011_memory_fts.js';
 import { up as decisionsChangelog } from './012_decisions_changelog.js';
 import { up as tasks } from './013_tasks.js';
 import { up as projectDocs } from './014_project_docs.js';
+import { up as insightLifecycle } from './015_insight_lifecycle.js';
 
 interface Migration {
   version: number;
@@ -36,6 +37,7 @@ const migrations: Migration[] = [
   { version: 12, name: '012_decisions_changelog', up: decisionsChangelog },
   { version: 13, name: '013_tasks', up: tasks },
   { version: 14, name: '014_project_docs', up: projectDocs },
+  { version: 15, name: '015_insight_lifecycle', up: insightLifecycle },
 ];
 
 function ensureMigrationsTable(db: Database.Database): void {
