@@ -166,6 +166,25 @@ export function createCommandCenter(deps: DashboardDeps): CommandCenterServer {
         experimentStatus, governanceStatus,
       });
     },
+    getProgressStats: () => ({
+      healthScore: services.analytics?.computeHealthScore() ?? 0,
+      cycleRates: services.cycleOutcomeTracker?.getRates(0) ?? null,
+      cycleHistory: services.cycleOutcomeTracker?.getRateHistory(30) ?? [],
+      knowledge: {
+        summary: services.knowledgeDistiller?.getSummary() ?? null,
+        evolution: services.knowledgeDistiller?.getEvolution(undefined, 10) ?? [],
+      },
+      hypotheses: {
+        summary: services.hypothesis?.getSummary() ?? null,
+        survival: services.hypothesis?.getSurvivalMetrics() ?? null,
+      },
+      predictions: services.predictionEngine?.getSummary() ?? null,
+      goals: services.goalEngine?.getStatus() ?? null,
+      memory: services.conversationMemory?.getStatus() ?? null,
+      tableSizes: services.retentionEngine?.getTableSizes() ?? [],
+      milestones: services.journal?.getMilestones(5) ?? [],
+      journalSummary: services.journal?.getSummary() ?? null,
+    }),
     triggerAction: async (action: string) => {
       switch (action) {
         case 'learning-cycle':

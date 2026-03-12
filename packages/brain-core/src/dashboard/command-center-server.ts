@@ -58,6 +58,7 @@ export interface CommandCenterOptions {
   chatHistory?: (sessionId: string) => unknown;
   chatStatus?: () => unknown;
   getReport?: () => Promise<string>;
+  getProgressStats?: () => unknown;
   triggerAction?: (action: string, params?: unknown) => Promise<unknown>;
 }
 
@@ -135,6 +136,7 @@ export class CommandCenterServer {
         if (url.pathname === '/api/roadmaps') { this.handleRoadmaps(res); return; }
         if (url.pathname === '/api/creative') { this.handleCreative(res); return; }
         if (url.pathname === '/api/forge') { this.handleForge(res); return; }
+        if (url.pathname === '/api/progress') { this.json(res, this.options.getProgressStats?.()); return; }
         if (url.pathname === '/api/chat' && req.method === 'POST') { this.handleChatMessage(req, res); return; }
         if (url.pathname === '/api/chat/history') { this.handleChatHistory(res, url); return; }
         if (url.pathname === '/api/chat/status') { this.handleChatStatus(res); return; }
@@ -356,6 +358,13 @@ export class CommandCenterServer {
       if (this.clients.size === 0) return;
       if (!this.options.getGovernanceStatus) return;
       try { this.broadcast('governance', this.options.getGovernanceStatus()); } catch { /* ignore */ }
+    }, 30_000));
+
+    // Progress (30s)
+    this.timers.push(setInterval(() => {
+      if (this.clients.size === 0) return;
+      if (!this.options.getProgressStats) return;
+      try { this.broadcast('progress', this.options.getProgressStats()); } catch { /* ignore */ }
     }, 30_000));
 
     // Heartbeat (30s)

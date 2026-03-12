@@ -258,6 +258,7 @@ canvas{display:block;width:100%;height:100%}
     <div class="nav-item" data-page="forge"><span class="nav-icon">&#x2692;</span><span class="nav-label">Forge</span></div>
     <div class="nav-item" data-page="activity"><span class="nav-icon">&#x26A1;</span><span class="nav-label" data-t="Aktivität">Aktivität</span></div>
     <div class="nav-item" data-page="infra"><span class="nav-icon">&#x2699;</span><span class="nav-label" data-t="Infrastruktur">Infrastruktur</span></div>
+    <div class="nav-item" data-page="progress"><span class="nav-icon">&#x1F4CA;</span><span class="nav-label" data-t="Fortschritt">Fortschritt</span></div>
   </div>
 
   <!-- ── Main ──────────────────────────────────────────── -->
@@ -900,6 +901,90 @@ canvas{display:block;width:100%;height:100%}
           <div class="engine-grid" id="allEngineGrid"><div class="empty">Loading...</div></div>
         </div>
       </div>
+
+      <!-- ════ Page: Fortschritt ══════════════════════════ -->
+      <div class="page" id="page-progress">
+        <div class="grid grid-2">
+          <!-- Health Score -->
+          <div class="card">
+            <div class="card-title" data-t="Health Score">Health Score</div>
+            <div id="progressHealth" style="text-align:center;padding:16px 0">
+              <div id="progressHealthValue" class="card-value" style="font-size:48px;color:var(--green)">--</div>
+              <div class="card-sub" id="progressHealthTrend"></div>
+            </div>
+          </div>
+          <!-- Cycle Rates Sparklines -->
+          <div class="card">
+            <div class="card-title" data-t="Zyklusraten (30 Tage)">Zyklusraten (30 Tage)</div>
+            <div id="progressCycles" style="padding:8px 0">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+                <span style="font-size:11px;color:var(--text-dim);min-width:70px">Productive</span>
+                <canvas id="sparkProd" width="160" height="30" style="border-radius:4px;background:rgba(0,255,136,0.04)"></canvas>
+                <span id="sparkProdVal" style="font-size:13px;font-weight:700;color:var(--green);min-width:40px">--</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+                <span style="font-size:11px;color:var(--text-dim);min-width:70px">Novelty</span>
+                <canvas id="sparkNovelty" width="160" height="30" style="border-radius:4px;background:rgba(0,229,255,0.04)"></canvas>
+                <span id="sparkNoveltyVal" style="font-size:13px;font-weight:700;color:var(--cyan);min-width:40px">--</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-size:11px;color:var(--text-dim);min-width:70px">Efficiency</span>
+                <canvas id="sparkEff" width="160" height="30" style="border-radius:4px;background:rgba(170,136,255,0.04)"></canvas>
+                <span id="sparkEffVal" style="font-size:13px;font-weight:700;color:var(--purple);min-width:40px">--</span>
+              </div>
+            </div>
+          </div>
+          <!-- Wissen -->
+          <div class="card">
+            <div class="card-title" data-t="Wissen">Wissen</div>
+            <div id="progressKnowledge">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div><span style="font-size:11px;color:var(--text-dim)" data-t="Prinzipien">Prinzipien</span><div id="progKnowPrinciples" class="card-value" style="font-size:24px">--</div></div>
+                <div><span style="font-size:11px;color:var(--text-dim)">Anti-Patterns</span><div id="progKnowAnti" class="card-value" style="font-size:24px">--</div></div>
+                <div><span style="font-size:11px;color:var(--text-dim)" data-t="Strategien">Strategien</span><div id="progKnowStrats" class="card-value" style="font-size:24px">--</div></div>
+                <div><span style="font-size:11px;color:var(--text-dim)" data-t="Ø Konfidenz">Ø Konfidenz</span><div id="progKnowConf" class="card-value" style="font-size:24px">--</div></div>
+              </div>
+            </div>
+          </div>
+          <!-- Hypothesen -->
+          <div class="card">
+            <div class="card-title" data-t="Hypothesen">Hypothesen</div>
+            <div id="progressHypotheses">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div><span style="font-size:11px;color:var(--text-dim)" data-t="Bestätigt">Bestätigt</span><div id="progHypConf" class="card-value" style="font-size:24px;color:var(--green)">--</div></div>
+                <div><span style="font-size:11px;color:var(--text-dim)" data-t="Abgelehnt">Abgelehnt</span><div id="progHypRej" class="card-value" style="font-size:24px;color:var(--red)">--</div></div>
+                <div><span style="font-size:11px;color:var(--text-dim)" data-t="Gesamt">Gesamt</span><div id="progHypTotal" class="card-value" style="font-size:24px">--</div></div>
+                <div><span style="font-size:11px;color:var(--text-dim)">Median Survival</span><div id="progHypSurv" class="card-value" style="font-size:24px">--</div></div>
+              </div>
+              <div class="card-sub" id="progHypRate"></div>
+            </div>
+          </div>
+          <!-- Vorhersagen -->
+          <div class="card">
+            <div class="card-title" data-t="Vorhersagen">Vorhersagen</div>
+            <div id="progressPredictions">
+              <div style="margin-bottom:10px">
+                <span style="font-size:11px;color:var(--text-dim)">Accuracy</span>
+                <div id="progPredAcc" class="card-value" style="font-size:32px;color:var(--cyan)">--</div>
+              </div>
+              <div id="progPredDomains" style="font-size:12px"></div>
+              <div class="card-sub" id="progPredCalib"></div>
+            </div>
+          </div>
+          <!-- Ziele & Speicher -->
+          <div class="card">
+            <div class="card-title" data-t="Ziele & Speicher">Ziele & Speicher</div>
+            <div id="progressGoals">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                <div><span style="font-size:11px;color:var(--text-dim)" data-t="Ziele erreicht">Ziele erreicht</span><div id="progGoalAchieved" class="card-value" style="font-size:24px;color:var(--green)">--</div></div>
+                <div><span style="font-size:11px;color:var(--text-dim)">Memories</span><div id="progMemCount" class="card-value" style="font-size:24px">--</div></div>
+              </div>
+              <div id="progTableSizes" style="font-size:11px;color:var(--text-dim);margin-bottom:8px"></div>
+              <div id="progMilestones" style="font-size:12px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -912,7 +997,7 @@ const state = {
   errors:null, selfmod:null, missions:null, knowledge:null, debates:null,
   emotional:null, attention:null,
   desires:null, teaching:null, calibration:null,
-  governance:null
+  governance:null, progress:null
 };
 
 // ── i18n ──────────────────────────────────────────────────
@@ -1022,6 +1107,11 @@ const translations = { en: {
   'Kreative Verbindungen':'Creative Connections',
   'Cross-Domain Ideen mit Neuheits- und Plausibilitäts-Scores.':'Cross-domain ideas with novelty and plausibility scores.',
   'Keine Creative Insights':'No creative insights','Neuheit':'Novelty','Plausibilität':'Plausibility',
+  'Fortschritt':'Progress','Zyklusraten (30 Tage)':'Cycle Rates (30 Days)',
+  'Wissen':'Knowledge','Hypothesen':'Hypotheses','Vorhersagen':'Predictions',
+  'Ziele & Speicher':'Goals & Storage','Prinzipien':'Principles','Strategien':'Strategies',
+  'Ø Konfidenz':'Avg Confidence','Bestätigt':'Confirmed','Abgelehnt':'Rejected',
+  'Gesamt':'Total','Ziele erreicht':'Goals Achieved','Letzte Durchbrüche':'Recent Breakthroughs',
 }};
 let currentLang = localStorage.getItem('brain-lang') || 'en';
 function t(text) { if (currentLang === 'en' && translations.en[text]) return translations.en[text]; return text; }
@@ -1049,7 +1139,7 @@ function getTitle(page) {
   const titles = {
     overview:'Ecosystem Overview', entity:t('Bewusstsein'), learning:t('Der Lern-Kreislauf'), trading:'Trading Flow',
     marketing:'Marketing Flow', intelligence:t('Intelligenz'), crossbrain:'Cross-Brain & Borg', activity:t('Aktivität & Missionen'),
-    debates:'Debates & Challenges', forge:'Forge & Autonomie', infra:t('Infrastruktur')
+    debates:'Debates & Challenges', forge:'Forge & Autonomie', infra:t('Infrastruktur'), progress:t('Fortschritt')
   }; return titles[page] || '';
 }
 const titles = {
@@ -1064,7 +1154,8 @@ const titles = {
   debates:'Debates & Challenges',
   desires:'Brain Desires',
   forge:'Forge & Autonomie',
-  infra:'Infrastruktur'
+  infra:'Infrastruktur',
+  progress:'Fortschritt'
 };
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
@@ -1103,6 +1194,7 @@ function connectSSE() {
   es.addEventListener('teaching', e => { state.teaching = JSON.parse(e.data); renderTeaching(); });
   es.addEventListener('calibration', e => { state.calibration = JSON.parse(e.data); renderCalibration(); });
   es.addEventListener('governance', e => { state.governance = JSON.parse(e.data); renderGovernance(); });
+  es.addEventListener('progress', e => { state.progress = JSON.parse(e.data); renderProgress(); });
   es.onerror = () => { state.connected = false; updateConnection(); };
 }
 
@@ -1136,6 +1228,10 @@ async function loadInitial() {
     renderSelfMod(); renderMissions(); renderRepoAbsorber(); renderIntelligence(); renderKnowledge(); renderDebates();
     renderGuardrails(); renderRoadmaps(); renderCreativeInsights(); renderForgeWidgets();
     renderDesires(); renderTeaching(); renderCalibration(); renderGovernance();
+  } catch {}
+  try {
+    const prog = await (await fetch('/api/progress')).json();
+    if (prog) { state.progress = prog; renderProgress(); }
   } catch {}
 }
 
@@ -2504,6 +2600,131 @@ function renderGovernance() {
       + pctBar('Failed', r.failedRate, true)
       + pctBar('Novelty', r.noveltyRate, false)
       + `<div style="font-size:10px;color:var(--text-dim);margin-top:2px">Efficiency: ${r.efficiencyRate.toFixed(2)} outputs/1k tokens</div>`;
+  }
+}
+
+// ── Progress (Fortschritt) ────────────────────────────────
+function drawSparkline(canvasId, values, color) {
+  const c = document.getElementById(canvasId);
+  if (!c || !values.length) return;
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+  const max = Math.max(...values, 0.01);
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  values.forEach((v, i) => {
+    const x = (i / Math.max(values.length - 1, 1)) * w;
+    const y = h - (v / max) * (h - 4) - 2;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+function renderProgress() {
+  const d = state.progress; if (!d) return;
+
+  // Health Score
+  const hv = document.getElementById('progressHealthValue');
+  if (hv) {
+    const score = d.healthScore ?? 0;
+    hv.textContent = Math.round(score);
+    hv.style.color = score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--orange)' : 'var(--red)';
+  }
+
+  // Cycle sparklines
+  const hist = d.cycleHistory || [];
+  if (hist.length) {
+    drawSparkline('sparkProd', hist.map(h => h.productiveRate ?? 0), '#00ff88');
+    drawSparkline('sparkNovelty', hist.map(h => h.noveltyRate ?? 0), '#00e5ff');
+    drawSparkline('sparkEff', hist.map(h => h.efficiencyRate ?? 0), '#aa88ff');
+    const last = hist[hist.length - 1];
+    const pv = document.getElementById('sparkProdVal');
+    const nv = document.getElementById('sparkNoveltyVal');
+    const ev = document.getElementById('sparkEffVal');
+    if (pv) pv.textContent = ((last.productiveRate ?? 0) * 100).toFixed(0) + '%';
+    if (nv) nv.textContent = ((last.noveltyRate ?? 0) * 100).toFixed(0) + '%';
+    if (ev) ev.textContent = (last.efficiencyRate ?? 0).toFixed(2);
+  }
+
+  // Knowledge
+  const ks = d.knowledge?.summary;
+  if (ks) {
+    const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    el('progKnowPrinciples', ks.principles ?? '--');
+    el('progKnowAnti', ks.antiPatterns ?? '--');
+    el('progKnowStrats', ks.strategies ?? '--');
+    el('progKnowConf', ks.avgConfidence != null ? (ks.avgConfidence * 100).toFixed(0) + '%' : '--');
+  }
+
+  // Hypotheses
+  const hs = d.hypotheses?.summary;
+  if (hs) {
+    const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    el('progHypConf', hs.confirmed ?? '--');
+    el('progHypRej', hs.rejected ?? '--');
+    el('progHypTotal', hs.total ?? '--');
+  }
+  const surv = d.hypotheses?.survival;
+  if (surv) {
+    const survEl = document.getElementById('progHypSurv');
+    if (survEl && surv.medianSurvivalMs != null) {
+      const hrs = (surv.medianSurvivalMs / 3600000).toFixed(1);
+      survEl.textContent = hrs + 'h';
+    }
+    const rateEl = document.getElementById('progHypRate');
+    if (rateEl && surv.rejectionsPerDay != null) {
+      rateEl.textContent = surv.rejectionsPerDay.toFixed(1) + ' ' + t('Abgelehnt') + '/d';
+    }
+  }
+
+  // Predictions
+  const pred = d.predictions;
+  if (pred) {
+    const accEl = document.getElementById('progPredAcc');
+    if (accEl) accEl.textContent = pred.accuracy_rate != null ? (pred.accuracy_rate * 100).toFixed(0) + '%' : '--';
+    const domEl = document.getElementById('progPredDomains');
+    if (domEl && pred.by_domain) {
+      domEl.innerHTML = Object.entries(pred.by_domain).map(([k, v]) =>
+        `<div style="display:flex;justify-content:space-between;margin:2px 0"><span style="color:var(--text-dim)">${k}</span><span style="color:var(--cyan)">${(v * 100).toFixed(0)}%</span></div>`
+      ).join('');
+    }
+    const calEl = document.getElementById('progPredCalib');
+    if (calEl && pred.calibration_offset != null) {
+      calEl.textContent = 'Calibration Offset: ' + (pred.calibration_offset > 0 ? '+' : '') + (pred.calibration_offset * 100).toFixed(1) + '%';
+    }
+  }
+
+  // Goals & Memory
+  const goals = d.goals;
+  if (goals) {
+    const achEl = document.getElementById('progGoalAchieved');
+    if (achEl) achEl.textContent = `${goals.achievedGoals ?? 0}/${goals.totalGoals ?? 0}`;
+  }
+  const mem = d.memory;
+  if (mem) {
+    const memEl = document.getElementById('progMemCount');
+    if (memEl) {
+      const count = mem.activeMemories ?? mem.totalMemories ?? 0;
+      memEl.textContent = count >= 1000 ? (count / 1000).toFixed(1) + 'K' : String(count);
+    }
+  }
+
+  // Table sizes
+  const tables = d.tableSizes;
+  const tsEl = document.getElementById('progTableSizes');
+  if (tsEl && tables?.length) {
+    const totalMB = tables.reduce((s, t) => s + (t.estimatedMB ?? 0), 0).toFixed(1);
+    tsEl.textContent = 'DB: ' + totalMB + ' MB (' + tables.length + ' tables)';
+  }
+
+  // Milestones
+  const msEl = document.getElementById('progMilestones');
+  if (msEl && d.milestones?.length) {
+    msEl.innerHTML = '<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">' + t('Letzte Durchbrüche') + '</div>' +
+      d.milestones.slice(0, 5).map(m =>
+        `<div style="font-size:11px;margin:2px 0;color:var(--yellow)">&#x2B50; ${m.content || m.summary || m.title || '?'}</div>`
+      ).join('');
   }
 }
 
