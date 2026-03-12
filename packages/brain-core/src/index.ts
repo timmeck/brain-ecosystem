@@ -639,3 +639,7 @@ export type { EngineTokenAllocation, BudgetCheckResult, BudgetReservation } from
 // ── Experiment Ledger ──────────────────────────────────────
 export { ExperimentLedger, runExperimentLedgerMigration } from './experiments/index.js';
 export type { ExperimentEntry, ExperimentResult, ExperimentLedgerStatus, ExperimentDecision } from './experiments/index.js';
+
+// ── Retention Policy ──────────────────────────────────────
+export { RetentionPolicyEngine } from './retention/index.js';
+export type { RetentionConfig, RetentionReport, RetentionStatus, TableReport, ProtectionSummary, TableSizeInfo } from './retention/index.js';

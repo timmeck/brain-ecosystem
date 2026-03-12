@@ -60,6 +60,7 @@ import { experimentLedgerCommand } from './cli/commands/experiment-ledger.js';
 import { browserCommand } from './cli/commands/browser.js';
 import { botCommand } from './cli/commands/bot.js';
 import { autonomousCommand } from './cli/commands/autonomous.js';
+import { retentionCommand } from './cli/commands/retention.js';
 import { getCurrentVersion } from './cli/update-check.js';
 
 const program = new Command();
@@ -111,6 +112,7 @@ program.addCommand(experimentLedgerCommand());
 program.addCommand(browserCommand());
 program.addCommand(botCommand());
 program.addCommand(autonomousCommand());
+program.addCommand(retentionCommand());
 
 // Hidden command: run MCP server (called by Claude Code)
 program

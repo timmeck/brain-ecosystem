@@ -110,6 +110,7 @@ export class BrainCore {
   private browserAgent: BrowserAgent | null = null;
   private brainBot: BrainBot | null = null;
   private autonomousResearchLoop: AutonomousResearchLoop | null = null;
+  private retentionEngine: import('@timmeck/brain-core').RetentionPolicyEngine | null = null;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   private retentionTimer: ReturnType<typeof setInterval> | null = null;
   private config: BrainConfig | null = null;
@@ -809,6 +810,7 @@ export class BrainCore {
     this.retrievalMaintenance = intelligenceResult.retrievalMaintenance;
     this.browserAgent = intelligenceResult.browserAgent;
     this.brainBot = intelligenceResult.brainBot;
+    this.retentionEngine = intelligenceResult.retentionEngine;
     const chatEngine = services.chatEngine!;
 
     // Per-engine token budget tracking
@@ -1055,9 +1057,9 @@ export class BrainCore {
     }, 60_000);
 
     // 12b. DB retention cleanup + VACUUM (once at start, then every 24h)
-    runRetentionHelper(this.db!, config);
+    runRetentionHelper(this.db!, config, this.retentionEngine ?? undefined);
     this.retentionTimer = setInterval(() => {
-      if (this.db && this.config) runRetentionHelper(this.db, this.config);
+      if (this.db && this.config) runRetentionHelper(this.db, this.config, this.retentionEngine ?? undefined);
     }, 24 * 60 * 60 * 1000);
 
     // 12c. Conversation Memory periodic maintenance (every 6h)

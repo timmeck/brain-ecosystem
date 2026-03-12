@@ -182,6 +182,7 @@ export interface Services {
   brainBot?: import('@timmeck/brain-core').BrainBot;
   autonomousResearchLoop?: import('@timmeck/brain-core').AutonomousResearchLoop;
   experimentLedger?: import('@timmeck/brain-core').ExperimentLedger;
+  retentionEngine?: import('@timmeck/brain-core').RetentionPolicyEngine;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -1366,6 +1367,11 @@ export class IpcRouter {
       ['research.autonomous.disable', () => { if (!s.autonomousResearchLoop) throw new Error('AutonomousResearchLoop not available'); s.autonomousResearchLoop.updateConfig({ enabled: false }); s.autonomousResearchLoop.stop(); return { enabled: false }; }],
       ['research.autonomous.cycle',   async () => { if (!s.autonomousResearchLoop) throw new Error('AutonomousResearchLoop not available'); return s.autonomousResearchLoop.cycle(); }],
       ['research.autonomous.update',  (params) => { if (!s.autonomousResearchLoop) throw new Error('AutonomousResearchLoop not available'); s.autonomousResearchLoop.updateConfig(p(params)); return s.autonomousResearchLoop.getConfig(); }],
+
+      // ─── Retention Policy ───────────────────────────────────
+      ['retention.status',       () => { if (!s.retentionEngine) throw new Error('RetentionPolicyEngine not available'); return s.retentionEngine.getStatus(); }],
+      ['retention.run',          (params) => { if (!s.retentionEngine) throw new Error('RetentionPolicyEngine not available'); return s.retentionEngine.run(p(params)?.dryRun ?? true); }],
+      ['retention.sizes',        () => { if (!s.retentionEngine) throw new Error('RetentionPolicyEngine not available'); return s.retentionEngine.getTableSizes(); }],
 
       // System
       ['system.memory',           () => s.memoryWatchdog?.getStats() ?? { currentMB: Math.round(process.memoryUsage().heapUsed / 1048576), peakMB: 0, trend: 'stable', leakSuspected: false, samples: 0 }],

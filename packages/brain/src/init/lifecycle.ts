@@ -32,7 +32,7 @@ export function logCrash(config: BrainConfig | null, type: string, err: Error): 
 let lastVacuumTime = 0;
 const VACUUM_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
 
-export function runRetentionCleanup(db: Database.Database, config: BrainConfig): void {
+export function runRetentionCleanup(db: Database.Database, config: BrainConfig, retentionEngine?: { run(dryRun: boolean): unknown }): void {
   const logger = getLogger();
   try {
     const now = Date.now();
@@ -88,6 +88,15 @@ export function runRetentionCleanup(db: Database.Database, config: BrainConfig):
       db.exec('VACUUM');
       lastVacuumTime = now;
       logger.info('[retention] DB vacuumed');
+    }
+
+    // RetentionPolicyEngine — intelligent multi-table cleanup
+    if (retentionEngine) {
+      try {
+        retentionEngine.run(false); // live execution
+      } catch (err) {
+        logger.debug(`[retention] RetentionPolicyEngine skipped: ${(err as Error).message}`);
+      }
     }
 
     logger.debug('[retention] DB optimized');

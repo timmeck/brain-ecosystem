@@ -35,6 +35,7 @@ import {
   RuntimeInfluenceTracker,
   LoopDetector,
   GovernanceLayer,
+  RetentionPolicyEngine,
   SignalScanner, CodeMiner, PatternExtractor, ContextBuilder, CodeGenerator,
   TechRadarEngine, runTechRadarMigration,
   NotificationService as MultiChannelNotificationService, runNotificationMigration,
@@ -73,6 +74,7 @@ export interface IntelligenceResult {
   experimentLedger: ExperimentLedger;
   browserAgent: BrowserAgent;
   brainBot: BrainBot;
+  retentionEngine: RetentionPolicyEngine;
 }
 
 // ── Intelligence Upgrade (Sessions 55-76) ────────────────
@@ -397,6 +399,10 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
   governanceLayer.setEngineRegistry(engineRegistry);
   services.governanceLayer = governanceLayer;
 
+  // 133. RetentionPolicyEngine — intelligent DB cleanup with protection rules
+  const retentionEngine = new RetentionPolicyEngine(db);
+  services.retentionEngine = retentionEngine;
+
   // ── Wire intelligence engines into autonomous ResearchOrchestrator ──
   orchestrator.setFactExtractor(factExtractor);
   orchestrator.setKnowledgeGraph(knowledgeGraph);
@@ -537,5 +543,6 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
     experimentLedger,
     browserAgent,
     brainBot,
+    retentionEngine,
   };
 }
