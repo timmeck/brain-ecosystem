@@ -160,6 +160,77 @@ export class PredictionTracker {
     });
   }
 
+  /** Get calibration buckets for a specific domain. */
+  getCalibrationBucketsByDomain(domain: PredictionDomain): CalibrationBucket[] {
+    const bucketRanges = [
+      [0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.01],
+    ] as const;
+
+    const buckets: CalibrationBucket[] = [];
+    for (const [start, end] of bucketRanges) {
+      const row = this.db.prepare(`
+        SELECT
+          COUNT(*) as total,
+          SUM(CASE WHEN status = 'correct' THEN 1 ELSE 0 END) as correct
+        FROM predictions
+        WHERE status != 'pending' AND domain = ?
+          AND confidence >= ? AND confidence < ?
+      `).get(domain, start, end) as Record<string, unknown>;
+
+      const total = (row.total as number) ?? 0;
+      const correct = (row.correct as number) ?? 0;
+
+      buckets.push({
+        range_start: start,
+        range_end: end === 1.01 ? 1.0 : end,
+        predicted_count: total,
+        actual_accuracy: total > 0 ? correct / total : 0,
+      });
+    }
+    return buckets;
+  }
+
+  /** Get rolling accuracy for a specific domain (last N resolved predictions). */
+  getDomainRollingAccuracy(domain: PredictionDomain, limit = 50): number {
+    const row = this.db.prepare(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'correct' THEN 1 ELSE 0 END) as correct
+      FROM (
+        SELECT status FROM predictions
+        WHERE status IN ('correct', 'wrong', 'partial') AND domain = ?
+        ORDER BY resolved_at DESC LIMIT ?
+      )
+    `).get(domain, limit) as Record<string, unknown>;
+
+    const total = (row.total as number) || 0;
+    const correct = (row.correct as number) || 0;
+    return total > 0 ? correct / total : 0;
+  }
+
+  /** Get per-domain calibration offsets. */
+  getDomainCalibrationOffsets(): Map<string, number> {
+    const domains = this.db.prepare(`
+      SELECT DISTINCT domain FROM predictions WHERE status != 'pending'
+    `).all() as Array<{ domain: string }>;
+
+    const offsets = new Map<string, number>();
+    for (const { domain } of domains) {
+      const buckets = this.getCalibrationBucketsByDomain(domain as PredictionDomain);
+      let totalOffset = 0;
+      let count = 0;
+      for (const b of buckets) {
+        if (b.predicted_count >= 3) {
+          const midpoint = (b.range_start + b.range_end) / 2;
+          totalOffset += midpoint - b.actual_accuracy;
+          count++;
+        }
+      }
+      offsets.set(domain, count > 0 ? totalOffset / count : 0);
+    }
+    return offsets;
+  }
+
   /** Get calibration offset — average (confidence - actual_accuracy) across buckets. */
   getCalibrationOffset(): number {
     const buckets = this.getCalibrationBuckets();

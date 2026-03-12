@@ -80,8 +80,10 @@ export class PredictionEngine {
   private tracker: PredictionTracker;
   private thoughtStream: ThoughtStream | null = null;
   private journal: ResearchJournal | null = null;
+  private knowledgeDistiller: { createAntiPatternFromPredictionFailure: (p: { domain: string; metric: string; predicted_direction: string; confidence: number; error: number; reasoning: string }) => unknown } | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private calibrationOffset = 0;
+  private domainCalibrationOffsets = new Map<string, number>();
   private log = getLogger();
 
   constructor(db: Database.Database, config: PredictionEngineConfig) {
@@ -112,6 +114,11 @@ export class PredictionEngine {
   /** Set the Research Journal for logging notable predictions. */
   setJournal(journal: ResearchJournal): void {
     this.journal = journal;
+  }
+
+  /** Set KnowledgeDistiller for anti-pattern generation from wrong predictions. */
+  setKnowledgeDistiller(distiller: { createAntiPatternFromPredictionFailure: (p: { domain: string; metric: string; predicted_direction: string; confidence: number; error: number; reasoning: string }) => unknown }): void {
+    this.knowledgeDistiller = distiller;
   }
 
   /** Update config values at runtime (for A/B testing / parameter sync). */
@@ -169,8 +176,8 @@ export class PredictionEngine {
     const data = history.map(h => h.value);
     const forecast = this.forecast(data, horizonMs);
 
-    // Apply calibration
-    const calibratedConfidence = this.applyCalibration(forecast.confidence);
+    // Apply domain-specific calibration
+    const calibratedConfidence = this.applyCalibration(forecast.confidence, input.domain);
     if (calibratedConfidence < this.config.minConfidence) return null;
 
     const now = Date.now();
@@ -278,6 +285,21 @@ export class PredictionEngine {
         this.db.prepare(`UPDATE prediction_state SET total_resolved = total_resolved + 1, updated_at = datetime('now') WHERE id = 1`).run();
         if (status === 'correct') {
           this.db.prepare(`UPDATE prediction_state SET total_correct = total_correct + 1 WHERE id = 1`).run();
+        } else if (status === 'wrong' && this.knowledgeDistiller) {
+          // Auto-generate anti-pattern from wrong predictions
+          const error = pred.predicted_value !== 0
+            ? Math.abs(pred.predicted_value - row.avg_value) / Math.abs(pred.predicted_value)
+            : Math.abs(row.avg_value);
+          try {
+            this.knowledgeDistiller.createAntiPatternFromPredictionFailure({
+              domain: pred.domain,
+              metric: pred.metric,
+              predicted_direction: pred.predicted_direction,
+              confidence: pred.confidence,
+              error,
+              reasoning: pred.reasoning,
+            });
+          } catch { /* best effort */ }
         }
         resolved++;
       }
@@ -366,16 +388,25 @@ export class PredictionEngine {
     }
   }
 
-  /** Recalibrate confidence offset based on historical accuracy. */
+  /** Recalibrate confidence offset based on historical accuracy (global + per-domain). */
   private recalibrate(): void {
     this.calibrationOffset = this.tracker.getCalibrationOffset();
+    this.domainCalibrationOffsets = this.tracker.getDomainCalibrationOffsets();
     this.db.prepare(`
       UPDATE prediction_state SET calibration_offset = ?, updated_at = datetime('now') WHERE id = 1
     `).run(this.calibrationOffset);
   }
 
-  /** Apply calibration to raw confidence. */
-  private applyCalibration(rawConfidence: number): number {
+  /** Apply domain-specific calibration to raw confidence. Falls back to global if domain has < 10 resolved. */
+  private applyCalibration(rawConfidence: number, domain?: PredictionDomain): number {
+    if (domain) {
+      const domainBuckets = this.tracker.getCalibrationBucketsByDomain(domain);
+      const domainSamples = domainBuckets.reduce((sum, b) => sum + b.predicted_count, 0);
+      if (domainSamples >= 10) {
+        return calibrateConfidence(rawConfidence, domainBuckets);
+      }
+    }
+    // Fallback to global calibration
     const buckets = this.tracker.getCalibrationBuckets();
     return calibrateConfidence(rawConfidence, buckets);
   }

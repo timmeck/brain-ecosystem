@@ -697,6 +697,71 @@ export class KnowledgeDistiller {
     `).run(p.id, p.domain, p.statement, p.success_rate, p.sample_size, p.confidence, p.source);
   }
 
+  /**
+   * Create an anti-pattern reactively from a rejected hypothesis.
+   * Called immediately on rejection, not waiting for periodic distillation.
+   */
+  createAntiPatternFromRejection(hypothesis: {
+    statement: string; type: string;
+    evidence_for: number; evidence_against: number; confidence: number;
+  }): AntiPattern | null {
+    const totalEvidence = hypothesis.evidence_for + hypothesis.evidence_against;
+    if (totalEvidence < 2) return null; // need some evidence
+
+    const failureRate = totalEvidence > 0 ? hypothesis.evidence_against / totalEvidence : 0;
+    if (failureRate < 0.4) return null; // not a clear enough failure
+
+    const id = `ap-rej-${this.hashString(hypothesis.statement)}`;
+
+    // Check if already exists
+    const existing = this.db.prepare('SELECT id FROM knowledge_anti_patterns WHERE id = ?').get(id);
+    if (existing) return null;
+
+    const antiPattern: AntiPattern = {
+      id,
+      domain: hypothesis.type,
+      statement: `Rejected hypothesis: ${hypothesis.statement}`,
+      failure_rate: failureRate,
+      sample_size: totalEvidence,
+      confidence: Math.min(failureRate, 1 - hypothesis.confidence),
+      alternative: 'Hypothesis was disproved — avoid assumptions based on this pattern.',
+    };
+
+    this.upsertAntiPattern(antiPattern);
+    this.log.info(`[distiller] Anti-pattern from rejection: ${antiPattern.statement.substring(0, 80)}`);
+    return antiPattern;
+  }
+
+  /**
+   * Create an anti-pattern from a wrong prediction.
+   * Called when PredictionEngine resolves a prediction as 'wrong'.
+   */
+  createAntiPatternFromPredictionFailure(prediction: {
+    domain: string; metric: string; predicted_direction: string;
+    confidence: number; error: number; reasoning: string;
+  }): AntiPattern | null {
+    if (prediction.error < 0.25) return null; // only for significant errors
+
+    const id = `ap-pred-${this.hashString(prediction.metric + prediction.predicted_direction + prediction.reasoning)}`;
+
+    const existing = this.db.prepare('SELECT id FROM knowledge_anti_patterns WHERE id = ?').get(id);
+    if (existing) return null;
+
+    const antiPattern: AntiPattern = {
+      id,
+      domain: prediction.domain,
+      statement: `Wrong prediction: ${prediction.metric} predicted ${prediction.predicted_direction} (error: ${(prediction.error * 100).toFixed(0)}%)`,
+      failure_rate: prediction.error,
+      sample_size: 1,
+      confidence: prediction.confidence * prediction.error,
+      alternative: `Reduce confidence for ${prediction.metric} ${prediction.predicted_direction} predictions.`,
+    };
+
+    this.upsertAntiPattern(antiPattern);
+    this.log.info(`[distiller] Anti-pattern from wrong prediction: ${prediction.metric}`);
+    return antiPattern;
+  }
+
   private upsertAntiPattern(a: AntiPattern): void {
     this.db.prepare(`
       INSERT INTO knowledge_anti_patterns (id, domain, statement, failure_rate, sample_size, confidence, alternative)
@@ -707,6 +772,30 @@ export class KnowledgeDistiller {
         confidence = excluded.confidence,
         updated_at = datetime('now')
     `).run(a.id, a.domain, a.statement, a.failure_rate, a.sample_size, a.confidence, a.alternative);
+  }
+
+  /**
+   * Create a strategy from a cluster of confirmed hypotheses.
+   * Called by orchestrator when 3+ hypotheses in same domain are confirmed.
+   */
+  createStrategyFromHypotheses(domain: string, statements: string[], evidenceCount: number): Strategy | null {
+    const id = `strat-hyp-${this.hashString(domain + statements.join('|'))}`;
+
+    const existing = this.db.prepare('SELECT id FROM knowledge_strategies WHERE id = ?').get(id);
+    if (existing) return null;
+
+    const strategy: Strategy = {
+      id,
+      domain,
+      description: `Strategy from ${evidenceCount} confirmed ${domain} hypotheses`,
+      conditions: statements,
+      effectiveness: 0.5, // initial — will be updated by feedback
+      evidence_count: evidenceCount,
+    };
+
+    this.upsertStrategy(strategy);
+    this.log.info(`[distiller] Strategy emerged: ${strategy.description}`);
+    return strategy;
   }
 
   private upsertStrategy(s: Strategy): void {

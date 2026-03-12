@@ -276,13 +276,84 @@ export class HypothesisEngine {
   }
 
   /**
+   * Force-evaluate stuck hypotheses. Called by testAll() after markStale().
+   *
+   * - testing > 48h → force one final test, if still testing → inconclusive
+   * - testing > 72h with weak evidence → auto-reject
+   *
+   * Prevents the "testing graveyard" where hypotheses sit forever.
+   */
+  forceEvaluateStuck(forceHours = 48, rejectHours = 72): { evaluated: number; rejected: number } {
+    let evaluated = 0;
+    let rejected = 0;
+
+    // 72h+ with weak evidence → auto-reject
+    const autoRejectResult = this.db.prepare(`
+      UPDATE hypotheses SET status = 'rejected', tested_at = datetime('now')
+      WHERE status = 'testing'
+        AND tested_at IS NOT NULL
+        AND tested_at < datetime('now', '-' || ? || ' hours')
+        AND (evidence_for + evidence_against) < ?
+    `).run(rejectHours, this.minEvidence);
+    rejected = autoRejectResult.changes;
+
+    // 72h+ with evidence but inconclusive p-value → auto-reject
+    const inconclusiveReject = this.db.prepare(`
+      UPDATE hypotheses SET status = 'rejected', tested_at = datetime('now')
+      WHERE status = 'testing'
+        AND tested_at IS NOT NULL
+        AND tested_at < datetime('now', '-' || ? || ' hours')
+        AND (evidence_for + evidence_against) >= ?
+        AND CAST(evidence_for AS REAL) / (evidence_for + evidence_against) < 0.5
+    `).run(rejectHours, this.minEvidence);
+    rejected += inconclusiveReject.changes;
+
+    // 48h+ still testing → mark inconclusive
+    const forceResult = this.db.prepare(`
+      UPDATE hypotheses SET status = 'inconclusive', tested_at = datetime('now')
+      WHERE status = 'testing'
+        AND tested_at IS NOT NULL
+        AND tested_at < datetime('now', '-' || ? || ' hours')
+    `).run(forceHours);
+    evaluated = forceResult.changes;
+
+    if (rejected > 0 || evaluated > 0) {
+      this.logger.info(`[HypothesisEngine] Force-evaluated stuck: ${rejected} rejected, ${evaluated} inconclusive`);
+    }
+
+    return { evaluated, rejected };
+  }
+
+  /**
+   * Get confirmed hypotheses grouped by type/domain with count >= minCount.
+   * Used for auto-strategy emergence.
+   */
+  getConfirmedByType(minCount = 3): Array<{ type: string; count: number; hypotheses: Hypothesis[] }> {
+    const groups = this.db.prepare(`
+      SELECT type, COUNT(*) as count FROM hypotheses
+      WHERE status = 'confirmed'
+      GROUP BY type HAVING count >= ?
+    `).all(minCount) as Array<{ type: string; count: number }>;
+
+    return groups.map(g => ({
+      type: g.type,
+      count: g.count,
+      hypotheses: this.list('confirmed', 50).filter(h => h.type === g.type),
+    }));
+  }
+
+  /**
    * Test all proposed/testing hypotheses.
    * Also re-tests confirmed hypotheses older than 24h (pattern drift detection).
    * Marks hypotheses >14 days in 'testing' without new evidence as 'stale'.
+   * Force-evaluates stuck hypotheses (>48h → inconclusive, >72h weak → reject).
    */
   testAll(): HypothesisTestResult[] {
     // Mark stale hypotheses first
     this.markStale();
+
+    // Force-evaluate stuck hypotheses (prevents testing graveyard)
+    this.forceEvaluateStuck();
 
     const hypotheses = this.db.prepare(
       `SELECT id FROM hypotheses WHERE status IN ('proposed', 'testing')

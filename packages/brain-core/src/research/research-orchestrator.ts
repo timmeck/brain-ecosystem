@@ -476,10 +476,11 @@ export class ResearchOrchestrator {
   /** Get the LLMService instance. */
   getLLMService(): LLMService | null { return this.llmService; }
 
-  /** Set the PredictionEngine — wires journal into it. */
+  /** Set the PredictionEngine — wires journal + knowledge distiller into it. */
   setPredictionEngine(engine: PredictionEngine): void {
     this.predictionEngine = engine;
     engine.setJournal(this.journal);
+    engine.setKnowledgeDistiller(this.knowledgeDistiller);
   }
 
   /** Start the autonomous feedback loop timer. */
@@ -907,6 +908,45 @@ export class ResearchOrchestrator {
       if (weak.length > 0) this.log.debug(`[orchestrator] Rejected ${weak.length} weak hypotheses (confidence < 0.3)`);
       const confirmed = testResults.filter(r => r.newStatus === 'confirmed');
       const rejected = testResults.filter(r => r.newStatus === 'rejected');
+
+      // Fix 3: Auto-generate anti-patterns from rejected hypotheses
+      for (const rej of rejected) {
+        const hyp = this.hypothesisEngine.get(rej.hypothesisId);
+        if (hyp) {
+          try {
+            this.knowledgeDistiller.createAntiPatternFromRejection({
+              statement: hyp.statement,
+              type: hyp.type,
+              evidence_for: rej.evidenceFor,
+              evidence_against: rej.evidenceAgainst,
+              confidence: rej.confidence,
+            });
+          } catch { /* best effort */ }
+        }
+      }
+
+      // Fix 4: Strategy emergence — 3+ confirmed in same type → auto strategy
+      if (confirmed.length > 0 && this.strategyForge) {
+        try {
+          const clusters = this.hypothesisEngine.getConfirmedByType(3);
+          for (const cluster of clusters) {
+            // Check if strategy already exists for this domain
+            const existing = this.db.prepare(
+              "SELECT id FROM knowledge_strategies WHERE domain = ?",
+            ).get(cluster.type) as { id: string } | undefined;
+            if (!existing) {
+              const rules = cluster.hypotheses.slice(0, 5).map(h => h.statement);
+              this.knowledgeDistiller.createStrategyFromHypotheses(
+                cluster.type,
+                rules,
+                cluster.hypotheses.length,
+              );
+              this.log.info(`[orchestrator] Strategy emerged from ${cluster.count} confirmed ${cluster.type} hypotheses`);
+            }
+          }
+        } catch { /* best effort */ }
+      }
+
       if (confirmed.length > 0 || rejected.length > 0) {
         ts?.emit('hypothesis', 'discovering', `Tested ${testResults.length}: ${confirmed.length} confirmed, ${rejected.length} rejected`, confirmed.length > 0 ? 'notable' : 'routine');
         for (const c of confirmed) {
