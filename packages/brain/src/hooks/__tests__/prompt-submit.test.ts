@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 // Mock IpcClient before importing
 const mockRequest = vi.fn();
@@ -212,6 +215,189 @@ describe('prompt-submit hook', () => {
 
       const ack = await client.request('notification.ackAll');
       expect(ack).toEqual({ acknowledged: 1 });
+    });
+  });
+
+  describe('transcript processing', () => {
+    const STATE_FILE = path.join(os.homedir(), '.brain', 'transcript-state.json');
+    let tmpDir: string;
+    let origState: string | null = null;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'brain-transcript-test-'));
+      // Backup existing state file if present
+      try {
+        origState = fs.readFileSync(STATE_FILE, 'utf8');
+      } catch {
+        origState = null;
+      }
+    });
+
+    afterEach(() => {
+      // Restore original state
+      if (origState !== null) {
+        fs.writeFileSync(STATE_FILE, origState, 'utf8');
+      } else {
+        try { fs.unlinkSync(STATE_FILE); } catch { /* ok */ }
+      }
+      try { fs.rmSync(tmpDir, { recursive: true }); } catch { /* ok */ }
+    });
+
+    // Re-implement helpers locally for unit testing (same logic as prompt-submit.ts)
+    function getLastProcessed(sessionId: string): string {
+      try {
+        const data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+        return data[sessionId] ?? '';
+      } catch {
+        return '';
+      }
+    }
+
+    function saveLastProcessed(sessionId: string, timestamp: string): void {
+      let data: Record<string, string> = {};
+      try {
+        data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+      } catch { /* ok */ }
+      data[sessionId] = timestamp;
+      fs.writeFileSync(STATE_FILE, JSON.stringify(data), 'utf8');
+    }
+
+    interface TranscriptMessage {
+      content: string;
+      importance: number;
+      tags: string[];
+      timestamp: string;
+    }
+
+    function readNewTranscriptMessages(transcriptPath: string, lastTimestamp: string): TranscriptMessage[] {
+      const raw = fs.readFileSync(transcriptPath, 'utf8');
+      const lines = raw.split('\n').filter((l: string) => l.trim());
+      const results: TranscriptMessage[] = [];
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          if (entry.type !== 'assistant') continue;
+          if (!entry.timestamp) continue;
+          if (lastTimestamp && entry.timestamp <= lastTimestamp) continue;
+          const content = entry.message?.content;
+          if (!Array.isArray(content)) continue;
+          const textParts: string[] = [];
+          for (const block of content) {
+            if (block.type === 'text' && block.text) textParts.push(block.text);
+          }
+          if (textParts.length === 0) continue;
+          let text = textParts.join('\n');
+          if (text.length > 500) text = text.substring(0, 500) + '...';
+          results.push({
+            content: text,
+            importance: text.length > 200 ? 7 : 5,
+            tags: ['claude-code', 'assistant'],
+            timestamp: entry.timestamp,
+          });
+        } catch { /* skip */ }
+      }
+      return results;
+    }
+
+    it('getLastProcessed returns empty for unknown session', () => {
+      // Ensure clean state
+      try { fs.unlinkSync(STATE_FILE); } catch { /* ok */ }
+      expect(getLastProcessed('unknown-session')).toBe('');
+    });
+
+    it('saveLastProcessed + getLastProcessed roundtrip', () => {
+      const ts = '2026-03-12T10:00:00.000Z';
+      saveLastProcessed('test-session', ts);
+      expect(getLastProcessed('test-session')).toBe(ts);
+    });
+
+    it('saveLastProcessed preserves other sessions', () => {
+      saveLastProcessed('session-a', '2026-03-12T09:00:00.000Z');
+      saveLastProcessed('session-b', '2026-03-12T10:00:00.000Z');
+      expect(getLastProcessed('session-a')).toBe('2026-03-12T09:00:00.000Z');
+      expect(getLastProcessed('session-b')).toBe('2026-03-12T10:00:00.000Z');
+    });
+
+    it('readNewTranscriptMessages extracts text from assistant messages', () => {
+      const transcriptFile = path.join(tmpDir, 'test.jsonl');
+      const lines = [
+        JSON.stringify({ type: 'user', timestamp: '2026-03-12T10:00:00.000Z', message: { role: 'user', content: 'Hello' } }),
+        JSON.stringify({ type: 'assistant', timestamp: '2026-03-12T10:00:01.000Z', message: { role: 'assistant', content: [{ type: 'text', text: 'Hi there!' }] } }),
+        JSON.stringify({ type: 'assistant', timestamp: '2026-03-12T10:00:02.000Z', message: { role: 'assistant', content: [{ type: 'thinking', thinking: 'hmm' }, { type: 'text', text: 'Let me help.' }] } }),
+      ];
+      fs.writeFileSync(transcriptFile, lines.join('\n'), 'utf8');
+
+      const msgs = readNewTranscriptMessages(transcriptFile, '');
+      expect(msgs).toHaveLength(2);
+      expect(msgs[0].content).toBe('Hi there!');
+      expect(msgs[0].importance).toBe(5); // short
+      expect(msgs[1].content).toBe('Let me help.');
+      expect(msgs[1].tags).toEqual(['claude-code', 'assistant']);
+    });
+
+    it('readNewTranscriptMessages skips messages before lastTimestamp', () => {
+      const transcriptFile = path.join(tmpDir, 'test2.jsonl');
+      const lines = [
+        JSON.stringify({ type: 'assistant', timestamp: '2026-03-12T10:00:00.000Z', message: { role: 'assistant', content: [{ type: 'text', text: 'Old message' }] } }),
+        JSON.stringify({ type: 'assistant', timestamp: '2026-03-12T10:00:05.000Z', message: { role: 'assistant', content: [{ type: 'text', text: 'New message' }] } }),
+      ];
+      fs.writeFileSync(transcriptFile, lines.join('\n'), 'utf8');
+
+      const msgs = readNewTranscriptMessages(transcriptFile, '2026-03-12T10:00:00.000Z');
+      expect(msgs).toHaveLength(1);
+      expect(msgs[0].content).toBe('New message');
+    });
+
+    it('readNewTranscriptMessages skips tool_use-only messages', () => {
+      const transcriptFile = path.join(tmpDir, 'test3.jsonl');
+      const lines = [
+        JSON.stringify({ type: 'assistant', timestamp: '2026-03-12T10:00:01.000Z', message: { role: 'assistant', content: [{ type: 'tool_use', id: 't1', name: 'Read', input: {} }] } }),
+      ];
+      fs.writeFileSync(transcriptFile, lines.join('\n'), 'utf8');
+
+      const msgs = readNewTranscriptMessages(transcriptFile, '');
+      expect(msgs).toHaveLength(0);
+    });
+
+    it('readNewTranscriptMessages truncates long text to 500 chars', () => {
+      const transcriptFile = path.join(tmpDir, 'test4.jsonl');
+      const longText = 'A'.repeat(600);
+      const lines = [
+        JSON.stringify({ type: 'assistant', timestamp: '2026-03-12T10:00:01.000Z', message: { role: 'assistant', content: [{ type: 'text', text: longText }] } }),
+      ];
+      fs.writeFileSync(transcriptFile, lines.join('\n'), 'utf8');
+
+      const msgs = readNewTranscriptMessages(transcriptFile, '');
+      expect(msgs).toHaveLength(1);
+      expect(msgs[0].content).toHaveLength(503); // 500 + '...'
+      expect(msgs[0].content.endsWith('...')).toBe(true);
+      expect(msgs[0].importance).toBe(7); // >200 chars
+    });
+
+    it('readNewTranscriptMessages handles malformed lines gracefully', () => {
+      const transcriptFile = path.join(tmpDir, 'test5.jsonl');
+      const lines = [
+        'not json at all',
+        JSON.stringify({ type: 'assistant', timestamp: '2026-03-12T10:00:01.000Z', message: { role: 'assistant', content: [{ type: 'text', text: 'Valid' }] } }),
+        '{broken json',
+      ];
+      fs.writeFileSync(transcriptFile, lines.join('\n'), 'utf8');
+
+      const msgs = readNewTranscriptMessages(transcriptFile, '');
+      expect(msgs).toHaveLength(1);
+      expect(msgs[0].content).toBe('Valid');
+    });
+
+    it('readNewTranscriptMessages joins multiple text blocks', () => {
+      const transcriptFile = path.join(tmpDir, 'test6.jsonl');
+      const lines = [
+        JSON.stringify({ type: 'assistant', timestamp: '2026-03-12T10:00:01.000Z', message: { role: 'assistant', content: [{ type: 'text', text: 'Part 1' }, { type: 'tool_use', id: 't1', name: 'Read', input: {} }, { type: 'text', text: 'Part 2' }] } }),
+      ];
+      fs.writeFileSync(transcriptFile, lines.join('\n'), 'utf8');
+
+      const msgs = readNewTranscriptMessages(transcriptFile, '');
+      expect(msgs).toHaveLength(1);
+      expect(msgs[0].content).toBe('Part 1\nPart 2');
     });
   });
 });
