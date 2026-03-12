@@ -55,6 +55,9 @@ import { strategyCommand } from './cli/commands/strategy.js';
 import { desiresCommand } from './cli/commands/desires.js';
 import { governanceCommand } from './cli/commands/governance.js';
 import { reportCommand } from './cli/commands/report.js';
+import { conversationCommand } from './cli/commands/conversation.js';
+import { browserCommand } from './cli/commands/browser.js';
+import { botCommand } from './cli/commands/bot.js';
 import { getCurrentVersion } from './cli/update-check.js';
 
 const program = new Command();
@@ -101,6 +104,9 @@ program.addCommand(strategyCommand());
 program.addCommand(desiresCommand());
 program.addCommand(governanceCommand());
 program.addCommand(reportCommand());
+program.addCommand(conversationCommand());
+program.addCommand(browserCommand());
+program.addCommand(botCommand());
 
 // Hidden command: run MCP server (called by Claude Code)
 program

@@ -78,6 +78,8 @@ export type {
   MemoryEngineConfig,
 } from './memory/types.js';
 export { BaseMemoryEngine } from './memory/base-memory-engine.js';
+export { ConversationMemory, runConversationMemoryMigration } from './memory/conversation-memory.js';
+export type { ConversationMemoryConfig, Memory, RememberOptions, RecallOptions, SessionSummary, MemorySearchResult, ConversationMemoryStatus, MemoryRAGAdapter, MemoryJournalAdapter, MemoryKnowledgeGraphAdapter } from './memory/conversation-memory.js';
 
 // ── Dashboard ────────────────────────────────────────────
 export { DashboardServer } from './dashboard/server.js';
@@ -146,7 +148,7 @@ export type { CausalEvent, CausalEdge, CausalPath, CausalAnalysis, CausalInterve
 
 // ── Hypothesis Engine ────────────────────────────────────
 export { HypothesisEngine, runHypothesisMigration } from './hypothesis/engine.js';
-export type { Hypothesis, HypothesisStatus, HypothesisCondition, HypothesisTestResult, Observation } from './hypothesis/engine.js';
+export type { Hypothesis, HypothesisStatus, HypothesisCondition, HypothesisTestResult, HypothesisSurvivalMetrics, Observation } from './hypothesis/engine.js';
 
 // ── Self-Observer ───────────────────────────────────────
 export { SelfObserver, runSelfObserverMigration } from './research/self-observer.js';
@@ -608,9 +610,17 @@ export type { AdaptiveSchedulerConfig, AdaptiveSchedulerStatus, SchedulerBucket,
 export { CycleOutcomeTracker, fingerprint, runCycleOutcomeMigration } from './research/cycle-outcome-tracker.js';
 export type { CycleOutcomeRecord, CycleClassification, CycleRates, CycleOutcomeRow } from './research/cycle-outcome-tracker.js';
 
+// ── Autonomous Research Loop ────────────────────────────
+export { AutonomousResearchLoop, runAutonomousResearchMigration } from './research/autonomous-research-loop.js';
+export type { AutonomousResearchConfig as AutonomousLoopConfig, AutonomousResearchStatus, AutonomousResearchResult, AutonomousResearchSources } from './research/autonomous-research-loop.js';
+
 // ── Chat Engine ──────────────────────────────────────────
-export { ChatEngine, runChatMigration, MultiBrainRouter } from './chat/index.js';
-export type { ChatMessage, ChatEngineConfig, ChatEngineStatus, MultiBrainRoute, MultiBrainResponse, AggregatedResponse } from './chat/index.js';
+export { ChatEngine, runChatMigration, MultiBrainRouter, BrainBot, runBrainBotMigration } from './chat/index.js';
+export type { ChatMessage, ChatEngineConfig, ChatEngineStatus, MultiBrainRoute, MultiBrainResponse, AggregatedResponse, BrainBotConfig, BotMessage, BotResponse, DiscordEmbed, BrainBotStatus } from './chat/index.js';
+
+// ── Browser Agent ───────────────────────────────────────
+export { BrowserAgent, StallDetector, runBrowserAgentMigration, parseLLMActions, buildBrowserSystemPrompt, buildStepPrompt } from './browser/browser-agent.js';
+export type { BrowserAgentConfig, BrowserAction, BrowserActionType, BrowserTaskResult, BrowserStepResult, ActionResult, DOMElement, PageState, BrowserAgentStatus, BrowserActionPlanner, PlannerContext, PlannerResult } from './browser/browser-agent.js';
 
 // ── Governance ──────────────────────────────────────────
 export { EngineRegistry, runEngineRegistryMigration, getDefaultEngineProfiles } from './governance/index.js';

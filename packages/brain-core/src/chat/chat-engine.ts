@@ -58,6 +58,7 @@ export class ChatEngine {
   private availableRoutes: string[] = [];
   private multiBrainRouter = new MultiBrainRouter();
   private crossBrainQuery: ((brain: string, method: string, params?: unknown) => Promise<unknown>) | null = null;
+  private conversationMemory: import('../memory/conversation-memory.js').ConversationMemory | null = null;
 
   private readonly stmtInsert;
   private readonly stmtGetSession;
@@ -91,6 +92,11 @@ export class ChatEngine {
   /** Set the cross-brain query function for multi-brain chat. */
   setCrossBrainQuery(fn: (brain: string, method: string, params?: unknown) => Promise<unknown>): void {
     this.crossBrainQuery = fn;
+  }
+
+  /** Set ConversationMemory for auto-remembering chat interactions. */
+  setConversationMemory(memory: import('../memory/conversation-memory.js').ConversationMemory): void {
+    this.conversationMemory = memory;
   }
 
   /** Process a multi-brain query — routes message to 1+ brains and aggregates results. */
@@ -185,6 +191,21 @@ export class ChatEngine {
       timestamp: Date.now(),
     };
     this.storeMessage(assistantMsg);
+
+    // Auto-remember significant chat interactions
+    if (this.conversationMemory && responseContent.length > 50) {
+      try {
+        const route = this.matchRoute(content);
+        this.conversationMemory.remember(
+          `[${sessionId}] Q: ${content.slice(0, 100)} → A: ${responseContent.slice(0, 200)}`,
+          {
+            category: 'context',
+            importance: 5,
+            tags: ['chat', route ?? 'unknown'],
+          },
+        );
+      } catch { /* best effort */ }
+    }
 
     return assistantMsg;
   }

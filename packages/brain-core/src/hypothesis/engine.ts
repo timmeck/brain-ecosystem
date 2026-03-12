@@ -37,6 +37,30 @@ export interface HypothesisTestResult {
   newStatus: HypothesisStatus;
 }
 
+export interface HypothesisSurvivalMetrics {
+  /** Median time from creation to rejection (ms). null if no rejections yet. */
+  medianSurvivalMs: number | null;
+  /** 90th percentile survival time (ms). */
+  p90SurvivalMs: number | null;
+  /** Longest surviving hypothesis (still confirmed). */
+  longestSurvivorMs: number | null;
+  longestSurvivorStatement: string | null;
+  /** Hypotheses confirmed then later rejected (pattern drift detection). */
+  confirmedThenRejected: number;
+  /** Rejections per day (learning velocity). */
+  rejectionsPerDay: number;
+  /** Total rejected. */
+  totalRejected: number;
+  /** Total confirmed still alive. */
+  totalConfirmedAlive: number;
+  /** Survival times for all rejected hypotheses (ms), sorted ascending. */
+  rejectedSurvivalTimes: number[];
+  /** Average survival time of rejected hypotheses (ms). */
+  avgRejectedSurvivalMs: number | null;
+  /** Days of data available. */
+  dataSpanDays: number;
+}
+
 export interface Observation {
   source: string;
   type: string;
@@ -337,6 +361,102 @@ export class HypothesisEngine {
       inconclusive: statusMap['inconclusive'] ?? 0,
       totalObservations: obsCount,
       topConfirmed,
+    };
+  }
+
+  // ── Survival Metrics (ChatGPT-inspired) ─────────
+
+  /**
+   * Hypothesis Survival Time — the single most important metric.
+   *
+   * Shows whether Brain formulates better hypotheses over time:
+   * - Short survival → weak hypotheses (too easy to reject)
+   * - Infinite survival → falsification broken
+   * - Slowly increasing median → Brain is learning
+   *
+   * Also tracks "confirmed → rejected" (pattern drift detection).
+   */
+  getSurvivalMetrics(): HypothesisSurvivalMetrics {
+    // Get all rejected hypotheses with survival times
+    const rejected = this.db.prepare(`
+      SELECT
+        id, statement, created_at, tested_at,
+        CAST((julianday(COALESCE(tested_at, datetime('now'))) - julianday(created_at)) * 86400000 AS INTEGER) as survival_ms
+      FROM hypotheses
+      WHERE status = 'rejected' AND created_at IS NOT NULL
+      ORDER BY survival_ms ASC
+    `).all() as Array<{ id: number; statement: string; survival_ms: number }>;
+
+    const survivalTimes = rejected.map(r => Math.max(0, r.survival_ms));
+
+    // Median + P90
+    let medianMs: number | null = null;
+    let p90Ms: number | null = null;
+    if (survivalTimes.length > 0) {
+      const sorted = [...survivalTimes].sort((a, b) => a - b);
+      medianMs = sorted[Math.floor(sorted.length / 2)]!;
+      p90Ms = sorted[Math.floor(sorted.length * 0.9)]!;
+    }
+
+    // Average
+    const avgMs = survivalTimes.length > 0
+      ? survivalTimes.reduce((a, b) => a + b, 0) / survivalTimes.length
+      : null;
+
+    // Longest surviving confirmed hypothesis (still alive)
+    const longestAlive = this.db.prepare(`
+      SELECT
+        statement,
+        CAST((julianday(datetime('now')) - julianday(created_at)) * 86400000 AS INTEGER) as age_ms
+      FROM hypotheses
+      WHERE status = 'confirmed' AND created_at IS NOT NULL
+      ORDER BY age_ms DESC
+      LIMIT 1
+    `).get() as { statement: string; age_ms: number } | undefined;
+
+    // Confirmed → rejected count (pattern drift)
+    // These are hypotheses that were confirmed at some point (evidence_for > 0) but later rejected
+    const driftCount = (this.db.prepare(`
+      SELECT COUNT(*) as c FROM hypotheses
+      WHERE status = 'rejected' AND evidence_for > 0
+    `).get() as { c: number }).c;
+
+    // Total confirmed alive
+    const confirmedAlive = (this.db.prepare(
+      "SELECT COUNT(*) as c FROM hypotheses WHERE status = 'confirmed'",
+    ).get() as { c: number }).c;
+
+    // Data span (days between first and last hypothesis)
+    const span = this.db.prepare(`
+      SELECT
+        MIN(created_at) as first_at,
+        MAX(created_at) as last_at
+      FROM hypotheses
+      WHERE created_at IS NOT NULL
+    `).get() as { first_at: string | null; last_at: string | null };
+
+    let dataSpanDays = 0;
+    if (span?.first_at && span?.last_at) {
+      const first = new Date(span.first_at).getTime();
+      const last = new Date(span.last_at).getTime();
+      dataSpanDays = Math.max(0.01, (last - first) / 86_400_000);
+    }
+
+    // Rejections per day
+    const rejectionsPerDay = dataSpanDays > 0 ? rejected.length / dataSpanDays : 0;
+
+    return {
+      medianSurvivalMs: medianMs,
+      p90SurvivalMs: p90Ms,
+      longestSurvivorMs: longestAlive?.age_ms ?? null,
+      longestSurvivorStatement: longestAlive?.statement ?? null,
+      confirmedThenRejected: driftCount,
+      rejectionsPerDay,
+      totalRejected: rejected.length,
+      totalConfirmedAlive: confirmedAlive,
+      rejectedSurvivalTimes: survivalTimes,
+      avgRejectedSurvivalMs: avgMs,
+      dataSpanDays,
     };
   }
 

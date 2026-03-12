@@ -85,6 +85,15 @@ async function main(): Promise<void> {
 
     // Acknowledge all so they don't repeat
     await client.request('notification.ackAll');
+
+    // Inject Conversation Memory context
+    try {
+      const context = await client.request('convo.context') as string;
+      if (context && context.trim().length > 20) {
+        console.log('');
+        console.log(context);
+      }
+    } catch { /* ConversationMemory not available */ }
   } catch {
     // Brain daemon not running or unreachable — silent, never block workflow
   } finally {

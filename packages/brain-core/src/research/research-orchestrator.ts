@@ -154,6 +154,7 @@ export class ResearchOrchestrator {
   private governanceLayer: import('../governance/governance-layer.js').GovernanceLayer | null = null;
   private adaptiveScheduler: AdaptiveScheduler | null = null;
   private cycleOutcomeTracker: import('./cycle-outcome-tracker.js').CycleOutcomeTracker | null = null;
+  private conversationMemory: import('../memory/conversation-memory.js').ConversationMemory | null = null;
   private lastAutoMissionTime = 0;
   private lastGoalMissionTime = 0;
   private roadmapBootstrapped = false;
@@ -226,6 +227,11 @@ export class ResearchOrchestrator {
   /** Set the CycleOutcomeTracker for long-term cycle metrics. */
   setCycleOutcomeTracker(tracker: import('./cycle-outcome-tracker.js').CycleOutcomeTracker): void {
     this.cycleOutcomeTracker = tracker;
+  }
+
+  /** Set ConversationMemory for auto-remembering cycle outcomes. */
+  setConversationMemory(memory: import('../memory/conversation-memory.js').ConversationMemory): void {
+    this.conversationMemory = memory;
   }
 
   /** Get the AdaptiveScheduler instance. */
@@ -3336,6 +3342,29 @@ export class ResearchOrchestrator {
       } catch (err) {
         this.log.debug(`[orchestrator] CycleOutcomeTracker error: ${(err as Error).message}`);
       }
+    }
+
+    // Auto-remember notable cycles in ConversationMemory
+    if (this.conversationMemory) {
+      try {
+        const hypSummary2 = this.hypothesisEngine.getSummary();
+        const notable = insights.length > 0 || (hypSummary2.confirmed ?? 0) > 0;
+        if (notable) {
+          const summary = [
+            `Cycle #${this.cycleCount}: ${insights.length} insights`,
+            hypSummary2.confirmed ? `${hypSummary2.confirmed} hypotheses confirmed` : null,
+            hypSummary2.rejected ? `${hypSummary2.rejected} rejected` : null,
+            `${Math.round(duration / 1000)}s`,
+          ].filter(Boolean).join(', ');
+          this.conversationMemory.remember(summary, {
+            category: 'fact',
+            key: `cycle_${this.cycleCount}`,
+            importance: (hypSummary2.confirmed ?? 0) > 0 ? 8 : 6,
+            tags: ['cycle', 'autonomous', this.brainName],
+            source: 'inferred',
+          });
+        }
+      } catch { /* best effort */ }
     }
 
     // Step-profiling summary: log slow steps if any

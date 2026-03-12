@@ -26,6 +26,9 @@ import {
   CrossBrainSignalRouter, runSignalRouterMigration,
   ChatEngine, runChatMigration,
   SubAgentFactory, runSubAgentMigration,
+  ConversationMemory, runConversationMemoryMigration,
+  BrowserAgent, runBrowserAgentMigration,
+  BrainBot, runBrainBotMigration,
   EngineRegistry, getDefaultEngineProfiles,
   RuntimeInfluenceTracker,
   LoopDetector,
@@ -63,6 +66,9 @@ export interface IntelligenceResult {
   telegramBot: TelegramBot;
   discordBot: DiscordBot;
   patternExtractor: PatternExtractor | undefined;
+  conversationMemory: ConversationMemory;
+  browserAgent: BrowserAgent;
+  brainBot: BrainBot;
 }
 
 // ── Intelligence Upgrade (Sessions 55-76) ────────────────
@@ -338,6 +344,25 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
   const subAgentFactory = new SubAgentFactory(db);
   services.subAgentFactory = subAgentFactory;
 
+  // ConversationMemory — long-term session memory (SQLite + FTS5 + RAG)
+  runConversationMemoryMigration(db);
+  const conversationMemory = new ConversationMemory(db);
+  if (services.ragEngine) conversationMemory.setRAG(services.ragEngine);
+  if (services.journal) conversationMemory.setJournal(services.journal as any);
+  if (services.knowledgeGraph) conversationMemory.setKnowledgeGraph(services.knowledgeGraph);
+  services.conversationMemory = conversationMemory;
+
+  // BrowserAgent — LLM-steered autonomous browser (Playwright + StallDetector)
+  runBrowserAgentMigration(db);
+  const browserAgent = new BrowserAgent(db);
+  services.browserAgent = browserAgent;
+
+  // BrainBot — Discord/Telegram bridge to ChatEngine
+  runBrainBotMigration(db);
+  const brainBot = new BrainBot(db);
+  brainBot.setChatEngine(chatEngine);
+  services.brainBot = brainBot;
+
   // 116. EngineRegistry — formal engine profiles for governance
   const engineRegistry = new EngineRegistry(db);
   for (const profile of getDefaultEngineProfiles()) {
@@ -391,6 +416,10 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
   orchestrator.setRuntimeInfluenceTracker(runtimeInfluenceTracker);
   orchestrator.setLoopDetector(loopDetector);
   orchestrator.setGovernanceLayer(governanceLayer);
+  orchestrator.setConversationMemory(conversationMemory);
+
+  // Wire ConversationMemory into ChatEngine for auto-remembering interactions
+  chatEngine.setConversationMemory(conversationMemory);
 
   logger.info('Intelligence upgrade active (RAG, KG, Compression, Feedback, Tool-Learning, Proactive, UserModel, CodeHealth, Teaching, Consensus, ActiveLearning, RepoAbsorber, Guardrails, CausalPlanner, Roadmap, Creative, EngineRegistry, InfluenceTracker — all wired into orchestrator)');
 
@@ -491,5 +520,8 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
     telegramBot,
     discordBot,
     patternExtractor,
+    conversationMemory,
+    browserAgent,
+    brainBot,
   };
 }

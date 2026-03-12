@@ -253,6 +253,36 @@ export function renderMarkdown(data: Record<string, Any>): string {
     ln();
   }
 
+  // --- 3b. Hypothesis Survival Metrics ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const survival = data.hypothesisSurvival as any;
+  if (survival && typeof survival === 'object' && survival.totalRejected != null) {
+    ln('### Survival Metrics');
+    ln();
+    const fmtMs = (ms: number | null): string => {
+      if (ms == null) return '—';
+      if (ms < 3_600_000) return `${(ms / 60_000).toFixed(0)}min`;
+      if (ms < 86_400_000) return `${(ms / 3_600_000).toFixed(1)}h`;
+      return `${(ms / 86_400_000).toFixed(1)}d`;
+    };
+    ln(`| Metric | Value |`);
+    ln(`|--------|-------|`);
+    ln(`| Median survival (rejected) | ${fmtMs(survival.medianSurvivalMs)} |`);
+    ln(`| P90 survival (rejected) | ${fmtMs(survival.p90SurvivalMs)} |`);
+    ln(`| Avg survival (rejected) | ${fmtMs(survival.avgRejectedSurvivalMs)} |`);
+    ln(`| Longest confirmed survivor | ${fmtMs(survival.longestSurvivorMs)} |`);
+    ln(`| Confirmed → Rejected (drift) | ${survival.confirmedThenRejected ?? 0} |`);
+    ln(`| Rejections/day (velocity) | ${(survival.rejectionsPerDay ?? 0).toFixed(1)} |`);
+    ln(`| Total rejected | ${survival.totalRejected ?? 0} |`);
+    ln(`| Total confirmed alive | ${survival.totalConfirmedAlive ?? 0} |`);
+    ln(`| Data span | ${(survival.dataSpanDays ?? 0).toFixed(1)} days |`);
+    ln();
+    if (survival.longestSurvivorStatement) {
+      ln(`*Longest survivor:* "${(survival.longestSurvivorStatement as string).slice(0, 120)}"`);
+      ln();
+    }
+  }
+
   // --- 4. Prediction Accuracy ---
   ln('## 4. Prediction Accuracy');
   ln();
@@ -455,6 +485,7 @@ export function reportCommand(): Command {
           borgStatus,
           experimentStatus,
           governanceStatus,
+          hypothesisSurvival,
         ] = await Promise.all([
           safe(client.request('analytics.summary', {})),
           safe(client.request('desires.structured', {})),
@@ -471,6 +502,7 @@ export function reportCommand(): Command {
           safe(client.request('borg.status', {})),
           safe(client.request('autoexperiment.status', {})),
           safe(client.request('governance.status', {})),
+          safe(client.request('hypothesis.survival', {})),
         ]);
 
         const data = {
@@ -489,6 +521,7 @@ export function reportCommand(): Command {
           borgStatus,
           experimentStatus,
           governanceStatus,
+          hypothesisSurvival,
         };
 
         const markdown = renderMarkdown(data);

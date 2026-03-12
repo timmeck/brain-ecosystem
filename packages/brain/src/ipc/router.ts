@@ -176,6 +176,9 @@ export interface Services {
   adaptiveScheduler?: import('@timmeck/brain-core').AdaptiveScheduler;
   tokenBudgetTracker?: import('@timmeck/brain-core').EngineTokenBudgetTracker;
   cycleOutcomeTracker?: import('@timmeck/brain-core').CycleOutcomeTracker;
+  conversationMemory?: import('@timmeck/brain-core').ConversationMemory;
+  browserAgent?: import('@timmeck/brain-core').BrowserAgent;
+  brainBot?: import('@timmeck/brain-core').BrainBot;
 }
 
 type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
@@ -561,6 +564,7 @@ export class IpcRouter {
       ['hypothesis.list',     (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.list(p(params)?.status, p(params)?.limit); }],
       ['hypothesis.summary',  () => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.getSummary(); }],
       ['hypothesis.propose',  (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.propose(p(params)); }],
+      ['hypothesis.survival', () => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.getSurvivalMetrics(); }],
 
       // ─── Autonomous Research ─────────────────────────────
       ['research.status',      () => { if (!s.researchScheduler) throw new Error('Research scheduler not available'); return s.researchScheduler.getStatus(); }],
@@ -1313,6 +1317,27 @@ export class IpcRouter {
         if (!s.orchestrator) throw new Error('Orchestrator not available');
         return s.orchestrator.getDesireFeedbackStats();
       }],
+
+      // ─── Conversation Memory ──────────────────────────────
+      ['convo.remember',         (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.remember(p(params).content, p(params)); }],
+      ['convo.recall',           async (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.recall(p(params).query, p(params)); }],
+      ['convo.search',           (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.searchText(p(params).query); }],
+      ['convo.context',          (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.buildContext(p(params)); }],
+      ['convo.important',        (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.getImportant(p(params)?.limit, p(params)?.minImportance); }],
+      ['convo.by_category',      (params) => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.getByCategory(p(params).category, p(params)?.limit); }],
+      ['convo.status',           () => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.getStatus(); }],
+      ['convo.maintenance',      () => { if (!s.conversationMemory) throw new Error('ConversationMemory not available'); return s.conversationMemory.maintenance(); }],
+
+      // ─── Browser Agent ───────────────────────────────────
+      ['browser.execute',        async (params) => { if (!s.browserAgent) throw new Error('BrowserAgent not available'); return s.browserAgent.executeTask(p(params).taskId, p(params).actions); }],
+      ['browser.run',            async (params) => { if (!s.browserAgent) throw new Error('BrowserAgent not available'); return s.browserAgent.runAutonomous(p(params).taskId, p(params).task); }],
+      ['browser.status',         () => { if (!s.browserAgent) throw new Error('BrowserAgent not available'); return s.browserAgent.getStatus(); }],
+      ['browser.shutdown',       async () => { if (!s.browserAgent) throw new Error('BrowserAgent not available'); await s.browserAgent.shutdown(); return { shutdown: true }; }],
+
+      // ─── Brain Bot ──────────────────────────────────────
+      ['bot.message',            async (params) => { if (!s.brainBot) throw new Error('BrainBot not available'); return s.brainBot.processMessage(p(params)); }],
+      ['bot.commands',           () => { if (!s.brainBot) throw new Error('BrainBot not available'); return s.brainBot.getCommandDefinitions(); }],
+      ['bot.status',             () => { if (!s.brainBot) throw new Error('BrainBot not available'); return s.brainBot.getStatus(); }],
 
       // System
       ['system.memory',           () => s.memoryWatchdog?.getStats() ?? { currentMB: Math.round(process.memoryUsage().heapUsed / 1048576), peakMB: 0, trend: 'stable', leakSuspected: false, samples: 0 }],

@@ -33,6 +33,8 @@ import { registerLLMTools } from './llm-tools.js';
 import { registerMissionTools } from './mission-tools.js';
 import { registerTechRadarTools } from './techradar-tools.js';
 import { registerIntelligenceTools } from './intelligence-tools.js';
+import { registerConversationMemoryTools } from './conversation-memory-tools.js';
+import { registerBrowserAgentTools } from './browser-agent-tools.js';
 import { registerPrompts } from './prompts.js';
 
 export async function startMcpServer(): Promise<void> {
@@ -73,6 +75,8 @@ export async function startMcpServer(): Promise<void> {
       registerMissionTools(server, ipc);
       registerTechRadarTools(server, ipc);
       registerIntelligenceTools(server, ipc);
+      registerConversationMemoryTools(server, ipc);
+      registerBrowserAgentTools(server, ipc);
     },
     registerPrompts,
   });

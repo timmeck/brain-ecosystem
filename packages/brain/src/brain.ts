@@ -65,7 +65,7 @@ import { McpHttpServer } from './mcp/http-server.js';
 import { EmbeddingEngine } from './embeddings/engine.js';
 
 // Cross-Brain
-import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine, GuardrailEngine, CausalPlanner, ResearchRoadmap, CreativeEngine, TelegramBot, DiscordBot, MemoryWatchdog, AdaptiveScheduler, EngineTokenBudgetTracker, CycleOutcomeTracker, runCycleOutcomeMigration } from '@timmeck/brain-core';
+import { CrossBrainClient, CrossBrainNotifier, CrossBrainSubscriptionManager, CrossBrainCorrelator, EcosystemService, WebhookService, ExportService, BackupService, AutonomousResearchScheduler, ResearchOrchestrator, DataMiner, BrainDataMinerAdapter, ScannerDataMinerAdapter, BootstrapService, DreamEngine, ThoughtStream, PredictionEngine, AttentionEngine, TransferEngine, NarrativeEngine, CuriosityEngine, EmergenceEngine, DebateEngine, ParameterRegistry, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, DataScout, runDataScoutMigration, GitHubTrendingAdapter, NpmStatsAdapter, HackerNewsAdapter, SimulationEngine, runSimulationMigration, MemoryPalace, GoalEngine, EvolutionEngine, runEvolutionMigration, ReasoningEngine, EmotionalModel, SelfScanner, SelfModificationEngine, ConceptAbstraction, PeerNetwork, LLMService, OllamaProvider, ResearchMissionEngine, runMissionMigration, BraveSearchAdapter, JinaReaderAdapter, PlaywrightAdapter, FirecrawlAdapter, CommandCenterServer, WatchdogService, createDefaultWatchdogConfig, PluginRegistry, BorgSyncEngine, GuardrailEngine, CausalPlanner, ResearchRoadmap, CreativeEngine, TelegramBot, DiscordBot, MemoryWatchdog, AdaptiveScheduler, EngineTokenBudgetTracker, CycleOutcomeTracker, runCycleOutcomeMigration, ConversationMemory, BrowserAgent, BrainBot } from '@timmeck/brain-core';
 import type { BorgDataProvider, SyncItem, HypothesisStatus, ExperimentStatus, AnomalyType } from '@timmeck/brain-core';
 
 // Init modules (extracted from God-Class)
@@ -105,6 +105,9 @@ export class BrainCore {
   private creativeEngine: CreativeEngine | null = null;
   private telegramBot: TelegramBot | null = null;
   private discordBot: DiscordBot | null = null;
+  private conversationMemory: ConversationMemory | null = null;
+  private browserAgent: BrowserAgent | null = null;
+  private brainBot: BrainBot | null = null;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   private retentionTimer: ReturnType<typeof setInterval> | null = null;
   private config: BrainConfig | null = null;
@@ -800,6 +803,9 @@ export class BrainCore {
     this.creativeEngine = intelligenceResult.creativeEngine;
     this.telegramBot = intelligenceResult.telegramBot;
     this.discordBot = intelligenceResult.discordBot;
+    this.conversationMemory = intelligenceResult.conversationMemory;
+    this.browserAgent = intelligenceResult.browserAgent;
+    this.brainBot = intelligenceResult.brainBot;
     const chatEngine = services.chatEngine!;
 
     // Per-engine token budget tracking
@@ -903,6 +909,13 @@ export class BrainCore {
 
     // Wire subscription manager into IPC router
     router.setSubscriptionManager(this.subscriptionManager, this.ipcServer);
+
+    // Wire BrainBot to IPC dispatch for Discord/Telegram → Brain routing
+    if (this.brainBot) {
+      this.brainBot.setIpcDispatch(async (route: string, payload?: Record<string, unknown>) => {
+        return router.handle(route, payload) as Promise<Record<string, unknown>>;
+      });
+    }
 
     // 12c. Plugin Registry — load community plugins (registry created at 11d)
     this.pluginRegistry!.loadAll((name) => ({
@@ -1009,6 +1022,7 @@ export class BrainCore {
     runRetentionHelper(this.db!, config);
     this.retentionTimer = setInterval(() => {
       if (this.db && this.config) runRetentionHelper(this.db, this.config);
+      this.conversationMemory?.maintenance();
     }, 24 * 60 * 60 * 1000);
 
     // 13. Event listeners (synapse wiring)

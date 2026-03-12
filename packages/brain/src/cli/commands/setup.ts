@@ -22,7 +22,7 @@ function skip(label: string, detail?: string): void {
 }
 
 function step(n: number, label: string): void {
-  console.log(`\n  ${c.cyan(`[${n}/6]`)} ${c.value(label)}`);
+  console.log(`\n  ${c.cyan(`[${n}/7]`)} ${c.value(label)}`);
 }
 
 function resolveHookPath(): string {
@@ -62,13 +62,159 @@ function ensureDir(dir: string): void {
   }
 }
 
+// ── Integration Check Helpers ─────────────────────────────
+
+interface IntegrationStatus {
+  name: string;
+  configured: boolean;
+  detail: string;
+  envVar?: string;
+  hint?: string;
+}
+
+async function checkIntegrations(): Promise<IntegrationStatus[]> {
+  const results: IntegrationStatus[] = [];
+
+  // 1. Anthropic API Key
+  const anthropicKey = process.env['ANTHROPIC_API_KEY'];
+  results.push({
+    name: 'Anthropic API',
+    configured: !!anthropicKey && anthropicKey.startsWith('sk-ant-'),
+    detail: anthropicKey ? `Key: ${anthropicKey.slice(0, 12)}...` : 'Not set',
+    envVar: 'ANTHROPIC_API_KEY',
+    hint: 'Required for LLM features. Get key at console.anthropic.com',
+  });
+
+  // 2. Brave Search API
+  const braveKey = process.env['BRAVE_SEARCH_API_KEY'];
+  results.push({
+    name: 'Brave Search',
+    configured: !!braveKey && braveKey.length > 10,
+    detail: braveKey ? `Key: ${braveKey.slice(0, 8)}...` : 'Not set',
+    envVar: 'BRAVE_SEARCH_API_KEY',
+    hint: 'Required for web research. Get key at brave.com/search/api',
+  });
+
+  // 3. GitHub Token
+  const ghToken = process.env['GITHUB_TOKEN'];
+  results.push({
+    name: 'GitHub Token',
+    configured: !!ghToken && ghToken.length > 10,
+    detail: ghToken ? `Token: ${ghToken.slice(0, 12)}...` : 'Not set',
+    envVar: 'GITHUB_TOKEN',
+    hint: 'Optional for TechRadar repo scanning. Generate at github.com/settings/tokens',
+  });
+
+  // 4. Ollama
+  let ollamaOk = false;
+  let ollamaDetail = 'Not reachable';
+  try {
+    const res = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const data = await res.json() as { models?: Array<{ name: string }> };
+      const models = data.models ?? [];
+      ollamaOk = models.length > 0;
+      ollamaDetail = ollamaOk ? `${models.length} model(s): ${models.slice(0, 3).map(m => m.name).join(', ')}` : 'Running but no models installed';
+    }
+  } catch { /* not running */ }
+  results.push({
+    name: 'Ollama (local LLM)',
+    configured: ollamaOk,
+    detail: ollamaDetail,
+    hint: 'Optional free local LLM. Install: ollama.com → ollama pull qwen3:14b',
+  });
+
+  // 5. Playwright
+  let playwrightOk = false;
+  let playwrightDetail = 'Not installed';
+  try {
+    const pwPath = 'playwright';
+    const pw = await import(/* webpackIgnore: true */ pwPath);
+    if (pw.chromium) {
+      playwrightOk = true;
+      playwrightDetail = 'Chromium available';
+    }
+  } catch { /* not installed */ }
+  results.push({
+    name: 'Playwright',
+    configured: playwrightOk,
+    detail: playwrightDetail,
+    hint: 'Optional for advanced web scraping. Install: npx playwright install chromium',
+  });
+
+  // 6. Discord Webhook
+  const discordUrl = process.env['DISCORD_WEBHOOK_URL'];
+  results.push({
+    name: 'Discord Notifications',
+    configured: !!discordUrl && discordUrl.includes('discord.com/api/webhooks'),
+    detail: discordUrl ? 'Webhook configured' : 'Not set',
+    envVar: 'DISCORD_WEBHOOK_URL',
+    hint: 'Optional notifications. Create webhook in Discord server settings',
+  });
+
+  // 7. Telegram Bot
+  const tgToken = process.env['TELEGRAM_BOT_TOKEN'];
+  const tgChat = process.env['TELEGRAM_CHAT_ID'];
+  results.push({
+    name: 'Telegram Notifications',
+    configured: !!tgToken && !!tgChat,
+    detail: tgToken ? (tgChat ? 'Bot + Chat ID configured' : 'Bot token set, missing TELEGRAM_CHAT_ID') : 'Not set',
+    envVar: 'TELEGRAM_BOT_TOKEN',
+    hint: 'Optional notifications. Create bot via @BotFather',
+  });
+
+  // 8. Bluesky
+  const bskyHandle = process.env['BLUESKY_HANDLE'];
+  const bskyPass = process.env['BLUESKY_PASSWORD'];
+  results.push({
+    name: 'Bluesky (social)',
+    configured: !!bskyHandle && !!bskyPass,
+    detail: bskyHandle ? `Handle: ${bskyHandle}` : 'Not set',
+    envVar: 'BLUESKY_HANDLE',
+    hint: 'Optional for social publishing. Set BLUESKY_HANDLE + BLUESKY_PASSWORD',
+  });
+
+  return results;
+}
+
+function renderIntegrationStatus(integrations: IntegrationStatus[]): void {
+  const configured = integrations.filter(i => i.configured).length;
+  console.log(`\n  ${c.cyan('Integrations:')} ${c.value(`${configured}/${integrations.length} configured`)}\n`);
+
+  for (const i of integrations) {
+    if (i.configured) {
+      pass(i.name, i.detail);
+    } else {
+      fail(i.name, i.detail);
+      if (i.envVar) {
+        console.log(`    ${c.dim(`→ Set ${i.envVar} in .env`)}`);
+      }
+      if (i.hint) {
+        console.log(`    ${c.dim(`→ ${i.hint}`)}`);
+      }
+    }
+  }
+}
+
 export function setupCommand(): Command {
-  return new Command('setup')
+  const cmd = new Command('setup')
     .description('One-command setup: configures MCP, hooks, and starts the daemon')
     .option('--no-daemon', 'Skip starting the daemon')
     .option('--no-hooks', 'Skip hook configuration')
     .option('--dry-run', 'Show what would be done without making changes')
-    .action(async (opts) => {
+    .option('--check', 'Show integration status without making changes');
+
+  cmd.action(async (opts) => {
+    // ── --check mode: just show integration status ──────
+    if (opts.check) {
+      console.log(header('Brain Integration Status', icons.brain));
+      const integrations = await checkIntegrations();
+      renderIntegrationStatus(integrations);
+      console.log(`\n${divider()}`);
+      return;
+    }
+
+    // ── Normal setup wizard ─────────────────────────────
       console.log(header('Brain Setup Wizard', icons.brain));
       console.log();
       console.log(`  ${c.dim('Platform:')} ${c.value(process.platform)}  ${c.dim('Node:')} ${c.value(process.version)}  ${c.dim('Arch:')} ${c.value(process.arch)}`);
@@ -284,6 +430,26 @@ export function setupCommand(): Command {
         }
       }
 
+      // ── Step 7: Integration Status ─────────────────────────
+      step(7, 'Optional Integrations');
+      if (opts.dryRun) {
+        skip('Would check optional integrations');
+      } else {
+        const integrations = await checkIntegrations();
+        const configured = integrations.filter(i => i.configured).length;
+        console.log(`  ${c.dim(`${configured}/${integrations.length} optional integrations active`)}`);
+        for (const i of integrations) {
+          if (i.configured) {
+            pass(i.name, i.detail);
+          } else {
+            skip(i.name, i.hint ?? 'Not configured');
+          }
+        }
+        if (configured < integrations.length) {
+          console.log(`\n    ${c.dim(`Run ${c.cyan('brain setup --check')} for detailed integration guide`)}`);
+        }
+      }
+
       // ── Summary ─────────────────────────────────────────────
       console.log();
       if (opts.dryRun) {
@@ -303,4 +469,6 @@ export function setupCommand(): Command {
 
       console.log(`\n${divider()}`);
     });
+
+  return cmd;
 }
