@@ -255,6 +255,24 @@ export class AutonomousResearchScheduler {
       const rejected = tested.filter(t => t.newStatus === 'rejected');
       this.logger.info(`[research] Phase 3: ${tested.length} tested, ${confirmed.length} confirmed, ${rejected.length} rejected`);
 
+      // Phase 3.5: Meta-Learning Observations — record domain accuracy + explorer/exploiter ratio
+      try {
+        const calibration = this.hypothesisEngine.getDomainCalibration();
+        if (calibration.length > 0) {
+          this.metaLearning.recordDomainAccuracy(calibration);
+        }
+        const summary = this.hypothesisEngine.getSummary();
+        const explorative = (summary.proposed ?? 0) + (summary.testing ?? 0);
+        const exploitative = summary.confirmed ?? 0;
+        this.metaLearning.recordExplorerExploiterRatio(explorative, exploitative);
+        const principles = this.metaLearning.generatePrinciples();
+        if (principles.length > 0) {
+          this.logger.info(`[research] Phase 3.5: ${principles.length} new meta-principle(s) generated`);
+        }
+      } catch (err) {
+        this.logger.debug(`[research] Phase 3.5 observation failed: ${(err as Error).message}`);
+      }
+
       // Phase 4: Meta-Learning Optimization — tune parameters
       const optimized = this.metaLearning.optimize();
       if (optimized.length > 0) {

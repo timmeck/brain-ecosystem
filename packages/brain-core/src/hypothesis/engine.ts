@@ -293,13 +293,20 @@ export class HypothesisEngine {
     }
 
     const previousStatus = hyp.status;
+    const evidenceChanged = result.evidenceFor !== (hyp.evidence_for ?? 0) || result.evidenceAgainst !== (hyp.evidence_against ?? 0);
+    const statusChanged = newStatus !== previousStatus;
+
+    // Only update tested_at when evidence or status actually changed.
+    // This prevents resetting the 72h force-evaluation timer on no-op re-tests.
+    const testedAtClause = (evidenceChanged || statusChanged) ? "tested_at = datetime('now')," : '';
 
     // Update in DB
     this.db.prepare(`
       UPDATE hypotheses SET
         evidence_for = ?, evidence_against = ?,
         confidence = ?, p_value = ?, status = ?,
-        tested_at = datetime('now')
+        ${testedAtClause}
+        id = id
       WHERE id = ?
     `).run(result.evidenceFor, result.evidenceAgainst, confidence, result.pValue, newStatus, hypothesisId);
 
@@ -362,6 +369,16 @@ export class HypothesisEngine {
         AND CAST(evidence_for AS REAL) / (evidence_for + evidence_against) < 0.5
     `).run(rejectHours, this.minEvidence);
     rejected += inconclusiveReject.changes;
+
+    // Zero-evidence hypotheses older than rejectHours (by creation date) → auto-reject
+    // These are hypotheses that were generated but never attracted any observations.
+    const zeroEvidenceReject = this.db.prepare(`
+      UPDATE hypotheses SET status = 'rejected', tested_at = datetime('now')
+      WHERE status = 'testing'
+        AND evidence_for = 0 AND evidence_against = 0
+        AND created_at < datetime('now', '-' || ? || ' hours')
+    `).run(rejectHours);
+    rejected += zeroEvidenceReject.changes;
 
     // 48h+ still testing → mark inconclusive
     const forceResult = this.db.prepare(`

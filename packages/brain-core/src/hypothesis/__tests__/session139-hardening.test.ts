@@ -218,4 +218,40 @@ describe('Session 139 — Hypothesis Hardening', () => {
       expect(onEmergence).not.toHaveBeenCalled();
     });
   });
+
+  describe('testing graveyard cleanup', () => {
+    it('auto-rejects zero-evidence hypotheses older than 72h', () => {
+      // Insert a hypothesis with zero evidence and old created_at
+      db.prepare(`INSERT INTO hypotheses (statement, type, source, domain, variables, condition, status, evidence_for, evidence_against, confidence, p_value, created_at, tested_at)
+        VALUES ('old zero evidence', 'temporal', 'test', 'general', '[]', '{"type":"temporal","params":{"peakHour":0,"variable":"x"}}', 'testing', 0, 0, 0, 1, datetime('now', '-4 days'), datetime('now', '-1 hour'))`).run();
+
+      engine.testAll();
+
+      const result = db.prepare("SELECT status FROM hypotheses WHERE statement = 'old zero evidence'").get() as { status: string };
+      expect(result.status).toBe('rejected');
+    });
+
+    it('does not reject zero-evidence hypotheses newer than 72h', () => {
+      db.prepare(`INSERT INTO hypotheses (statement, type, source, domain, variables, condition, status, evidence_for, evidence_against, confidence, p_value, created_at, tested_at)
+        VALUES ('new zero evidence', 'temporal', 'test', 'general', '[]', '{"type":"temporal","params":{"peakHour":0,"variable":"x"}}', 'testing', 0, 0, 0, 1, datetime('now', '-1 day'), datetime('now', '-1 hour'))`).run();
+
+      engine.testAll();
+
+      const result = db.prepare("SELECT status FROM hypotheses WHERE statement = 'new zero evidence'").get() as { status: string };
+      expect(result.status).toBe('testing');
+    });
+
+    it('does not reset tested_at on no-op re-test', () => {
+      // Insert a hypothesis with no matching observations — tested_at should not change
+      db.prepare(`INSERT INTO hypotheses (statement, type, source, domain, variables, condition, status, evidence_for, evidence_against, confidence, p_value, tested_at)
+        VALUES ('no-op test', 'temporal', 'test', 'general', '["nonexistent_metric"]', '{"type":"temporal","params":{"peakHour":14,"variable":"nonexistent_metric"}}', 'testing', 0, 0, 0, 1, datetime('now', '-2 days'))`).run();
+
+      const before = db.prepare("SELECT tested_at FROM hypotheses WHERE statement = 'no-op test'").get() as { tested_at: string };
+
+      engine.test((db.prepare("SELECT id FROM hypotheses WHERE statement = 'no-op test'").get() as { id: number }).id);
+
+      const after = db.prepare("SELECT tested_at FROM hypotheses WHERE statement = 'no-op test'").get() as { tested_at: string };
+      expect(after.tested_at).toBe(before.tested_at);
+    });
+  });
 });
