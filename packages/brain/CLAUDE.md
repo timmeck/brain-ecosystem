@@ -4,7 +4,7 @@ Adaptive error memory & code intelligence MCP server. Part of the Brain Ecosyste
 
 ## Quick Reference
 
-- **Package:** `@timmeck/brain` v2.1.0
+- **Package:** `@timmeck/brain` v3.36.88
 - **Binary:** `brain`
 - **Ports:** 7777 (REST API), 7778 (MCP HTTP/SSE)
 - **Data:** `~/.brain/` (SQLite, PID file, logs)
@@ -40,7 +40,7 @@ brain codeforge        CodeForge patterns, products, apply, status
 brain strategy         Strategy list, create, performance, evolve
 ```
 
-## MCP Tools (48)
+## MCP Tools (280)
 
 `brain_report_error`, `brain_query_error`, `brain_report_solution`, `brain_report_attempt`,
 `brain_find_reusable_code`, `brain_register_code`, `brain_check_code_similarity`,
@@ -83,7 +83,7 @@ Key directories: `src/cli/commands/`, `src/mcp/`, `src/db/`, `src/learning/`, `s
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (588 tests across 59 test files)
+npm test               # Vitest (603 tests across 59 test files)
 npm run lint           # ESLint
 npm run dev            # Run via tsx (no build needed)
 ```

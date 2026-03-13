@@ -53,7 +53,7 @@ export { deepMerge, loadConfigFile } from './config/loader.js';
 // ── Synapses ──────────────────────────────────────────────
 export type {
   NodeRef, SynapseRecord, ActivationResult, PathNode, SynapsePath,
-  NetworkStats, HebbianConfig, DecayConfig, SynapseRepoInterface,
+  NetworkStats, HebbianConfig, DecayConfig, SynapseRepoInterface, SignalScores,
 } from './synapses/types.js';
 export type { SynapseManagerConfig } from './synapses/synapse-manager.js';
 export { strengthen, weaken } from './synapses/hebbian.js';

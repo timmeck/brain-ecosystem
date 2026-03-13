@@ -1,6 +1,6 @@
 import type {
   NodeRef, SynapseRecord, ActivationResult, SynapsePath,
-  NetworkStats, SynapseRepoInterface,
+  NetworkStats, SynapseRepoInterface, SignalScores,
 } from './types.js';
 import type { HebbianConfig, DecayConfig } from './types.js';
 import { strengthen, weaken } from './hebbian.js';
@@ -37,9 +37,10 @@ export class BaseSynapseManager {
     target: NodeRef,
     synapseType: string,
     context?: Record<string, unknown>,
+    scores?: SignalScores,
   ): SynapseRecord {
     this.logger.debug(`Strengthening synapse ${source.type}:${source.id} --${synapseType}--> ${target.type}:${target.id}`);
-    return strengthen(this.repo, source, target, synapseType, this.hebbianConfig(), context);
+    return strengthen(this.repo, source, target, synapseType, this.hebbianConfig(), context, scores);
   }
 
   weaken(synapseId: number, factor: number = 0.5): void {

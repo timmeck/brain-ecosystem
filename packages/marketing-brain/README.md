@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Self-Learning Marketing Intelligence System for Claude Code — 177 MCP Tools, 72+ Engines**
+**Self-Learning Marketing Intelligence System for Claude Code — 177 MCP Tools, 117+ Engines**
 
-Marketing Brain is an MCP server that gives Claude Code a persistent marketing memory. It tracks every post you publish, learns what works across 6 platforms, and builds a Hebbian synapse network connecting posts, campaigns, strategies, templates, and insights. Live social feeds from Bluesky + Reddit. Over time, it learns your best-performing patterns, generates content drafts, schedules posts, analyzes competitors, and runs 72+ autonomous engines in a 68-step feedback cycle to discover engagement patterns, reason about causality, evolve strategies genetically, and improve itself. Full intelligence suite: RAG, Knowledge Graph, feedback learning, tool tracking, user model, proactive suggestions. Multi-provider LLM (Anthropic + Ollama). FeedbackRouter closes the learning-to-action gap by routing dead-end data to ActionBridge proposals. AutoPublisher enables autonomous content scheduling and publishing. Engine Governance with formal profiles, runtime influence tracking, 4 anti-pattern detectors, and active control (throttle/cooldown/isolate/escalate/restore). 411 tests. Workflow checkpointing, structured LLM output, observability tracing, agent training, dynamic tool scoping.
+Marketing Brain is an MCP server that gives Claude Code a persistent marketing memory. It tracks every post you publish, learns what works across 6 platforms, and builds a Hebbian synapse network connecting posts, campaigns, strategies, templates, and insights. Live social feeds from Bluesky + Reddit. Over time, it learns your best-performing patterns, generates content drafts, schedules posts, analyzes competitors, and runs 117+ autonomous engines in a 68-step feedback cycle to discover engagement patterns, reason about causality, evolve strategies genetically, and improve itself. Full intelligence suite: RAG, Knowledge Graph, feedback learning, tool tracking, user model, proactive suggestions. Multi-provider LLM (Anthropic + Ollama). FeedbackRouter closes the learning-to-action gap by routing dead-end data to ActionBridge proposals. AutoPublisher enables autonomous content scheduling and publishing. Engine Governance with formal profiles, runtime influence tracking, 4 anti-pattern detectors, and active control (throttle/cooldown/isolate/escalate/restore). 411 tests. Workflow checkpointing, structured LLM output, observability tracing, agent training, dynamic tool scoping.
 
 ## Quick Start
 
@@ -53,7 +53,7 @@ That's it. One command configures MCP, hooks, and starts the daemon.
 - **Rate Limiting** — Per-hour and per-day token budgets with automatic throttling
 - **Usage Tracking** — Calls, tokens, latency, cache hit rate, cost tracking
 
-### 72+ Autonomous Engines
+### 117+ Autonomous Engines
 
 The ResearchOrchestrator runs a 51-step feedback cycle every 5 minutes:
 
@@ -89,7 +89,7 @@ DataMiner bootstraps all historical posts and engagement data at startup.
 | Dashboard | Port | What It Shows |
 |-----------|------|--------------|
 | **Marketing Dashboard** | 7783 | Interactive synapse graph, platform charts, top posts, insights |
-| **Command Center** | 7790 | 9-page: Ecosystem, Consciousness, Learning, Trading, Marketing, Intelligence, Cross-Brain, Debates, Infrastructure |
+| **Command Center** | 7790 | 13-page: Overview, Entity, Learning, Trading, Marketing, Intelligence, Cross-Brain, Activity, Debates, Desires, Forge, Infrastructure, Progress |
 
 ### Memory & Sessions
 - **Persistent Memory** — Preferences, decisions, context, facts, goals, lessons
@@ -101,7 +101,7 @@ DataMiner bootstraps all historical posts and engagement data at startup.
 - **MCP HTTP/SSE** — For Cursor, Windsurf, Cline, Continue (port 7782)
 - **REST API** — Full HTTP API on port 7781
 
-## MCP Tools (128 tools)
+## MCP Tools (177 tools)
 
 **Content**: marketing_post_draft, marketing_post_report, marketing_post_engagement, marketing_post_similar, marketing_extract_patterns, marketing_content_calendar
 
@@ -178,7 +178,7 @@ marketing config                 Configuration management
 | [Brain](../brain) | Error memory, code intelligence, full autonomy & self-modification | 7777 / 7778 / 7790 |
 | [Trading Brain](../trading-brain) | Adaptive trading intelligence with signal learning & paper trading | 7779 / 7780 |
 | **Marketing Brain** (this) | Content strategy, social engagement & cross-platform optimization | **7781** / 7782 / 7783 |
-| [Brain Core](../brain-core) | Shared infrastructure — 72+ engines | — |
+| [Brain Core](../brain-core) | Shared infrastructure — 117+ engines | — |
 
 ## Support
 

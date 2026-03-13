@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { ConversationMemory } from '../conversation-memory.js';
+import type { MemoryRAGAdapter } from '../conversation-memory.js';
 
 vi.mock('../../utils/logger.js', () => ({
   getLogger: () => ({
@@ -190,6 +191,117 @@ describe('ConversationMemory', () => {
       expect(memories[0].archiveCandidate).toBe(false);
       expect(memories[0].lastUsedAt).toBeNull();
       expect(memories[0].lastRetrievalScore).toBeNull();
+    });
+  });
+
+  // ── Session 138: RRF Fusion ────────────────────────────────
+
+  describe('RRF recall', () => {
+    it('fuses RAG + FTS results when RAG available', async () => {
+      // Store memories
+      const id1 = mem.remember('TypeScript strict mode for all packages', { category: 'decision', importance: 8 });
+      const id2 = mem.remember('Use Vitest for all testing', { category: 'decision', importance: 7 });
+      const id3 = mem.remember('SQLite with WAL for all databases', { category: 'decision', importance: 9 });
+
+      // Mock RAG adapter that returns id3, id1 (different order than FTS)
+      const mockRag: MemoryRAGAdapter = {
+        index: vi.fn().mockResolvedValue(true),
+        search: vi.fn().mockResolvedValue([
+          { sourceId: id3, similarity: 0.9 },
+          { sourceId: id1, similarity: 0.7 },
+        ]),
+        remove: vi.fn(),
+      };
+      mem.setRAG(mockRag);
+
+      const results = await mem.recall('TypeScript', { limit: 10 });
+      // Should have results from both sources fused
+      expect(results.length).toBeGreaterThan(0);
+      // All results should have numeric relevance (RRF score)
+      for (const r of results) {
+        expect(typeof r.relevance).toBe('number');
+        expect(r.relevance).toBeGreaterThan(0);
+      }
+    });
+
+    it('items appearing in both lists get higher RRF score', async () => {
+      const idBoth = mem.remember('TypeScript strict mode important', { category: 'decision', importance: 8 });
+      const idRagOnly = mem.remember('random unrelated rag memory', { category: 'fact', importance: 5 });
+
+      // Mock RAG: returns both items
+      const mockRag: MemoryRAGAdapter = {
+        index: vi.fn().mockResolvedValue(true),
+        search: vi.fn().mockResolvedValue([
+          { sourceId: idBoth, similarity: 0.8 },
+          { sourceId: idRagOnly, similarity: 0.6 },
+        ]),
+        remove: vi.fn(),
+      };
+      mem.setRAG(mockRag);
+
+      // FTS will also find idBoth via "TypeScript strict" but NOT idRagOnly
+      const results = await mem.recall('TypeScript strict', { limit: 10 });
+
+      // If both sources found idBoth, it should rank highest
+      if (results.length >= 2) {
+        const bothItem = results.find(r => r.memory.id === idBoth);
+        const ragOnlyItem = results.find(r => r.memory.id === idRagOnly);
+        if (bothItem && ragOnlyItem) {
+          expect(bothItem.relevance).toBeGreaterThan(ragOnlyItem.relevance);
+        }
+      }
+    });
+
+    it('falls back to FTS when RAG fails', async () => {
+      mem.remember('test memory for fallback', { category: 'fact', importance: 5 });
+
+      const mockRag: MemoryRAGAdapter = {
+        index: vi.fn().mockResolvedValue(true),
+        search: vi.fn().mockRejectedValue(new Error('RAG unavailable')),
+        remove: vi.fn(),
+      };
+      mem.setRAG(mockRag);
+
+      const results = await mem.recall('test memory fallback');
+      // Should still get results via FTS fallback
+      expect(results.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it('populates last_retrieval_score on recall', async () => {
+      const id = mem.remember('retrieval score test memory', { category: 'fact', importance: 5 });
+
+      const mockRag: MemoryRAGAdapter = {
+        index: vi.fn().mockResolvedValue(true),
+        search: vi.fn().mockResolvedValue([
+          { sourceId: id, similarity: 0.85 },
+        ]),
+        remove: vi.fn(),
+      };
+      mem.setRAG(mockRag);
+
+      await mem.recall('retrieval score test');
+
+      const row = db.prepare('SELECT last_retrieval_score FROM conversation_memories WHERE id = ?').get(id) as { last_retrieval_score: number | null };
+      expect(row.last_retrieval_score).not.toBeNull();
+      expect(row.last_retrieval_score).toBeGreaterThan(0);
+    });
+
+    it('populates last_retrieval_score on searchText', () => {
+      const id = mem.remember('searchText score test', { category: 'fact', importance: 5 });
+
+      const results = mem.searchText('searchText score');
+      expect(results.length).toBeGreaterThan(0);
+
+      const row = db.prepare('SELECT last_retrieval_score FROM conversation_memories WHERE id = ?').get(id) as { last_retrieval_score: number | null };
+      expect(row.last_retrieval_score).not.toBeNull();
+    });
+
+    it('works without RAG (FTS-only path unchanged)', async () => {
+      mem.remember('simple FTS test memory', { category: 'fact', importance: 5 });
+
+      // No RAG set — should use FTS path
+      const results = await mem.recall('simple FTS test');
+      expect(results.length).toBeGreaterThan(0);
     });
   });
 

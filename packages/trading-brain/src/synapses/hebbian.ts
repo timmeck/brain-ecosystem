@@ -2,12 +2,16 @@ import type { SynapseRecord } from '../db/repositories/synapse.repository.js';
 
 /**
  * Hebbian strengthen — "neurons that fire together wire together"
- * Asymptotic approach to 1.0: weight += (1 - weight) * learningRate
+ * Bounded multiplicative: w_new = min(1.0, w_old * (1 + learningRate))
+ *
+ * Unlike the old additive formula (w + (1-w)*rate) which saturated to ~1.0
+ * too fast, multiplicative growth preserves relative weight differences
+ * and doesn't collapse all synapses to the ceiling.
  */
 export function strengthen(synapse: Omit<SynapseRecord, 'created_at'>, learningRate: number): void {
   synapse.wins++;
   synapse.activations++;
-  synapse.weight += (1.0 - synapse.weight) * learningRate;
+  synapse.weight = Math.min(1.0, synapse.weight * (1 + learningRate));
   synapse.last_activated = new Date().toISOString();
 }
 

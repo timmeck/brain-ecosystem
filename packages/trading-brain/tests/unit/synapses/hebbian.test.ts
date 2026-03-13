@@ -20,11 +20,11 @@ function makeSynapse(overrides: Partial<SynapseData> = {}): SynapseData {
 
 describe('hebbian', () => {
   describe('strengthen', () => {
-    it('should increase weight asymptotically toward 1.0', () => {
+    it('should increase weight multiplicatively', () => {
       const syn = makeSynapse({ weight: 0.5 });
       strengthen(syn, 0.1);
 
-      // weight += (1.0 - 0.5) * 0.1 = 0.5 + 0.05 = 0.55
+      // weight = min(1.0, 0.5 * (1 + 0.1)) = 0.55
       expect(syn.weight).toBeCloseTo(0.55);
     });
 
@@ -56,7 +56,7 @@ describe('hebbian', () => {
       expect(syn.weight).toBeGreaterThan(0.99);
     });
 
-    it('should increase more for lower weights (more room to grow)', () => {
+    it('should increase more in absolute terms for higher weights (multiplicative)', () => {
       const lowSyn = makeSynapse({ weight: 0.2 });
       const highSyn = makeSynapse({ weight: 0.8 });
 
@@ -69,7 +69,9 @@ describe('hebbian', () => {
       const lowDelta = lowSyn.weight - lowBefore;
       const highDelta = highSyn.weight - highBefore;
 
-      expect(lowDelta).toBeGreaterThan(highDelta);
+      // Multiplicative: absolute delta is proportional to current weight
+      // 0.2 * 0.1 = 0.02 vs 0.8 * 0.1 = 0.08
+      expect(highDelta).toBeGreaterThan(lowDelta);
     });
 
     it('should handle zero learning rate', () => {

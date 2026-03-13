@@ -1,9 +1,16 @@
-import type { NodeRef, SynapseRecord, HebbianConfig, SynapseRepoInterface } from './types.js';
+import type { NodeRef, SynapseRecord, HebbianConfig, SignalScores, SynapseRepoInterface } from './types.js';
 
 /**
  * Hebbian learning: strengthen a synapse between two nodes.
- * If the synapse exists, weight grows asymptotically toward 1.0.
- * If new, creates with initialWeight.
+ * Uses multiplicative update: w_new = min(1.0, w_old * (1 + effectiveRate))
+ * where effectiveRate = learningRate * qualityFactor.
+ *
+ * Signal quality weighting: when scores are provided, the effective rate is
+ * scaled by sqrt(sourceScore * targetScore). Strong co-activations reinforce
+ * more than weak ones. Without scores, full learningRate applies.
+ *
+ * This replaces the old additive formula (w + (1-w) * rate) which converged
+ * too fast and saturated synapses to ~1.0 with little differentiation.
  */
 export function strengthen(
   repo: SynapseRepoInterface,
@@ -12,17 +19,21 @@ export function strengthen(
   synapseType: string,
   config: HebbianConfig,
   context?: Record<string, unknown>,
+  scores?: SignalScores,
 ): SynapseRecord {
   const existing = repo.findBySourceTarget(
     source.type, source.id, target.type, target.id, synapseType,
   );
 
+  // Quality factor: sqrt(sourceScore * targetScore), defaults to 1.0
+  const qualityFactor = scores
+    ? Math.sqrt(Math.max(0, scores.sourceScore) * Math.max(0, scores.targetScore))
+    : 1.0;
+  const effectiveRate = config.learningRate * qualityFactor;
+
   if (existing) {
-    // Hebbian: weight grows logarithmically, saturates at 1.0
-    const newWeight = Math.min(
-      1.0,
-      existing.weight + (1.0 - existing.weight) * config.learningRate,
-    );
+    // Multiplicative Hebbian: w *= (1 + effectiveRate), bounded at 1.0
+    const newWeight = Math.min(1.0, existing.weight * (1 + effectiveRate));
     repo.update(existing.id, {
       weight: newWeight,
       activation_count: existing.activation_count + 1,

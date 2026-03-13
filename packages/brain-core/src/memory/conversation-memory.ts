@@ -223,6 +223,7 @@ export class ConversationMemory {
   private readonly stmtSessionGet;
   private readonly stmtSessionCountMemories;
   private readonly stmtIncrementUseCount;
+  private readonly stmtUpdateRetrievalScore;
 
   constructor(db: Database.Database, config: ConversationMemoryConfig = {}) {
     this.db = db;
@@ -315,6 +316,11 @@ export class ConversationMemory {
       UPDATE conversation_memories SET use_count = use_count + 1, last_used_at = datetime('now')
       WHERE id = ?
     `);
+
+    this.stmtUpdateRetrievalScore = db.prepare(`
+      UPDATE conversation_memories SET last_retrieval_score = ?
+      WHERE id = ?
+    `);
   }
 
   // ── Setters ────────────────────────────────────────────
@@ -384,44 +390,142 @@ export class ConversationMemory {
 
   // ── Recall ────────────────────────────────────────────
 
-  /** Semantic search for memories. Uses RAG if available, falls back to FTS5. */
+  /**
+   * Search for memories using Reciprocal Rank Fusion (RRF).
+   * When RAG is available, runs both FTS5 + RAG and fuses results.
+   * When RAG unavailable, falls back to FTS5-only.
+   *
+   * RRF formula: score(d) = sum(1 / (k + rank(d, list_i)))
+   * where k=60 (standard constant from Cormack et al. 2009).
+   */
   async recall(query: string, options: RecallOptions = {}): Promise<MemorySearchResult[]> {
     const limit = options.limit ?? 10;
 
-    // Try RAG semantic search first
+    // When RAG available: run both sources and fuse with RRF
     if (this.rag) {
       try {
-        const ragResults = await this.rag.search(query, {
-          collections: [RAG_COLLECTION],
-          limit: limit * 2, // Get extra for filtering
-          threshold: 0.3,
-        });
+        const [ragResults, ftsResults] = await Promise.all([
+          this.ragSearch(query, options, limit * 3),
+          Promise.resolve(this.ftsSearch(query, options, limit * 3)),
+        ]);
 
-        const memories: MemorySearchResult[] = [];
-        for (const r of ragResults) {
-          const row = this.stmtGetById.get(r.sourceId) as Record<string, unknown> | undefined;
-          if (!row || !row.active) continue;
+        const fused = this.rrfFuse(ragResults, ftsResults, limit);
 
-          const mem = this.toMemory(row);
-          if (options.category && mem.category !== options.category) continue;
-          if (options.minImportance && mem.importance < options.minImportance) continue;
-          if (options.tags?.length && !options.tags.some(t => mem.tags.includes(t))) continue;
-
-          // Record access
-          this.stmtRecordAccess.run(mem.id);
-
-          memories.push({ memory: mem, relevance: r.similarity });
-          if (memories.length >= limit) break;
+        // Record access + store retrieval score
+        for (const r of fused) {
+          this.stmtRecordAccess.run(r.memory.id);
+          this.stmtUpdateRetrievalScore.run(r.relevance, r.memory.id);
         }
 
-        return memories;
+        return fused;
       } catch (err) {
-        this.log.debug(`[conversation-memory] RAG recall failed, falling back to FTS: ${(err as Error).message}`);
+        this.log.debug(`[conversation-memory] RRF recall failed, falling back to FTS: ${(err as Error).message}`);
       }
     }
 
-    // Fallback: FTS5 text search
+    // Fallback: FTS5 text search only
     return this.searchText(query, options);
+  }
+
+  /**
+   * Reciprocal Rank Fusion: merge two ranked lists into one.
+   * score(d) = sum(1 / (k + rank_i(d))) for each list containing d.
+   */
+  private rrfFuse(
+    listA: MemorySearchResult[],
+    listB: MemorySearchResult[],
+    limit: number,
+    k = 60,
+  ): MemorySearchResult[] {
+    const scores = new Map<number, { score: number; memory: Memory }>();
+
+    // Score from list A (RAG/semantic)
+    for (let rank = 0; rank < listA.length; rank++) {
+      const item = listA[rank];
+      const rrfScore = 1 / (k + rank + 1); // rank is 1-based in formula
+      const existing = scores.get(item.memory.id);
+      if (existing) {
+        existing.score += rrfScore;
+      } else {
+        scores.set(item.memory.id, { score: rrfScore, memory: item.memory });
+      }
+    }
+
+    // Score from list B (FTS)
+    for (let rank = 0; rank < listB.length; rank++) {
+      const item = listB[rank];
+      const rrfScore = 1 / (k + rank + 1);
+      const existing = scores.get(item.memory.id);
+      if (existing) {
+        existing.score += rrfScore;
+      } else {
+        scores.set(item.memory.id, { score: rrfScore, memory: item.memory });
+      }
+    }
+
+    // Sort by fused score descending, take top N
+    return Array.from(scores.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map(entry => ({ memory: entry.memory, relevance: entry.score }));
+  }
+
+  /** RAG semantic search — returns ranked list for RRF. */
+  private async ragSearch(
+    query: string,
+    options: RecallOptions,
+    fetchLimit: number,
+  ): Promise<MemorySearchResult[]> {
+    if (!this.rag) return [];
+
+    const ragResults = await this.rag.search(query, {
+      collections: [RAG_COLLECTION],
+      limit: fetchLimit,
+      threshold: 0.3,
+    });
+
+    const memories: MemorySearchResult[] = [];
+    for (const r of ragResults) {
+      const row = this.stmtGetById.get(r.sourceId) as Record<string, unknown> | undefined;
+      if (!row || !row.active) continue;
+
+      const mem = this.toMemory(row);
+      if (options.category && mem.category !== options.category) continue;
+      if (options.minImportance && mem.importance < options.minImportance) continue;
+      if (options.tags?.length && !options.tags.some(t => mem.tags.includes(t))) continue;
+
+      memories.push({ memory: mem, relevance: r.similarity });
+    }
+
+    return memories;
+  }
+
+  /** FTS5 text search — returns ranked list for RRF. No access tracking (done by caller). */
+  private ftsSearch(
+    query: string,
+    options: RecallOptions,
+    fetchLimit: number,
+  ): MemorySearchResult[] {
+    const ftsQuery = query.replace(/[^\w\s]/g, ' ').trim().split(/\s+/).filter(w => w.length > 1).join(' OR ');
+    if (!ftsQuery) return [];
+
+    try {
+      const rows = this.stmtSearch.all(ftsQuery, fetchLimit) as Array<Record<string, unknown>>;
+      const results: MemorySearchResult[] = [];
+
+      for (const row of rows) {
+        const mem = this.toMemory(row);
+        if (options.category && mem.category !== options.category) continue;
+        if (options.minImportance && mem.importance < options.minImportance) continue;
+        if (options.activeOnly !== false && !mem.active) continue;
+
+        results.push({ memory: mem, relevance: 0.5 });
+      }
+
+      return results;
+    } catch {
+      return [];
+    }
   }
 
   /** Full-text search (FTS5). Always available, no embeddings needed. */
@@ -443,7 +547,9 @@ export class ConversationMemory {
         if (options.activeOnly !== false && !mem.active) continue;
 
         this.stmtRecordAccess.run(mem.id);
-        results.push({ memory: mem, relevance: 0.5 }); // FTS doesn't give similarity score
+        const relevance = 0.5; // FTS doesn't give similarity score
+        this.stmtUpdateRetrievalScore.run(relevance, mem.id);
+        results.push({ memory: mem, relevance });
         if (results.length >= limit) break;
       }
 

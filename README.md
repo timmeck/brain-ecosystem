@@ -12,7 +12,7 @@
 
 ![Command Center](docs/assets/command-center.png)
 
-Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 61 autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing and falsifying them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama) with Vision (image analysis). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync across all 3 brains (local + planned internet sync). Plugin SDK for community brains. Causal inference with intervention planning. Multi-step research roadmaps with goal dependencies. Creative cross-domain idea generation. Self-protection guardrails with circuit breaker. Engine Governance with formal profiles, runtime influence tracking, anti-pattern detection (retrigger spirals, stagnation, KPI gaming, epistemic drift), and active control (throttle, cooldown, isolate, escalate, restore). Engine token budget tracking with per-engine LLM quotas. Cycle outcome tracking with productivity/efficiency curves. Natural language chat interface with multi-brain routing. Sub-agent specialization. Cross-brain signal routing. Autonomous content publishing. Strategy backtesting on historical OHLCV data. Strategy export/import for sharing between instances. Adaptive scheduling that speeds up productive hours and slows down idle ones. Strategy mutation and evolution. Portfolio optimization with Kelly criterion. Conversation Memory that records every Claude Code session and injects context into the next — Brain never forgets what you discussed. 12-page Command Center dashboard with live toggle buttons. Autonomous web research loop (curiosity-driven gap detection, mission planning, web extraction, insight synthesis). Self-tuning parameter registry with auto-sync. Hypothesis falsification pipeline with temporal holdout and drift detection. 635 MCP tools. 4,324 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
+Brain Ecosystem is a system of three specialized "brains" connected through a Hebbian synapse network. 117+ autonomous engines run in feedback loops — observing, detecting anomalies, forming hypotheses, testing and falsifying them statistically, distilling principles, dreaming, debating, reasoning in chains, feeling emotions, evolving strategies genetically, and modifying their own source code. Multi-provider LLM support (Anthropic + Ollama) with Vision (image analysis). Live market data via CCXT WebSocket. Social feeds via Bluesky + Reddit. Web research via Brave Search + Playwright + Firecrawl. Borg collective sync across all 3 brains (local + planned internet sync). Plugin SDK for community brains. Causal inference with intervention planning. Multi-step research roadmaps with goal dependencies. Creative cross-domain idea generation. Self-protection guardrails with circuit breaker. Engine Governance with formal profiles, runtime influence tracking, anti-pattern detection (retrigger spirals, stagnation, KPI gaming, epistemic drift), and active control (throttle, cooldown, isolate, escalate, restore). Engine token budget tracking with per-engine LLM quotas. Cycle outcome tracking with productivity/efficiency curves. Natural language chat interface with multi-brain routing. Sub-agent specialization. Cross-brain signal routing. Autonomous content publishing. Strategy backtesting on historical OHLCV data. Strategy export/import for sharing between instances. Adaptive scheduling that speeds up productive hours and slows down idle ones. Strategy mutation and evolution. Portfolio optimization with Kelly criterion. Conversation Memory that records every Claude Code session and injects context into the next — Brain never forgets what you discussed. 13-page Command Center dashboard with live toggle buttons. Autonomous web research loop (curiosity-driven gap detection, mission planning, web extraction, insight synthesis). Self-tuning parameter registry with auto-sync. Hypothesis falsification pipeline with temporal holdout and drift detection. 638 MCP tools. 4,378 tests. The brain literally thinks about itself, gets curious, runs experiments, absorbs code from other repos, and writes code to improve itself.
 
 ## Packages
 
@@ -21,7 +21,7 @@ Brain Ecosystem is a system of three specialized "brains" connected through a He
 | [@timmeck/brain](packages/brain) | [![npm](https://img.shields.io/npm/v/@timmeck/brain)](https://www.npmjs.com/package/@timmeck/brain) | Error memory, code intelligence, autonomous research & self-modification | 7777 / 7778 / 7790 |
 | [@timmeck/trading-brain](packages/trading-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/trading-brain)](https://www.npmjs.com/package/@timmeck/trading-brain) | Adaptive trading intelligence with signal learning, paper trading & live market data | 7779 / 7780 |
 | [@timmeck/marketing-brain](packages/marketing-brain) | [![npm](https://img.shields.io/npm/v/@timmeck/marketing-brain)](https://www.npmjs.com/package/@timmeck/marketing-brain) | Content strategy, social engagement & cross-platform optimization | 7781 / 7782 / 7783 |
-| [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure — 60+ engine/service classes, synapses, IPC, MCP, LLM, consciousness, governance, missions, notifications | — |
+| [@timmeck/brain-core](packages/brain-core) | [![npm](https://img.shields.io/npm/v/@timmeck/brain-core)](https://www.npmjs.com/package/@timmeck/brain-core) | Shared infrastructure — 117+ engine/service classes, synapses, IPC, MCP, LLM, consciousness, governance, missions, notifications | — |
 
 ## Quick Start
 
@@ -111,12 +111,12 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 ### Brain — Error Memory, Code Intelligence & Full Autonomy
 
-277 MCP tools. Remembers errors, learns solutions, runs 68-step autonomous research cycles, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, absorbs code from GitHub repos, extracts reusable features, and modifies its own code. ChatEngine provides natural language access to all subsystems with multi-brain routing. SubAgentFactory creates specialized agents for focused tasks.
+280 MCP tools. Remembers errors, learns solutions, runs 68-step autonomous research cycles, domain-specific prediction calibration, dreams, debates, challenges principles (Advocatus Diaboli), reasons, feels, absorbs code from GitHub repos, extracts reusable features, and modifies its own code. ChatEngine provides natural language access to all subsystems with multi-brain routing. SubAgentFactory creates specialized agents for focused tasks.
 
 - **Error Memory** — Track errors, match against known solutions with hybrid search (TF-IDF + vector + synapse boost)
 - **Code Intelligence** — Register and discover reusable code modules across all projects
 - **Persistent Memory** — Remember preferences, decisions, context, facts, goals, and lessons across sessions
-- **40+ Autonomous Engines** — SelfObserver, AnomalyDetective, HypothesisEngine, KnowledgeDistiller, CuriosityEngine, EmergenceEngine, DebateEngine, NarrativeEngine, ReasoningEngine, EmotionalModel, EvolutionEngine, GoalEngine, MemoryPalace, AttentionEngine, TransferEngine, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, SimulationEngine, DataScout, SelfScanner, SelfModificationEngine, ConceptAbstraction, SignalScanner, TechRadar, and more
+- **117+ Autonomous Engines** — SelfObserver, AnomalyDetective, HypothesisEngine, KnowledgeDistiller, CuriosityEngine, EmergenceEngine, DebateEngine, NarrativeEngine, ReasoningEngine, EmotionalModel, EvolutionEngine, GoalEngine, MemoryPalace, AttentionEngine, TransferEngine, MetaCognitionLayer, AutoExperimentEngine, SelfTestEngine, TeachEngine, SimulationEngine, DataScout, SelfScanner, SelfModificationEngine, ConceptAbstraction, SignalScanner, TechRadar, and more
 - **Dream Mode** — Offline memory consolidation: replay, prune, compress, fact extraction, decay during idle
 - **LLM Service** — Multi-provider AI support (Anthropic Claude + Ollama local models), auto-routing, caching, rate limiting, budget tracking
 - **Research Missions** — 5-phase autonomous web research: decompose, gather, hypothesize, analyze, synthesize
@@ -131,10 +131,10 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 
 | Dashboard | Port | Description |
 |-----------|------|-------------|
-| **Command Center** | 7790 | 9-page ecosystem dashboard: Ecosystem, Consciousness, Learning, Trading, Marketing, Intelligence, Cross-Brain, Debates & Challenges, Infrastructure |
+| **Command Center** | 7790 | 13-page ecosystem dashboard: Overview, Entity, Learning, Trading, Marketing, Intelligence, Cross-Brain, Activity, Debates, Desires, Forge, Infrastructure, Progress |
 
 
-- **Command Center** — Live overview of the entire ecosystem: all 3 brains, 72+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, Borg network with animated sync packets, debate history, Advocatus Diaboli challenges with resilience bars, LLM usage, thought stream
+- **Command Center** — Live overview of the entire ecosystem: all 3 brains, 117+ engines, error log, self-modification feed, research missions, knowledge growth chart, engine dependency flow, quick actions, Borg network with animated sync packets, debate history, Advocatus Diaboli challenges with resilience bars, LLM usage, thought stream
 
 ### Trading Brain — Adaptive Trading Intelligence
 
@@ -147,7 +147,7 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 - **Backtesting Engine** — Run backtests on historical trades or strategies on OHLCV data, compare signals, Sharpe/PF/MaxDD/Equity Curve
 - **Strategy Export/Import** — Share strategies as portable JSON between instances
 - **Risk Management** — Kelly Criterion position sizing, drawdown tracking
-- **40+ Autonomous Engines** — Same full engine suite as Brain, with trading-specific DataMiner
+- **117+ Autonomous Engines** — Same full engine suite as Brain, with trading-specific DataMiner
 
 ### Marketing Brain — Self-Learning Marketing Intelligence
 
@@ -159,11 +159,11 @@ Most AI tools forget everything between sessions. Brain doesn't. It builds a per
 - **Content Generation** — Draft posts from learned patterns, rules, and templates
 - **Scheduling Engine** — Post queue with optimal auto-timing
 - **Cross-Platform** — Optimize for X, LinkedIn, Reddit, Bluesky, Mastodon, Threads
-- **40+ Autonomous Engines** — Same full engine suite as Brain, with marketing-specific DataMiner
+- **117+ Autonomous Engines** — Same full engine suite as Brain, with marketing-specific DataMiner
 
 ### Autonomous Research Layer
 
-All three brains share 61 autonomous engine/service classes via Brain Core:
+All three brains share 117+ autonomous engine/service classes via Brain Core:
 
 - **65-Step Feedback Loop** — ResearchOrchestrator runs with adaptive scheduling (2-15 min intervals): observe → hypothesize → experiment → measure → distill → adapt → absorb → resolve contradictions
 - **Self-Improvement** — HypothesisEngine generates theories, AutoExperiment tests them, AdaptiveStrategy applies winners
@@ -183,7 +183,7 @@ Brain Core provides the building blocks all brains share:
 | **REST** | Base API server with CORS, auth, RPC |
 | **LLM** | Multi-provider AI (Anthropic + Ollama), caching, rate limiting |
 | **Synapses** | Hebbian learning network connecting all knowledge |
-| **Engines** | 40 autonomous engines + 20 forge/service classes |
+| **Engines** | 117+ autonomous engines and service classes |
 | **Watchdog** | Daemon monitoring, auto-restart, health checks |
 | **Notifications** | Discord, Telegram, Email multi-channel alerts |
 | **Missions** | 5-phase autonomous web research pipeline |
@@ -235,9 +235,9 @@ Brain Core provides the building blocks all brains share:
 
 | Metric | Claimed | Measured |
 |--------|---------|----------|
-| Autonomous engines (brain-core) | 80+ | 40 engine classes + 20 forge/service classes + 4 governance modules = 64 unique |
-| MCP tools | 635 | 635 (brain: 277, trading: 181, marketing: 177) |
-| Test suite | 4,324 | 4,324 tests across 322 files (100% pass rate) |
+| Autonomous engines (brain-core) | 117+ | 117 exported engine/service/manager classes |
+| MCP tools | 638 | 638 (brain: 280, trading: 181, marketing: 177) |
+| Test suite | 4,378 | 4,378 tests across 328 files (100% pass rate) |
 
 ### Paper Trading (Live)
 
@@ -494,7 +494,7 @@ git clone https://github.com/timmeck/brain-ecosystem.git
 cd brain-ecosystem
 npm install          # installs all workspace dependencies
 npm run build        # builds all packages (brain-core first)
-npm test             # runs all 4,324 tests
+npm test             # runs all 4,378 tests
 ```
 
 ### Package Dependencies
@@ -520,7 +520,7 @@ brain-core          (no internal deps)
 - **Playwright** — Headless browser for web research
 - **Commander** — CLI framework
 - **Winston** — Structured logging with file rotation
-- **Vitest** — 4,324 tests across 322 test files
+- **Vitest** — 4,378 tests across 328 test files
 
 ## Docker (Optional)
 

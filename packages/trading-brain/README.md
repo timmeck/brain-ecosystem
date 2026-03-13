@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Adaptive Trading Intelligence & Signal Learning System for Claude Code — 181 MCP Tools, 72+ Engines**
+**Adaptive Trading Intelligence & Signal Learning System for Claude Code — 181 MCP Tools, 117+ Engines**
 
-Trading Brain is an MCP server that gives Claude Code a persistent trading memory. It learns from every trade outcome — strengthening connections between signals, strategies, and results through a Hebbian synapse network ("signals that win together wire together"). Paper trading with live market data (CoinGecko, Yahoo Finance, CCXT WebSocket). Over time, it develops statistical confidence in signal combinations, adapts calibration parameters, and runs 72+ autonomous engines in a 68-step feedback cycle to discover patterns, reason about causality, evolve strategies genetically, and improve itself. Full intelligence suite: RAG, Knowledge Graph, feedback learning, tool tracking, user model, proactive suggestions. Multi-provider LLM (Anthropic + Ollama). PortfolioOptimizer with Kelly criterion position sizing and HHI diversification scoring. StrategyMutator for evolutionary strategy breeding (mutation, crossover, tournament selection). Engine Governance with formal profiles, runtime influence tracking, 4 anti-pattern detectors, and active control (throttle/cooldown/isolate/escalate/restore). 518 tests. Workflow checkpointing, structured LLM output, observability tracing, agent training, dynamic tool scoping.
+Trading Brain is an MCP server that gives Claude Code a persistent trading memory. It learns from every trade outcome — strengthening connections between signals, strategies, and results through a Hebbian synapse network ("signals that win together wire together"). Paper trading with live market data (CoinGecko, Yahoo Finance, CCXT WebSocket). Over time, it develops statistical confidence in signal combinations, adapts calibration parameters, and runs 117+ autonomous engines in a 68-step feedback cycle to discover patterns, reason about causality, evolve strategies genetically, and improve itself. Full intelligence suite: RAG, Knowledge Graph, feedback learning, tool tracking, user model, proactive suggestions. Multi-provider LLM (Anthropic + Ollama). PortfolioOptimizer with Kelly criterion position sizing and HHI diversification scoring. StrategyMutator for evolutionary strategy breeding (mutation, crossover, tournament selection). Engine Governance with formal profiles, runtime influence tracking, 4 anti-pattern detectors, and active control (throttle/cooldown/isolate/escalate/restore). 518 tests. Workflow checkpointing, structured LLM output, observability tracing, agent training, dynamic tool scoping.
 
 ## Quick Start
 
@@ -52,7 +52,7 @@ That's it. One command configures MCP, hooks, and starts the daemon.
 - **Rate Limiting** — Per-hour and per-day token budgets with automatic throttling
 - **Usage Tracking** — Calls, tokens, latency, cache hit rate, cost tracking
 
-### 72+ Autonomous Engines
+### 117+ Autonomous Engines
 
 The ResearchOrchestrator runs a 51-step feedback cycle every 5 minutes:
 
@@ -87,7 +87,7 @@ DataMiner bootstraps all historical trades into engines at startup.
 
 | Dashboard | Port | What It Shows |
 |-----------|------|--------------|
-| **Command Center** | 7790 | 9-page: Ecosystem, Consciousness, Learning, Trading, Marketing, Intelligence, Cross-Brain, Debates, Infrastructure |
+| **Command Center** | 7790 | 13-page: Overview, Entity, Learning, Trading, Marketing, Intelligence, Cross-Brain, Activity, Debates, Desires, Forge, Infrastructure, Progress |
 
 ### Memory & Sessions
 - **Persistent Memory** — Preferences, decisions, context, facts, goals, lessons
@@ -99,7 +99,7 @@ DataMiner bootstraps all historical trades into engines at startup.
 - **MCP HTTP/SSE** — For Cursor, Windsurf, Cline, Continue (port 7780)
 - **REST API** — Full HTTP API on port 7779
 
-## MCP Tools (128 tools)
+## MCP Tools (181 tools)
 
 **Trading Core**: trading_record_outcome, trading_signal_weights, trading_signal_confidence, trading_explain_signal, trading_dca_multiplier, trading_grid_params, trading_calibration, trading_calibration_history, trading_rules, trading_chains, trading_query, trading_learn, trading_reset
 
@@ -162,7 +162,7 @@ trading import <file>      Import trades from JSON
 | [Brain](../brain) | Error memory, code intelligence, full autonomy & self-modification | 7777 / 7778 / 7790 |
 | **Trading Brain** (this) | Adaptive trading intelligence with signal learning & paper trading | **7779** / 7780 |
 | [Marketing Brain](../marketing-brain) | Content strategy, social engagement & cross-platform optimization | 7781 / 7782 / 7783 |
-| [Brain Core](../brain-core) | Shared infrastructure — 72+ engines | — |
+| [Brain Core](../brain-core) | Shared infrastructure — 117+ engines | — |
 
 ## Support
 

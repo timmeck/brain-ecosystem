@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/timmeck/brain-ecosystem?style=social)](https://github.com/timmeck/brain-ecosystem)
 
-**Autonomous Error Memory, Code Intelligence & Self-Improving AI for Claude Code — 277 MCP Tools, 72+ Engines**
+**Autonomous Error Memory, Code Intelligence & Self-Improving AI for Claude Code — 280 MCP Tools, 117+ Engines**
 
-Brain is an MCP server that gives Claude Code a persistent, self-improving memory. It remembers errors, learns solutions, and runs 72+ autonomous engines in a 68-step feedback cycle. It observes itself, detects anomalies, forms and tests hypotheses, distills principles, reasons in chains, feels emotions, evolves strategies genetically, debates itself, challenges its own principles (Advocatus Diaboli), gets curious about knowledge gaps, syncs knowledge via Borg collective, loads community plugins, absorbs code from GitHub repos, extracts reusable features, recommends missing features, governs its own engine dynamics (detecting stagnation, retrigger spirals, KPI gaming), and modifies its own source code. Multi-provider LLM (Anthropic + Ollama). RAG vector search across all knowledge. Knowledge Graph with transitive inference. RLHF feedback learning. Tool-use learning. User modeling. Proactive suggestions. Code assimilation with feature extraction + recommendation. Autonomous web research missions. Live tech radar scanning. Engine Governance with 25 formal profiles, runtime influence tracking, 4 anti-pattern detectors, and active control (throttle/cooldown/isolate/escalate/restore). ChatEngine provides natural language access to all subsystems via NLU routing. SubAgentFactory creates specialized agents for focused tasks. 277 MCP tools. 588 tests.
+Brain is an MCP server that gives Claude Code a persistent, self-improving memory. It remembers errors, learns solutions, and runs 117+ autonomous engines in a 68-step feedback cycle. It observes itself, detects anomalies, forms and tests hypotheses, distills principles, reasons in chains, feels emotions, evolves strategies genetically, debates itself, challenges its own principles (Advocatus Diaboli), gets curious about knowledge gaps, syncs knowledge via Borg collective, loads community plugins, absorbs code from GitHub repos, extracts reusable features, recommends missing features, governs its own engine dynamics (detecting stagnation, retrigger spirals, KPI gaming), and modifies its own source code. Multi-provider LLM (Anthropic + Ollama). RAG vector search across all knowledge. Knowledge Graph with transitive inference. RLHF feedback learning. Tool-use learning. User modeling. Proactive suggestions. Code assimilation with feature extraction + recommendation. Autonomous web research missions. Live tech radar scanning. Engine Governance with 25 formal profiles, runtime influence tracking, 4 anti-pattern detectors, and active control (throttle/cooldown/isolate/escalate/restore). ChatEngine provides natural language access to all subsystems via NLU routing. SubAgentFactory creates specialized agents for focused tasks. 280 MCP tools. 603 tests.
 
 ## Quick Start
 
@@ -27,7 +27,7 @@ Browser ────────HTTP──────►  Command Center  (:779
                                     │
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
-              Error Memory    Research Engine   72+ Engines
+              Error Memory    Research Engine   117+ Engines
               Code Intel      Mission Engine    ResearchOrchestrator
               Synapse Net     LLM Service       51-step feedback loop
               Prevention      Web Research          │
@@ -77,7 +77,7 @@ Cross-brain communication via IPC named pipes (trading-brain, marketing-brain).
 - **LLM Relevance Scoring** — AI judges how relevant each finding is to your stack
 - **Digest Generation** — Daily summaries of what's new and relevant
 
-### 72+ Autonomous Engines
+### 117+ Autonomous Engines
 
 The ResearchOrchestrator runs a 51-step feedback cycle every 5 minutes:
 
@@ -215,21 +215,25 @@ Automatic anomaly response system:
 
 ### Command Center Dashboard (:7790)
 
-9-page live dashboard showing the entire ecosystem:
+13-page live dashboard showing the entire ecosystem:
 
 | Page | What It Shows |
 |------|--------------|
-| Overview | All 3 brains, 72+ engines, error log, quick actions |
+| Overview | All 3 brains, 117+ engines, error log, quick actions |
+| Entity | Consciousness orb — emotional state, thought streams, dimension ring |
 | Learning Cycle | 6-stage pipeline: Data → Analysis → Hypotheses → Experiments → Principles → Actions |
 | Trading Flow | Signals → Analysis → Trades → P&L, equity, positions, win rate |
-| Code Intelligence | Repo absorption, feature extraction, code health |
-| Research | Missions, knowledge growth, research agenda |
-| Entity | Consciousness orb — emotional state, thought streams, dimension ring |
+| Marketing | Content performance, platform analytics, engagement trends |
+| Intelligence | RAG, Knowledge Graph, tool stats, user model, proactive suggestions |
 | Cross-Brain & Borg | Collective sync, peer graph, Borg network |
+| Activity | Real-time event log, thought stream |
 | Debates & Challenges | Debate history, Advocatus Diaboli, resilience bars |
+| Desires | Desire priorities, action outcomes, cross-brain coordination |
+| Forge | Strategy/Content/Code forge status, pipeline metrics |
 | Infrastructure | Watchdog monitoring, LLM usage, plugins, self-modification |
+| Progress | Predictions, hypotheses, knowledge evolution, uptime tracking |
 
-## MCP Tools (137 tools)
+## MCP Tools (280 tools)
 
 **Error & Code**: brain_report_error, brain_query_error, brain_report_solution, brain_report_attempt, brain_find_reusable_code, brain_register_code, brain_check_code_similarity
 
@@ -280,7 +284,7 @@ brain export             Export Brain data as JSON
 | **Brain** (this) | Error memory, code intelligence, full autonomy & self-modification | **7777** / 7778 / 7790 |
 | [Trading Brain](../trading-brain) | Adaptive trading intelligence with signal learning & paper trading | 7779 / 7780 |
 | [Marketing Brain](../marketing-brain) | Content strategy, social engagement & cross-platform optimization | 7781 / 7782 / 7783 |
-| [Brain Core](../brain-core) | Shared infrastructure — 72+ engines | — |
+| [Brain Core](../brain-core) | Shared infrastructure — 117+ engines | — |
 
 ## Support
 

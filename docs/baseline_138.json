@@ -1,0 +1,20 @@
+{
+  "session": 138,
+  "description": "Baseline Retrieval Stats vor RRF Fusion",
+  "captured_at": "2026-03-13T14:10:00.000Z",
+  "retrieval": {
+    "signal_sources_used_per_query": 1,
+    "strategy": "Sequential fallback: RAG → FTS5 → LIKE (only 1 source per query)",
+    "rrf_fusion": false,
+    "last_retrieval_score_populated": false,
+    "cold_memory_detection": "ad-hoc via RetrievalMaintenanceEngine (archive_candidate flag)",
+    "usage_tracking_columns": {
+      "access_count": "exists, incremented on search hit (stmtRecordAccess)",
+      "last_accessed_at": "exists, updated on search hit",
+      "use_count": "exists, incremented when memory used in context/intent retrieval",
+      "last_used_at": "exists, updated when memory used in context/intent retrieval",
+      "last_retrieval_score": "exists but NEVER populated (always null)"
+    },
+    "observation": "RAG and FTS never run together. When RAG available, FTS is skipped entirely. No score fusion. No retrieval score persistence."
+  }
+}

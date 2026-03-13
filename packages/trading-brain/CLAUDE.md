@@ -4,7 +4,7 @@ Adaptive trading intelligence MCP server. Learns from trade outcomes, strengthen
 
 ## Quick Reference
 
-- **Package:** `@timmeck/trading-brain` v1.2.0
+- **Package:** `@timmeck/trading-brain` v2.31.82
 - **Binary:** `trading`
 - **Ports:** 7779 (REST API), 7780 (MCP HTTP/SSE)
 - **Data:** `~/.trading-brain/` (SQLite, PID file, logs)
@@ -28,7 +28,7 @@ trading export           Export all data as JSON
 trading import <file>    Import trades from JSON array
 ```
 
-## MCP Tools (18)
+## MCP Tools (181)
 
 `trading_record_outcome`, `trading_signal_weights`, `trading_signal_confidence`,
 `trading_dca_multiplier`, `trading_grid_params`, `trading_explore`, `trading_connections`,

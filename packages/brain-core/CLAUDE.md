@@ -4,7 +4,7 @@ Shared infrastructure library for the Brain Ecosystem. Not an MCP server itself 
 
 ## Quick Reference
 
-- **Package:** `@timmeck/brain-core` v1.5.0
+- **Package:** `@timmeck/brain-core` v2.36.93
 - **Type:** Library (no CLI, no daemon)
 - **Used by:** brain, trading-brain, marketing-brain
 
@@ -39,7 +39,7 @@ Shared infrastructure library for the Brain Ecosystem. Not an MCP server itself 
 
 ```bash
 npm run build          # TypeScript compile
-npm test               # Vitest (2,754 tests across 192 test files)
+npm test               # Vitest (2,867 tests across 202 test files)
 npm run lint           # ESLint
 ```
 

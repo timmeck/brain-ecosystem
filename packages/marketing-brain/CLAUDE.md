@@ -4,7 +4,7 @@ Self-learning marketing intelligence MCP server. Tracks posts, learns engagement
 
 ## Quick Reference
 
-- **Package:** `@timmeck/marketing-brain` v0.4.0
+- **Package:** `@timmeck/marketing-brain` v1.32.81
 - **Binary:** `marketing`
 - **Ports:** 7781 (REST API), 7782 (MCP HTTP/SSE), 7783 (Dashboard SSE)
 - **Data:** `~/.marketing-brain/` (SQLite, PID file, logs)
@@ -32,7 +32,7 @@ marketing import         Bulk import posts from JSON
 marketing peers          Ecosystem peer status
 ```
 
-## MCP Tools (17)
+## MCP Tools (177)
 
 `marketing_post_draft`, `marketing_post_report`, `marketing_post_engagement`, `marketing_post_similar`,
 `marketing_campaign_create`, `marketing_campaign_stats`,

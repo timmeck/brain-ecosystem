@@ -58,6 +58,17 @@ export interface HebbianConfig {
   pruneThreshold: number;
 }
 
+/**
+ * Optional signal quality scores for Hebbian strengthening.
+ * When provided, the effective learning rate is scaled by
+ * sqrt(sourceScore * targetScore) — strong co-activations
+ * reinforce more than weak ones.
+ */
+export interface SignalScores {
+  sourceScore: number;  // 0.0-1.0
+  targetScore: number;  // 0.0-1.0
+}
+
 export interface DecayConfig {
   decayHalfLifeDays: number;
   decayAfterDays: number;

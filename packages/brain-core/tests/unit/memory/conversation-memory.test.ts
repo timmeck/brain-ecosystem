@@ -233,7 +233,7 @@ describe('ConversationMemory', () => {
     );
   });
 
-  it('should use RAG for semantic recall', async () => {
+  it('should use RAG for semantic recall (RRF fusion)', async () => {
     const id = mem.remember('Brain uses 60+ engines in monorepo architecture');
 
     const mockRAG = {
@@ -248,9 +248,10 @@ describe('ConversationMemory', () => {
       'how many engines does brain have',
       expect.objectContaining({ collections: ['conversation_memory'] }),
     );
-    expect(results.length).toBe(1);
+    expect(results.length).toBeGreaterThanOrEqual(1);
     expect(results[0]!.memory.content).toContain('60+ engines');
-    expect(results[0]!.relevance).toBe(0.85);
+    // RRF score (not raw RAG similarity) — positive number
+    expect(results[0]!.relevance).toBeGreaterThan(0);
   });
 
   it('should fall back to FTS when RAG fails', async () => {
