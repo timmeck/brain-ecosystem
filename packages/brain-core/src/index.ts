@@ -13,6 +13,8 @@ export { BatchQueue } from './utils/batch-queue.js';
 export type { BatchQueueOptions } from './utils/batch-queue.js';
 export { MemoryWatchdog } from './utils/memory-watchdog.js';
 export type { MemoryStats } from './utils/memory-watchdog.js';
+export { UptimeTracker } from './utils/uptime-tracker.js';
+export type { UptimeStats } from './utils/uptime-tracker.js';
 
 // ── DB ─────────────────────────────────────────────────────
 export { createConnection } from './db/connection.js';

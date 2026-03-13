@@ -923,7 +923,7 @@ export class BrainCore {
 
     // 11g. Command Center Dashboard
     this.commandCenter = createCommandCenter({
-      services, crossBrain: this.crossBrain!, ecosystemService: this.ecosystemService!,
+      db: this.db!, services, crossBrain: this.crossBrain!, ecosystemService: this.ecosystemService!,
       correlator: this.correlator!, watchdog, pluginRegistry: this.pluginRegistry!,
       borgSync: this.borgSync!, thoughtStream, debateEngine: this.debateEngine,
     });

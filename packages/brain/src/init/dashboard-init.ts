@@ -2,12 +2,14 @@
  * Command Center Dashboard setup — extracted from BrainCore.start() section 11f.
  * Pure extraction, no logic changes.
  */
-import { CommandCenterServer } from '@timmeck/brain-core';
+import { CommandCenterServer, UptimeTracker } from '@timmeck/brain-core';
 import type { CrossBrainClient, CrossBrainCorrelator, EcosystemService, WatchdogService, PluginRegistry, BorgSyncEngine, ThoughtStream, EmotionalModel } from '@timmeck/brain-core';
+import type Database from 'better-sqlite3';
 import type { Services } from '../ipc/router.js';
 import { renderMarkdown } from '../cli/commands/report.js';
 
 export interface DashboardDeps {
+  db: Database.Database;
   services: Services;
   crossBrain: CrossBrainClient;
   ecosystemService: EcosystemService;
@@ -20,7 +22,8 @@ export interface DashboardDeps {
 }
 
 export function createCommandCenter(deps: DashboardDeps): CommandCenterServer {
-  const { services, crossBrain, ecosystemService, correlator, watchdog, pluginRegistry, borgSync, thoughtStream, debateEngine } = deps;
+  const { db, services, crossBrain, ecosystemService, correlator, watchdog, pluginRegistry, borgSync, thoughtStream, debateEngine } = deps;
+  const uptimeTracker = new UptimeTracker(db);
 
   return new CommandCenterServer({
     port: 7790,
@@ -166,7 +169,9 @@ export function createCommandCenter(deps: DashboardDeps): CommandCenterServer {
         experimentStatus, governanceStatus,
       });
     },
-    getProgressStats: () => ({
+    getProgressStats: () => {
+      uptimeTracker.heartbeat();
+      return {
       healthScore: services.analytics?.computeHealthScore() ?? 0,
       cycleRates: services.cycleOutcomeTracker?.getRates(0) ?? null,
       cycleHistory: services.cycleOutcomeTracker?.getRateHistory(30) ?? [],
@@ -184,7 +189,8 @@ export function createCommandCenter(deps: DashboardDeps): CommandCenterServer {
       tableSizes: services.retentionEngine?.getTableSizes() ?? [],
       milestones: services.journal?.getMilestones(5) ?? [],
       journalSummary: services.journal?.getSummary() ?? null,
-    }),
+      uptime: uptimeTracker.getStats(),
+    };},
     triggerAction: async (action: string) => {
       switch (action) {
         case 'learning-cycle':
