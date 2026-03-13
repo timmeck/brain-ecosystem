@@ -144,7 +144,7 @@ export type { ResearchDiscovery, ResearchCycleReport, AutonomousResearchConfig }
 
 // ── Meta-Learning ────────────────────────────────────────
 export { MetaLearningEngine, runMetaLearningMigration } from './meta-learning/engine.js';
-export type { HyperParameter, LearningSnapshot, ParameterRecommendation, MetaLearningStatus } from './meta-learning/engine.js';
+export type { HyperParameter, LearningSnapshot, ParameterRecommendation, MetaLearningStatus, MetaObservation, MetaPrinciple, ExplorerExploiterSnapshot, DomainAccuracySnapshot, MetaObservationStatus } from './meta-learning/engine.js';
 
 // ── Causal Inference ─────────────────────────────────────
 export { CausalGraph, runCausalMigration } from './causal/engine.js';
@@ -152,6 +152,7 @@ export type { CausalEvent, CausalEdge, CausalPath, CausalAnalysis, CausalInterve
 
 // ── Hypothesis Engine ────────────────────────────────────
 export { HypothesisEngine, runHypothesisMigration } from './hypothesis/engine.js';
+export type { HypothesisCallbacks } from './hypothesis/engine.js';
 export type { Hypothesis, HypothesisStatus, HypothesisCondition, HypothesisTestResult, HypothesisSurvivalMetrics, Observation } from './hypothesis/engine.js';
 
 // ── Self-Observer ───────────────────────────────────────

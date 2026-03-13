@@ -39,6 +39,47 @@ export interface MetaLearningStatus {
   recommendations: ParameterRecommendation[];
 }
 
+// ── Session 140: Observation-Only Types ─────────────────
+
+export interface MetaObservation {
+  id?: number;
+  engine: string;
+  domain: string;
+  metric: string;
+  value: number;
+  observed_at?: string;
+}
+
+export interface MetaPrinciple {
+  id?: number;
+  content: string;
+  confidence: number;      // 0-1
+  evidence: unknown[];     // supporting observations
+  created_at?: string;
+}
+
+export interface ExplorerExploiterSnapshot {
+  explorative: number;
+  exploitative: number;
+  ratio: number;           // explorative / (explorative + exploitative)
+  observed_at: string;
+}
+
+export interface DomainAccuracySnapshot {
+  domain: string;
+  total: number;
+  correct: number;
+  rolling_accuracy: number;
+}
+
+export interface MetaObservationStatus {
+  totalObservations: number;
+  totalPrinciples: number;
+  domains: string[];
+  latestExplorerRatio: number | null;
+  principles: MetaPrinciple[];
+}
+
 // ── Migration ───────────────────────────────────────────
 
 export function runMetaLearningMigration(db: Database.Database): void {
@@ -64,6 +105,28 @@ export function runMetaLearningMigration(db: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_meta_snapshots_score ON meta_learning_snapshots(score);
     CREATE INDEX IF NOT EXISTS idx_meta_snapshots_cycle ON meta_learning_snapshots(cycle);
+
+    -- Session 140: Observation-only meta-learning tables
+    CREATE TABLE IF NOT EXISTS meta_observations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      engine TEXT NOT NULL,
+      domain TEXT NOT NULL,
+      metric TEXT NOT NULL,
+      value REAL NOT NULL,
+      observed_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS meta_principles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content TEXT NOT NULL,
+      confidence REAL NOT NULL DEFAULT 0.5,
+      evidence TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_meta_obs_engine ON meta_observations(engine);
+    CREATE INDEX IF NOT EXISTS idx_meta_obs_domain ON meta_observations(domain);
+    CREATE INDEX IF NOT EXISTS idx_meta_obs_metric ON meta_observations(metric);
   `);
 }
 
@@ -272,7 +335,217 @@ export class MetaLearningEngine {
     ).all(limit) as any[];
   }
 
+  // ── Session 140: Observation-Only Methods ──────────
+
+  /**
+   * Record a meta-observation about an engine's behaviour in a domain.
+   * Observation only — no steering, no parameter changes.
+   */
+  recordObservation(obs: Omit<MetaObservation, 'id' | 'observed_at'>): MetaObservation {
+    this.db.prepare(`
+      INSERT INTO meta_observations (engine, domain, metric, value)
+      VALUES (?, ?, ?, ?)
+    `).run(obs.engine, obs.domain, obs.metric, obs.value);
+
+    this.logger.debug(`Meta-observation: ${obs.engine}/${obs.domain}/${obs.metric} = ${obs.value}`);
+    return { ...obs };
+  }
+
+  /**
+   * Record explorer/exploiter ratio snapshot from hypothesis data.
+   * Explorative = proposed/testing, Exploitative = confirmed hypothesis being used.
+   */
+  recordExplorerExploiterRatio(explorative: number, exploitative: number): void {
+    const total = explorative + exploitative;
+    const ratio = total > 0 ? explorative / total : 0.5;
+
+    this.recordObservation({
+      engine: 'hypothesis',
+      domain: 'global',
+      metric: 'explorer_ratio',
+      value: ratio,
+    });
+    this.recordObservation({
+      engine: 'hypothesis',
+      domain: 'global',
+      metric: 'explorative_count',
+      value: explorative,
+    });
+    this.recordObservation({
+      engine: 'hypothesis',
+      domain: 'global',
+      metric: 'exploitative_count',
+      value: exploitative,
+    });
+  }
+
+  /**
+   * Record domain accuracy from hypothesis domain_calibration data.
+   * Reads external data via provided snapshots (no direct DB access to foreign tables).
+   */
+  recordDomainAccuracy(snapshots: DomainAccuracySnapshot[]): void {
+    for (const snap of snapshots) {
+      this.recordObservation({
+        engine: 'hypothesis',
+        domain: snap.domain,
+        metric: 'domain_accuracy',
+        value: snap.rolling_accuracy,
+      });
+      this.recordObservation({
+        engine: 'hypothesis',
+        domain: snap.domain,
+        metric: 'domain_total',
+        value: snap.total,
+      });
+    }
+  }
+
+  /**
+   * Generate meta-principles from accumulated observations.
+   * Only produces principles when evidence is clear and non-trivial.
+   * Returns newly generated principles (empty if no new insights).
+   */
+  generatePrinciples(): MetaPrinciple[] {
+    const generated: MetaPrinciple[] = [];
+
+    // 1. Domain accuracy bias detection
+    const domainAccuracyRows = this.db.prepare(`
+      SELECT domain, AVG(value) as avg_accuracy, COUNT(*) as samples
+      FROM meta_observations
+      WHERE metric = 'domain_accuracy' AND domain != 'global'
+      GROUP BY domain
+      HAVING samples >= 3
+    `).all() as Array<{ domain: string; avg_accuracy: number; samples: number }>;
+
+    for (const row of domainAccuracyRows) {
+      if (row.avg_accuracy < 0.4) {
+        const content = `Domain "${row.domain}" has low prediction accuracy (${(row.avg_accuracy * 100).toFixed(1)}% avg over ${row.samples} observations). Hypotheses in this domain should be treated with caution.`;
+        if (!this.principleExists(content)) {
+          const principle = this.savePrinciple(content, Math.min(0.9, row.samples / 20), [
+            { metric: 'domain_accuracy', domain: row.domain, avg: row.avg_accuracy, samples: row.samples },
+          ]);
+          generated.push(principle);
+        }
+      } else if (row.avg_accuracy > 0.8) {
+        const content = `Domain "${row.domain}" has high prediction accuracy (${(row.avg_accuracy * 100).toFixed(1)}% avg over ${row.samples} observations). This is a strong domain.`;
+        if (!this.principleExists(content)) {
+          const principle = this.savePrinciple(content, Math.min(0.9, row.samples / 20), [
+            { metric: 'domain_accuracy', domain: row.domain, avg: row.avg_accuracy, samples: row.samples },
+          ]);
+          generated.push(principle);
+        }
+      }
+    }
+
+    // 2. Explorer/Exploiter imbalance detection
+    const ratioRows = this.db.prepare(`
+      SELECT AVG(value) as avg_ratio, COUNT(*) as samples
+      FROM meta_observations
+      WHERE metric = 'explorer_ratio'
+      HAVING samples >= 3
+    `).all() as Array<{ avg_ratio: number; samples: number }>;
+
+    if (ratioRows.length > 0 && ratioRows[0]!.samples >= 3) {
+      const avgRatio = ratioRows[0]!.avg_ratio;
+      const samples = ratioRows[0]!.samples;
+
+      if (avgRatio > 0.7) {
+        const content = `Explorer/Exploiter ratio is heavily skewed towards exploration (${(avgRatio * 100).toFixed(0)}% explorative). Consider whether enough confirmed hypotheses are being leveraged.`;
+        if (!this.principleExists(content)) {
+          const principle = this.savePrinciple(content, Math.min(0.8, samples / 15), [
+            { metric: 'explorer_ratio', avg: avgRatio, samples },
+          ]);
+          generated.push(principle);
+        }
+      } else if (avgRatio < 0.3) {
+        const content = `Explorer/Exploiter ratio is heavily skewed towards exploitation (${((1 - avgRatio) * 100).toFixed(0)}% exploitative). The system may be missing new discoveries.`;
+        if (!this.principleExists(content)) {
+          const principle = this.savePrinciple(content, Math.min(0.8, samples / 15), [
+            { metric: 'explorer_ratio', avg: avgRatio, samples },
+          ]);
+          generated.push(principle);
+        }
+      }
+    }
+
+    if (generated.length > 0) {
+      this.logger.info(`Meta-learning: generated ${generated.length} new principle(s)`);
+    }
+
+    return generated;
+  }
+
+  /** Get all meta-principles ordered by confidence. */
+  getPrinciples(limit = 20): MetaPrinciple[] {
+    return (this.db.prepare(
+      'SELECT * FROM meta_principles ORDER BY confidence DESC LIMIT ?',
+    ).all(limit) as Array<{ id: number; content: string; confidence: number; evidence: string; created_at: string }>)
+      .map(r => ({
+        id: r.id,
+        content: r.content,
+        confidence: r.confidence,
+        evidence: JSON.parse(r.evidence),
+        created_at: r.created_at,
+      }));
+  }
+
+  /** Get observations for a specific engine/domain/metric, with optional filters. */
+  getObservations(filters?: { engine?: string; domain?: string; metric?: string; limit?: number }): MetaObservation[] {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
+    if (filters?.engine) { conditions.push('engine = ?'); params.push(filters.engine); }
+    if (filters?.domain) { conditions.push('domain = ?'); params.push(filters.domain); }
+    if (filters?.metric) { conditions.push('metric = ?'); params.push(filters.metric); }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const limit = filters?.limit ?? 100;
+
+    return this.db.prepare(
+      `SELECT * FROM meta_observations ${where} ORDER BY observed_at DESC LIMIT ?`,
+    ).all(...params, limit) as MetaObservation[];
+  }
+
+  /** Get observation status for dashboard. */
+  getObservationStatus(): MetaObservationStatus {
+    const obsCount = (this.db.prepare('SELECT COUNT(*) as count FROM meta_observations').get() as { count: number }).count;
+    const principleCount = (this.db.prepare('SELECT COUNT(*) as count FROM meta_principles').get() as { count: number }).count;
+
+    const domains = (this.db.prepare('SELECT DISTINCT domain FROM meta_observations ORDER BY domain').all() as Array<{ domain: string }>)
+      .map(r => r.domain);
+
+    const latestRatio = this.db.prepare(
+      "SELECT value FROM meta_observations WHERE metric = 'explorer_ratio' ORDER BY observed_at DESC LIMIT 1",
+    ).get() as { value: number } | undefined;
+
+    return {
+      totalObservations: obsCount,
+      totalPrinciples: principleCount,
+      domains,
+      latestExplorerRatio: latestRatio?.value ?? null,
+      principles: this.getPrinciples(10),
+    };
+  }
+
   // ── Private ─────────────────────────────────────────
+
+  private principleExists(contentPrefix: string): boolean {
+    // Check if a similar principle already exists (match first 50 chars)
+    const prefix = contentPrefix.substring(0, 50);
+    const existing = this.db.prepare(
+      'SELECT COUNT(*) as count FROM meta_principles WHERE content LIKE ?',
+    ).get(`${prefix}%`) as { count: number };
+    return existing.count > 0;
+  }
+
+  private savePrinciple(content: string, confidence: number, evidence: unknown[]): MetaPrinciple {
+    this.db.prepare(`
+      INSERT INTO meta_principles (content, confidence, evidence)
+      VALUES (?, ?, ?)
+    `).run(content, confidence, JSON.stringify(evidence));
+
+    return { content, confidence, evidence };
+  }
 
   private getSnapshots(limit: number): LearningSnapshot[] {
     const rows = this.db.prepare(

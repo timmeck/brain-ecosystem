@@ -11,6 +11,7 @@ export interface Hypothesis {
   statement: string;           // human-readable hypothesis
   type: string;                // category: temporal, correlation, threshold, trend
   source: string;              // which brain generated it
+  domain?: string;              // domain for calibration (Session 139), defaults to 'general'
   variables: string[];         // event types / metrics involved
   condition: HypothesisCondition;
   status: HypothesisStatus;
@@ -104,6 +105,35 @@ export function runHypothesisMigration(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_observations_type ON observations(type);
     CREATE INDEX IF NOT EXISTS idx_observations_timestamp ON observations(timestamp);
   `);
+
+  // Session 139: domain column for domain-specific calibration
+  try { db.exec(`ALTER TABLE hypotheses ADD COLUMN domain TEXT NOT NULL DEFAULT 'general'`); } catch { /* exists */ }
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_hypotheses_domain ON hypotheses(domain)`);
+
+  // Session 139: domain calibration table — rolling accuracy per domain
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS domain_calibration (
+      domain TEXT PRIMARY KEY,
+      total INTEGER NOT NULL DEFAULT 0,
+      correct INTEGER NOT NULL DEFAULT 0,
+      rolling_accuracy REAL NOT NULL DEFAULT 0.5,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+}
+
+// ── Callbacks (Session 139) ──────────────────────────────
+
+/**
+ * Callback interface for hypothesis lifecycle events.
+ * Enables anti-pattern auto-generation and strategy emergence
+ * without tight coupling to KnowledgeDistiller/StrategyForge.
+ */
+export interface HypothesisCallbacks {
+  /** Called when a hypothesis is rejected. Use for anti-pattern generation. */
+  onRejected?: (hypothesis: Hypothesis) => void;
+  /** Called when confirmed hypotheses reach emergence threshold. */
+  onEmergence?: (group: { type: string; count: number; hypotheses: Hypothesis[] }) => void;
 }
 
 // ── Engine ───────────────────────────────────────────────
@@ -128,18 +158,25 @@ export class HypothesisEngine {
   private confirmThreshold: number;   // p-value below this → confirmed
   private rejectThreshold: number;    // p-value above this → rejected
   private llm: LLMService | null = null;
+  private callbacks: HypothesisCallbacks = {};
+  /** Strategy emergence threshold: confirmed count per type before triggering emergence. */
+  private emergenceThreshold: number;
 
   constructor(
     private db: Database.Database,
-    config?: { minEvidence?: number; confirmThreshold?: number; rejectThreshold?: number },
+    config?: { minEvidence?: number; confirmThreshold?: number; rejectThreshold?: number; emergenceThreshold?: number },
   ) {
     runHypothesisMigration(db);
     this.minEvidence = config?.minEvidence ?? 10;
     this.confirmThreshold = config?.confirmThreshold ?? 0.05;
     this.rejectThreshold = config?.rejectThreshold ?? 0.5;
+    this.emergenceThreshold = config?.emergenceThreshold ?? 3;
   }
 
   setLLMService(llm: LLMService): void { this.llm = llm; }
+
+  /** Register lifecycle callbacks for anti-pattern generation and strategy emergence. */
+  setCallbacks(callbacks: HypothesisCallbacks): void { this.callbacks = callbacks; }
 
   /** Record an observation for hypothesis generation and testing. */
   observe(observation: Observation): void {
@@ -157,14 +194,16 @@ export class HypothesisEngine {
 
   /** Propose a hypothesis manually or from automated detection. */
   propose(hypothesis: Omit<Hypothesis, 'id' | 'status' | 'evidence_for' | 'evidence_against' | 'confidence' | 'p_value' | 'created_at' | 'tested_at'>): Hypothesis {
+    const domain = hypothesis.domain ?? 'general';
     const stmt = this.db.prepare(`
-      INSERT INTO hypotheses (statement, type, source, variables, condition, status)
-      VALUES (?, ?, ?, ?, ?, 'proposed')
+      INSERT INTO hypotheses (statement, type, source, domain, variables, condition, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'proposed')
     `);
     const info = stmt.run(
       hypothesis.statement,
       hypothesis.type,
       hypothesis.source,
+      domain,
       JSON.stringify(hypothesis.variables),
       JSON.stringify(hypothesis.condition),
     );
@@ -253,6 +292,8 @@ export class HypothesisEngine {
       }
     }
 
+    const previousStatus = hyp.status;
+
     // Update in DB
     this.db.prepare(`
       UPDATE hypotheses SET
@@ -263,6 +304,20 @@ export class HypothesisEngine {
     `).run(result.evidenceFor, result.evidenceAgainst, confidence, result.pValue, newStatus, hypothesisId);
 
     this.logger.info(`Hypothesis #${hypothesisId} tested: ${newStatus} (p=${result.pValue.toFixed(4)}, confidence=${confidence.toFixed(3)})`);
+
+    // Session 139: Update domain calibration when a hypothesis reaches a terminal state
+    if (newStatus === 'confirmed' || newStatus === 'rejected') {
+      this.updateDomainCalibration(hyp.domain ?? 'general', newStatus === 'confirmed');
+    }
+
+    // Session 139: Auto-generate anti-pattern on rejection
+    if (newStatus === 'rejected' && previousStatus !== 'rejected' && this.callbacks.onRejected) {
+      try {
+        this.callbacks.onRejected({ ...hyp, status: newStatus, evidence_for: result.evidenceFor, evidence_against: result.evidenceAgainst, confidence });
+      } catch (err) {
+        this.logger.debug(`[HypothesisEngine] onRejected callback error: ${(err as Error).message}`);
+      }
+    }
 
     return {
       hypothesisId,
@@ -362,9 +417,62 @@ export class HypothesisEngine {
          AND (tested_at IS NULL OR tested_at < datetime('now', '-24 hours'))`,
     ).all() as { id: number }[];
 
-    return hypotheses
+    const results = hypotheses
       .map(h => this.test(h.id))
       .filter((r): r is HypothesisTestResult => r !== null);
+
+    // Session 139: Check for strategy emergence after testing
+    this.checkEmergence();
+
+    return results;
+  }
+
+  /**
+   * Session 139: Check if confirmed hypotheses have reached emergence threshold.
+   * When a type has >= emergenceThreshold confirmed hypotheses, fire onEmergence callback.
+   */
+  private checkEmergence(): void {
+    if (!this.callbacks.onEmergence) return;
+
+    const groups = this.getConfirmedByType(this.emergenceThreshold);
+    for (const group of groups) {
+      try {
+        this.callbacks.onEmergence(group);
+      } catch (err) {
+        this.logger.debug(`[HypothesisEngine] onEmergence callback error: ${(err as Error).message}`);
+      }
+    }
+  }
+
+  /**
+   * Session 139: Update domain calibration with outcome.
+   * rolling_accuracy = correct / total (simple, robust, interpretable).
+   */
+  private updateDomainCalibration(domain: string, wasCorrect: boolean): void {
+    try {
+      this.db.prepare(`
+        INSERT INTO domain_calibration (domain, total, correct, rolling_accuracy, updated_at)
+        VALUES (?, 1, ?, ?, datetime('now'))
+        ON CONFLICT(domain) DO UPDATE SET
+          total = total + 1,
+          correct = correct + ?,
+          rolling_accuracy = CAST((correct + ?) AS REAL) / (total + 1),
+          updated_at = datetime('now')
+      `).run(domain, wasCorrect ? 1 : 0, wasCorrect ? 1.0 : 0.0, wasCorrect ? 1 : 0, wasCorrect ? 1 : 0);
+    } catch (err) {
+      this.logger.debug(`[HypothesisEngine] Domain calibration update error: ${(err as Error).message}`);
+    }
+  }
+
+  /** Session 139: Get domain calibration accuracy. */
+  getDomainCalibration(domain?: string): Array<{ domain: string; total: number; correct: number; rolling_accuracy: number }> {
+    if (domain) {
+      const row = this.db.prepare('SELECT * FROM domain_calibration WHERE domain = ?').get(domain) as
+        { domain: string; total: number; correct: number; rolling_accuracy: number } | undefined;
+      return row ? [row] : [];
+    }
+    return this.db.prepare('SELECT * FROM domain_calibration ORDER BY total DESC').all() as
+      Array<{ domain: string; total: number; correct: number; rolling_accuracy: number }>;
   }
 
   /**

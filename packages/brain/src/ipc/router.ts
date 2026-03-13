@@ -549,6 +549,9 @@ export class IpcRouter {
       ['meta.history',      (params) => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.getHistory(p(params)?.limit); }],
       ['meta.params',       () => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.getParams(); }],
       ['meta.step',         (params) => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.step(p(params).metrics, p(params).score); }],
+      ['meta.observations',  () => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.getObservationStatus(); }],
+      ['meta.principles',    () => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.getPrinciples(); }],
+      ['meta.observe',       (params) => { if (!s.metaLearning) throw new Error('Meta-learning not available'); return s.metaLearning.recordObservation(p(params)); }],
 
       // ─── Causal Inference ──────────────────────────────────
       ['causal.record',     (params) => { if (!s.causal) throw new Error('Causal engine not available'); s.causal.recordEvent(p(params).source, p(params).type, p(params).data); return { recorded: true }; }],
@@ -820,6 +823,7 @@ export class IpcRouter {
       // ─── Creative Hypotheses ──────────────────────────────────
       ['hypothesis.creative',     (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.generateCreativeLLM(p(params)?.count); }],
       ['hypothesis.creative_stats', () => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.getCreativeStats(); }],
+      ['hypothesis.calibration',  (params) => { if (!s.hypothesis) throw new Error('Hypothesis engine not available'); return s.hypothesis.getDomainCalibration(p(params)?.domain); }],
 
       // ─── Challenges (Advocatus Diaboli) ─────────────────────
       ['challenge.principle',     (params) => { if (!s.debateEngine) throw new Error('DebateEngine not available'); return s.debateEngine.challenge(p(params).statement); }],

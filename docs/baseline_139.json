@@ -1,0 +1,13 @@
+{
+  "session": 139,
+  "description": "Baseline Hypothesis Stats vor Hardening",
+  "captured_at": "2026-03-13T14:30:00.000Z",
+  "hypothesis": {
+    "resolution_policy": "EXISTS — forceEvaluateStuck(48h, 72h) in testAll()",
+    "domain_column": false,
+    "domain_calibration_table": false,
+    "anti_pattern_auto_gen": "createAntiPatternFromRejection EXISTS but never called automatically on rejection",
+    "strategy_emergence": "getConfirmedByType EXISTS but never auto-creates strategies",
+    "observation": "Resolution Policy done. Missing: domain-calibration, auto anti-pattern wiring, auto strategy emergence."
+  }
+}

@@ -252,6 +252,19 @@ export function createIntelligenceEngines(deps: IntelligenceDeps): IntelligenceR
   const creativeEngine = new CreativeEngine(db, { brainName: 'brain' });
   creativeEngine.setKnowledgeDistiller(orchestrator.knowledgeDistiller);
   creativeEngine.setHypothesisEngine(researchScheduler.hypothesisEngine);
+  // Session 139: Wire hypothesis lifecycle callbacks for anti-pattern auto-gen + strategy emergence
+  researchScheduler.hypothesisEngine.setCallbacks({
+    onRejected: (hyp) => {
+      try {
+        orchestrator.knowledgeDistiller.createAntiPatternFromRejection(hyp);
+      } catch (err) {
+        logger.debug(`[hypothesis] Anti-pattern from rejection failed: ${(err as Error).message}`);
+      }
+    },
+    onEmergence: (group) => {
+      logger.info(`[hypothesis] Strategy emergence: ${group.count} confirmed hypotheses of type "${group.type}"`);
+    },
+  });
   if (llmService) creativeEngine.setLLMService(llmService);
   creativeEngine.setThoughtStream(thoughtStream);
   services.creativeEngine = creativeEngine;

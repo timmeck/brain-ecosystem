@@ -1,0 +1,34 @@
+{
+  "session": 140,
+  "name": "MetaLearning Kernel (Observation Only)",
+  "captured_at": "2026-03-13T00:00:00Z",
+  "metrics": {
+    "explorer_exploiter_ratio": {
+      "value": "~70/30 (estimated)",
+      "source": "ChatGPT S134 report",
+      "note": "No formal tracking exists yet"
+    },
+    "domain_accuracy_tracked": {
+      "value": false,
+      "note": "domain_calibration table exists from Session 139, but MetaLearning doesn't observe it yet"
+    },
+    "meta_principles_count": {
+      "value": 0,
+      "note": "No meta-principles table exists yet"
+    },
+    "calibration_error_per_domain": {
+      "value": "unknown",
+      "note": "Not tracked by MetaLearning"
+    },
+    "meta_observations_count": {
+      "value": 0,
+      "note": "No meta_observations table exists yet"
+    }
+  },
+  "targets": {
+    "explorer_exploiter_ratio": "Tracking active, trend visible",
+    "domain_accuracy_tracked": "Yes, for all active domains",
+    "meta_principles_count": ">=3 evidence-based",
+    "calibration_error_per_domain": "Tracked + visible in dashboard"
+  }
+}
