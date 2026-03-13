@@ -200,11 +200,18 @@ describe('HypothesisEngine', () => {
     // ── Correlation hypothesis generation ───────────
 
     it('generates a correlation hypothesis for co-occurring events', () => {
-      // Create co-occurring events: event_x and event_y within 60s of each other
+      // Create partially co-occurring events: 10/15 event_x have a nearby event_y (67%)
+      // This is a genuine partial correlation, not trivial same-cycle co-occurrence (>90%)
       for (let i = 0; i < 15; i++) {
         const baseTs = i * 120000; // 2 minute intervals
         engine.observe({ source: 'test', type: 'event_x', value: 1, timestamp: baseTs });
-        engine.observe({ source: 'test', type: 'event_y', value: 1, timestamp: baseTs + 10000 }); // 10s later
+        if (i < 10) {
+          engine.observe({ source: 'test', type: 'event_y', value: 1, timestamp: baseTs + 10000 });
+        }
+      }
+      // Add standalone event_y observations to ensure enough data
+      for (let i = 0; i < 5; i++) {
+        engine.observe({ source: 'test', type: 'event_y', value: 1, timestamp: 5000000 + i * 120000 });
       }
 
       const hypotheses = engine.generate();
@@ -300,11 +307,16 @@ describe('HypothesisEngine', () => {
     });
 
     it('tests a correlation hypothesis with co-occurring events', () => {
-      // Create tightly co-occurring events
+      // Create partially co-occurring events (~67% rate, not trivial >90%)
       for (let i = 0; i < 15; i++) {
         const baseTs = i * 120000;
         engine.observe({ source: 'test', type: 'event_x', value: 1, timestamp: baseTs });
-        engine.observe({ source: 'test', type: 'event_y', value: 1, timestamp: baseTs + 5000 });
+        if (i < 10) {
+          engine.observe({ source: 'test', type: 'event_y', value: 1, timestamp: baseTs + 5000 });
+        }
+      }
+      for (let i = 0; i < 5; i++) {
+        engine.observe({ source: 'test', type: 'event_y', value: 1, timestamp: 5000000 + i * 120000 });
       }
 
       const hypotheses = engine.generate();

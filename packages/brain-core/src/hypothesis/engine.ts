@@ -1022,11 +1022,22 @@ export class HypothesisEngine {
     const results: Hypothesis[] = [];
     const types = this.getObservationTypes();
 
+    // Cap pairwise comparisons to avoid O(n²) explosion with many observation types
+    const maxTypes = Math.min(types.length, 30);
+
     // Check pairwise correlations between observation types
-    for (let i = 0; i < types.length; i++) {
-      for (let j = i + 1; j < types.length; j++) {
+    for (let i = 0; i < maxTypes; i++) {
+      for (let j = i + 1; j < maxTypes; j++) {
         const typeA = types[i]!;
         const typeB = types[j]!;
+
+        // Skip trivial same-cycle correlations: if both types always appear together
+        // (e.g. journal + prediction_accuracy both run every cycle), they will always
+        // co-occur within 60s. Filter these out by requiring that at least 20% of
+        // observations do NOT co-occur — genuine correlations are selective.
+        const countA = (this.db.prepare('SELECT COUNT(*) as c FROM observations WHERE type = ?').get(typeA) as { c: number }).c;
+        const countB = (this.db.prepare('SELECT COUNT(*) as c FROM observations WHERE type = ?').get(typeB) as { c: number }).c;
+        if (countA < 3 || countB < 3) continue; // need minimum data
 
         // Co-occurrence: count distinct A observations that have ≥1 nearby B observation
         const coOccurrences = (this.db.prepare(`
@@ -1035,26 +1046,27 @@ export class HypothesisEngine {
           WHERE a.type = ?
         `).get(typeB, typeA) as { count: number }).count;
 
-        const countA = (this.db.prepare('SELECT COUNT(*) as c FROM observations WHERE type = ?').get(typeA) as { c: number }).c;
+        const rate = countA > 0 ? Math.min(coOccurrences / countA, 1) : 0;
 
-        if (countA > 0 && coOccurrences / countA > 0.3) {
-          const rate = Math.min(coOccurrences / countA, 1); // bounded 0-1
-          const existing = this.db.prepare(
-            `SELECT id FROM hypotheses WHERE type = 'correlation' AND variables LIKE ? AND variables LIKE ? AND status != 'rejected'`,
-          ).get(`%"${typeA}"%`, `%"${typeB}"%`) as { id: number } | undefined;
+        // Filter: require co-occurrence between 30% and 90% — below 30% is noise,
+        // above 90% is trivial (both always run in same cycle, not a real correlation)
+        if (rate <= 0.3 || rate > 0.9) continue;
 
-          if (!existing) {
-            results.push(this.propose({
-              statement: `"${typeA}" and "${typeB}" events tend to occur together (co-occurrence rate: ${(rate * 100).toFixed(0)}%)`,
+        const existing = this.db.prepare(
+          `SELECT id FROM hypotheses WHERE type = 'correlation' AND variables LIKE ? AND variables LIKE ? AND status != 'rejected'`,
+        ).get(`%"${typeA}"%`, `%"${typeB}"%`) as { id: number } | undefined;
+
+        if (!existing) {
+          results.push(this.propose({
+            statement: `"${typeA}" and "${typeB}" events tend to occur together (co-occurrence rate: ${(rate * 100).toFixed(0)}%)`,
+            type: 'correlation',
+            source: 'hypothesis-engine',
+            variables: [typeA, typeB],
+            condition: {
               type: 'correlation',
-              source: 'hypothesis-engine',
-              variables: [typeA, typeB],
-              condition: {
-                type: 'correlation',
-                params: { typeA, typeB, windowMs: 60_000, observedRate: rate },
-              },
-            }));
-          }
+              params: { typeA, typeB, windowMs: 60_000, observedRate: rate },
+            },
+          }));
         }
       }
     }

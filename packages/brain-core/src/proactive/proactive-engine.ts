@@ -337,6 +337,15 @@ export class ProactiveEngine {
 
     if (!table) return 0;
 
+    // Find tools with high success rate that are underused compared to average.
+    // Requires >=10 total uses (not 1-5) to avoid suggesting tools tried once by accident.
+    const avgUses = sourceDb.prepare(`
+      SELECT AVG(uses) as avg FROM (
+        SELECT COUNT(*) as uses FROM tool_usage GROUP BY tool_name HAVING COUNT(*) >= 3
+      )
+    `).get() as { avg: number | null };
+    const threshold = Math.max(10, (avgUses?.avg ?? 10) * 0.2);
+
     const rows = sourceDb.prepare(`
       SELECT
         tool_name,
@@ -344,10 +353,10 @@ export class ProactiveEngine {
         CAST(SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS REAL) / COUNT(*) AS success_rate
       FROM tool_usage
       GROUP BY tool_name
-      HAVING success_rate >= 0.8 AND uses <= 5
-      ORDER BY success_rate DESC
-      LIMIT 10
-    `).all() as Array<{
+      HAVING success_rate >= 0.9 AND uses >= 3 AND uses <= ?
+      ORDER BY success_rate DESC, uses DESC
+      LIMIT 5
+    `).all(threshold) as Array<{
       tool_name: string;
       uses: number;
       success_rate: number;
@@ -357,10 +366,10 @@ export class ProactiveEngine {
     for (const row of rows) {
       const ok = this.createSuggestion(
         'quick_win',
-        `Use ${row.tool_name} more often`,
-        `Tool "${row.tool_name}" has ${(row.success_rate * 100).toFixed(0)}% success rate but only ${row.uses} uses. Consider using it more.`,
-        `Try ${row.tool_name} in more contexts`,
-        0.5,
+        `Underused high-performer: ${row.tool_name}`,
+        `Tool "${row.tool_name}" has ${(row.success_rate * 100).toFixed(0)}% success rate with ${row.uses} uses — well below average. It may be valuable in more contexts.`,
+        `Investigate where ${row.tool_name} could replace lower-performing alternatives`,
+        0.6,
       );
       if (ok) created++;
     }

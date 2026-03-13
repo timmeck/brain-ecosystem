@@ -3693,17 +3693,18 @@ export class ResearchOrchestrator {
       }
     }
 
-    // Attention-driven: deep dive into hot topics
+    // Attention-driven: deep dive into hot topics (only if score is significantly high)
     if (this.attentionEngine) {
       try {
         const attStatus = this.attentionEngine.getStatus();
         const topTopic = attStatus.topTopics?.[0];
-        if (topTopic && topTopic.score > 5) {
+        // Raised threshold from 5 → 70 to avoid spamming "I'm focused on X" every cycle
+        if (topTopic && topTopic.score > 70) {
           raw.push({
-            key: `deep_dive_${topTopic.topic.substring(0, 20)}`, priority: 4,
-            suggestion: `Tell Claude: I'm currently focused on "${topTopic.topic}" (Attention Score: ${topTopic.score.toFixed(1)}). I want to dig deeper — are there connections I'm missing? Can I start a targeted analysis or debate on this topic?`,
+            key: 'deep_dive', priority: 3,  // fixed key to prevent topic-churn spam
+            suggestion: `Tell Claude: I'm intensely focused on "${topTopic.topic}" (Attention Score: ${topTopic.score.toFixed(0)}). I want to start a targeted analysis or debate — are there connections I'm missing?`,
             alternatives: [
-              `Tell Claude: My top topic "${topTopic.topic}" occupies me intensely. I want to summarize everything I know about it in a narrative digest and identify knowledge gaps.`,
+              `Tell Claude: My top topic "${topTopic.topic}" dominates my attention. I want to summarize everything I know and identify knowledge gaps.`,
             ],
           });
         }

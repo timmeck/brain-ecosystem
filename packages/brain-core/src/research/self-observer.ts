@@ -362,12 +362,14 @@ export class SelfObserver {
   }
 
   private persistInsight(insight: SelfInsight): void {
-    // Avoid duplicates: check if similar insight exists recently (last 24h)
+    // Avoid duplicates: check if similar insight of same type exists recently (last 7 days)
+    // Use type + first 40 chars of title to catch near-duplicates (e.g. counts that change slightly)
+    const titlePrefix = insight.title.substring(0, 40);
     const existing = this.db.prepare(`
       SELECT id FROM self_insights
-      WHERE title = ? AND timestamp > ?
+      WHERE type = ? AND title LIKE ? AND timestamp > ?
       LIMIT 1
-    `).get(insight.title, Date.now() - 86_400_000);
+    `).get(insight.type, `${titlePrefix}%`, Date.now() - 7 * 86_400_000);
 
     if (existing) return;
 

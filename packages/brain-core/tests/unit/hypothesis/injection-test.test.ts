@@ -129,11 +129,17 @@ describe('Injection Test: Full Hypothesis Lifecycle', () => {
   // ── Correlation Injection ─────────────────────────────────
 
   it('correlation: co-occurring → confirmed → decoupled → rejected', () => {
-    // ─── Phase 1: INJECT — two metrics that always co-occur ──
+    // ─── Phase 1: INJECT — two metrics that partially co-occur (70%) ──
     for (let i = 0; i < 20; i++) {
       const ts = i * 120000; // every 2 minutes
       engine.observe({ source: 'injection', type: 'metric_alpha', value: 1, timestamp: ts });
-      engine.observe({ source: 'injection', type: 'metric_beta', value: 1, timestamp: ts + 5000 }); // 5s later
+      if (i < 14) { // 14/20 = 70% co-occurrence — genuine but not trivial
+        engine.observe({ source: 'injection', type: 'metric_beta', value: 1, timestamp: ts + 5000 }); // 5s later
+      }
+    }
+    // Add standalone beta observations
+    for (let i = 0; i < 6; i++) {
+      engine.observe({ source: 'injection', type: 'metric_beta', value: 1, timestamp: 6000000 + i * 120000 });
     }
 
     // ─── Phase 2: DETECT ─────────────────────────────────────
