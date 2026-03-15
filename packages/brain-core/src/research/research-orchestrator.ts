@@ -1069,10 +1069,9 @@ export class ResearchOrchestrator {
         ? attTopics.map((t: { topic: string }) => t.topic).join(', ')
         : 'none';
 
-      // Dynamic type + significance: discoveries get elevated so Distiller + DreamEngine can see them
-      const hasFindings = insights.length > 0 || anomalies.length > 0;
-      const journalType = hasFindings ? 'discovery' : 'insight';
-      const journalSignificance = hasFindings ? 'notable' : 'routine';
+      // Cycle summaries are operational logs, never discoveries — only truly novel insights should be discoveries
+      const journalType = 'insight' as const;
+      const journalSignificance = 'routine' as const;
 
       // Enriched content with anomaly/insight details
       const contentParts = [
@@ -1210,9 +1209,19 @@ export class ResearchOrchestrator {
           try { this.metaCognitionLayer.evaluate(); }
           catch (mcErr) { this.log.warn(`[orchestrator] MetaCog pre-eval for AutoExp: ${(mcErr as Error).message}`); }
         }
-        // Feed measurements
-        this.autoExperimentEngine.feedMeasurement('insight_count', insights.length);
-        this.autoExperimentEngine.feedMeasurement('anomaly_count', anomalies.length);
+        // Feed combined engine performance score (0-1) as expected by experiments
+        const metaCogScore = (() => {
+          try {
+            const report = this.metaCognitionLayer?.getLatestReportCards();
+            if (report && report.length > 0) {
+              const avg = report.reduce((s: number, r: { combined_score?: number }) => s + (r.combined_score ?? 0), 0) / report.length;
+              return Math.min(1, Math.max(0, avg / 100));
+            }
+          } catch { /* */ }
+          // Fallback: normalize insight count as a rough performance proxy
+          return Math.min(1, insights.length / 10);
+        })();
+        this.autoExperimentEngine.feedMeasurement('combined_engine_performance', metaCogScore);
         // Process completed
         const completed = this.autoExperimentEngine.processCompleted(this.cycleCount);
         for (const c of completed) {
@@ -1904,7 +1913,7 @@ export class ResearchOrchestrator {
             content: `Knowledge blind spot detected. Hypotheses: ${bs.hypothesisCount}, Predictions: ${bs.predictionCount}, Journal: ${bs.journalCount}, Experiments: ${bs.experimentCount}`,
             tags: ['blind-spot', bs.topic],
             references: [],
-            significance: bs.severity > 0.85 ? 'notable' : 'routine',
+            significance: 'routine' as const, // Blind spots are knowledge gaps, not principles
             data: { blindSpot: bs },
           });
           this.researchAgenda.ask(
@@ -2143,7 +2152,7 @@ export class ResearchOrchestrator {
             content: `Scanned: ${result.scannedSources.join(', ')}`,
             tags: [this.brainName, 'memory-palace', 'connections'],
             references: [],
-            significance: result.newConnections > 5 ? 'notable' : 'routine',
+            significance: 'routine' as const, // MemoryPalace stats are metrics, not principles
             data: { memoryPalace: result },
           });
         }
@@ -4409,11 +4418,14 @@ export class ResearchOrchestrator {
     };
 
     for (const suggestion of suggestions) {
-      // Filter out AutoResponder noise — these are not actionable code problems
-      if (suggestion.startsWith('Tell Claude')) continue;
+      // Filter out noise that isn't actionable
       if (/Vorschlag.*wurde.*ignoriert/i.test(suggestion)) continue;
 
-      const lower = suggestion.toLowerCase();
+      // Strip "Tell Claude:" prefix so suggestions can be matched against engine names
+      const cleaned = suggestion.replace(/^\d+\.\s*Tell Claude:\s*/i, '').trim();
+      if (cleaned.length < 10) continue;
+
+      const lower = cleaned.toLowerCase();
       // Find engine names in suggestion text (English class names or German keywords)
       for (const [engineName, filePaths] of Object.entries(engineMap)) {
         // Direct class name match

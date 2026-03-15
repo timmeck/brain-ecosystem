@@ -269,14 +269,20 @@ export class AutoExperimentEngine {
     return autoExp;
   }
 
-  /** Feed a measurement into running auto-experiments. Maps to ExperimentEngine. */
+  /** Feed a measurement into running AND extended auto-experiments. Maps to ExperimentEngine. */
   feedMeasurement(metricName: string, value: number): void {
-    const running = this.db.prepare(
-      "SELECT experiment_id FROM auto_experiments WHERE status = 'running' AND experiment_id IS NOT NULL",
-    ).all() as { experiment_id: number }[];
+    const active = this.db.prepare(
+      "SELECT id, experiment_id, status FROM auto_experiments WHERE status IN ('running', 'extended') AND experiment_id IS NOT NULL",
+    ).all() as Array<{ id: number; experiment_id: number; status: string }>;
 
-    for (const { experiment_id } of running) {
+    for (const { id, experiment_id, status } of active) {
       try {
+        // Re-activate extended experiments so they can collect more data
+        if (status === 'extended') {
+          this.db.prepare(
+            "UPDATE auto_experiments SET status = 'running', completed_at = NULL WHERE id = ?",
+          ).run(id);
+        }
         this.experimentEngine.recordMeasurement(experiment_id, value);
       } catch {
         // Experiment may have been analyzed already

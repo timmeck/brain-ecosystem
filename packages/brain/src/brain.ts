@@ -1014,6 +1014,39 @@ export class BrainCore {
     this.peerNetwork.onPeerDiscovered((peer) => {
       logger.info(`[peer-network] Discovered peer: ${peer.name} (v${peer.packageVersion})`);
       this.crossBrain?.addPeer({ name: peer.name, pipeName: peer.pipeName });
+
+      // Register peer's knowledge as a remote distiller for cross-brain transfers
+      if (this.transferEngine && this.crossBrain) {
+        const crossBrain = this.crossBrain;
+        const peerName = peer.name;
+        const remoteDistiller = {
+          getPrinciples: (_domain?: string, limit = 50) => {
+            // Synchronous wrapper — cache results from periodic async fetches
+            if (!remoteDistiller._principleCache) return [];
+            return remoteDistiller._principleCache.slice(0, limit);
+          },
+          getAntiPatterns: (_domain?: string, limit = 50) => {
+            if (!remoteDistiller._antiPatternCache) return [];
+            return remoteDistiller._antiPatternCache.slice(0, limit);
+          },
+          _principleCache: [] as Array<{ id: string; domain: string; statement: string; success_rate: number; sample_size: number; confidence: number; source: string }>,
+          _antiPatternCache: [] as Array<{ id: string; domain: string; statement: string; failure_rate: number; sample_size: number; confidence: number; source: string }>,
+          _refreshInterval: null as ReturnType<typeof setInterval> | null,
+          refresh: async () => {
+            try {
+              const principles = await crossBrain.query(peerName, 'knowledge.principles', { limit: 50 });
+              if (Array.isArray(principles)) remoteDistiller._principleCache = principles;
+              const antiPatterns = await crossBrain.query(peerName, 'knowledge.antipatterns', { limit: 50 });
+              if (Array.isArray(antiPatterns)) remoteDistiller._antiPatternCache = antiPatterns;
+            } catch { /* peer may be unreachable */ }
+          },
+        };
+        // Initial fetch + periodic refresh every 2 minutes
+        remoteDistiller.refresh();
+        remoteDistiller._refreshInterval = setInterval(() => remoteDistiller.refresh(), 120_000);
+        this.transferEngine.registerPeerDistiller(peerName, remoteDistiller as unknown as import('@timmeck/brain-core').KnowledgeDistiller);
+        logger.info(`[peer-network] Registered remote distiller for ${peerName} → TransferEngine`);
+      }
     });
     this.peerNetwork.onPeerLost((peer) => {
       logger.warn(`[peer-network] Lost peer: ${peer.name}`);
